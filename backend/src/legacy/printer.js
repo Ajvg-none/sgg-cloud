@@ -372,5 +372,7 @@ module.exports = {
   saveTicketToFile,
   generateTicketText,
   testAgentConnection,
-  buildAgentUrl
+  buildAgentUrl,
+  generateTicketText,
+  generateEscPosBuffer
 };

@@ -2,25 +2,28 @@
 const express = require('express');
 const router = express.Router();
 
-// Importamos los middlewares de seguridad
+// Middlewares de seguridad
 const authenticateToken = require('../middleware/auth');
 const requireRole = require('../middleware/role');
 
-// Importamos las funciones del controlador de tienda
-const { getOrder, createWarranty } = require('../controllers/storeController');
+// Controladores
+const {
+  getOrder,
+  createWarranty,
+  getMyWarranties,
+  getWarrantyDetail,
+} = require('../controllers/storeController');
 
-// 🔒 PROTECCIÓN GLOBAL DE ESTE ROUTER:
-// Todas las rutas definidas después de estas líneas requerirán:
-// 1. Un token JWT válido (authenticateToken)
-// 2. Que el rol del usuario sea 'TIENDA' (requireRole)
+// 🔒 PROTECCIÓN GLOBAL: aplica a TODAS las rutas de este router
 router.use(authenticateToken);
 router.use(requireRole(['TIENDA']));
 
-// Rutas
-// GET /api/store/order/:orderNumber
+// --- Rutas existentes (Fase 4) ---
 router.get('/order/:orderNumber', getOrder);
-
-// POST /api/store/warranties
 router.post('/warranties', createWarranty);
+
+// --- Rutas nuevas (Fase 5 - RF-03) ---
+router.get('/warranties', getMyWarranties);
+router.get('/warranties/:id', getWarrantyDetail);
 
 module.exports = router;
