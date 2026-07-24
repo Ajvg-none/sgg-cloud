@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  ADMIN
+  TIENDA
+  LABORATORIO
+}
+
+enum Status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  ERROR
+}
+
+// ============================================================
+// MODELOS
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique  
+  password  String   // hashed with bcrypt
+  role      Role
+  storeId   String?  @map("store_id")
+  labId     String?  @map("lab_id")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  store Store? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  lab   Lab?   @relation(fields: [labId], references: [id], onDelete: SetNull)
+  
+  @@map("users")
+}
+
+model Store {
+  id          String     @id @default(cuid())
+  name        String
+  accn        String     @unique
+  labId       String     @map("lab_id")
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  lab         Lab        @relation(fields: [labId], references: [id])
+  users       User[]
+  warranties  Warranty[]
+
+  @@map("stores")
+}
+
+model Lab {
+  id           String     @id @default(cuid())
+  name         String
+  ipAgente     String     @map("ip_agente")
+  puertoAgente String     @map("puerto_agente")
+  rutaVcaRed   String     @map("ruta_vca_red")
+  apiKey       String     @unique
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  stores       Store[]
+  warranties   Warranty[]
+  users        User[]     
+  @@map("labs")
+}
+
+model OrderCache {
+  id          String   @id @default(cuid())
+  orderNumber String   @unique @map("order_number")
+  rawData     Json
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("orders_cache")
+}
+
+model Warranty {
+  id                   String    @id @default(cuid())
+  storeId              String    @map("store_id")
+  labId                String    @map("lab_id")
+  orderNumber          String    @map("order_number")
+  orderData            Json      @map("order_data")
+  status               Status    @default(PENDING)
+  processingStartedAt  DateTime? @map("processing_started_at")
+  processedAt          DateTime? @map("processed_at")
+  errorMessage         String?   @map("error_message")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  store Store @relation(fields: [storeId], references: [id])
+  lab   Lab   @relation(fields: [labId], references: [id])
+
+  @@map("warranties")
+}
+
+model Log {
+  id        String   @id @default(cuid())
+  level     String
+  message   String
+  context   Json?
+  timestamp DateTime @default(now())
+
+  @@map("logs")
+}
