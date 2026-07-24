@@ -143,4 +143,83 @@ const createWarranty = async (req, res) => {
     }
 };
 
-module.exports = { getOrder, createWarranty };
+
+// ============================================================
+// FASE 5: LISTADO HISTÓRICO PARA TIENDAS (RF-03)
+// ============================================================
+
+/**
+ * GET /api/store/warranties
+ * Devuelve todas las garantías de la tienda autenticada.
+ * Política de acceso: SOLO ve las suyas (RF-03.3).
+ */
+const getMyWarranties = async (req, res) => {
+  try {
+    const storeId = req.user.storeId || req.user.store?.id;
+
+    if (!storeId) {
+      return res.status(400).json({
+        error: 'No se pudo identificar la tienda del usuario autenticado.'
+      });
+    }
+
+    const warranties = await prisma.warranty.findMany({
+      where: { storeId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.status(200).json({ warranties });
+  } catch (error) {
+    logger.error(`[getMyWarranties] Error: ${error.message}`, {
+      userId: req.user.id,
+    });
+    return res.status(500).json({ error: 'Error al obtener las garantías.' });
+  }
+};
+
+/**
+ * GET /api/store/warranties/:id
+ * Devuelve el detalle de una garantía específica.
+ * Verifica que la garantía pertenezca a la tienda autenticada (RF-03.3).
+ */
+const getWarrantyDetail = async (req, res) => {
+  try {
+    const storeId = req.user.storeId || req.user.store?.id;
+    const { id } = req.params;
+
+    if (!storeId) {
+      return res.status(400).json({
+        error: 'No se pudo identificar la tienda del usuario autenticado.'
+      });
+    }
+
+    const warranty = await prisma.warranty.findFirst({
+      where: {
+        id: parseInt(id),
+        storeId, // ← Filtro forzado por backend (RF-03.3)
+      },
+    });
+
+    if (!warranty) {
+      return res.status(404).json({
+        error: 'Garantía no encontrada o no pertenece a tu tienda.',
+      });
+    }
+
+    return res.status(200).json({ warranty });
+  } catch (error) {
+    logger.error(`[getWarrantyDetail] Error: ${error.message}`, {
+      userId: req.user.id,
+      warrantyId: req.params.id,
+    });
+    return res.status(500).json({ error: 'Error al obtener el detalle de la garantía.' });
+  }
+};
+
+module.exports = { getOrder, createWarranty, getMyWarranties,getWarrantyDetail,  };
