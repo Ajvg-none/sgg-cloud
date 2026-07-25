@@ -4,26 +4,23 @@ const router = express.Router();
 const multer = require('multer');
 const authenticateToken = require('../middleware/auth');
 const requireRole = require('../middleware/role');
+
+// 1. Importar desde adminController (Labs, Stores, Dashboard, Logs, CSV)
 const {
-  // Laboratorios
-  createLab,
-  getLabs,
-  updateLab,
-  deleteLab,
-  regenerateLabApiKey,
-  // Tiendas
-  createStore,
-  getStores,
-  updateStore,
-  // Usuarios
-  resetUserPassword,
-  // Dashboard
+  createLab, getLabs, updateLab, deleteLab, regenerateLabApiKey,
+  createStore, getStores, updateStore,
+  resetUserPassword, // Usamos este para el reset de contraseñas
   getWarrantiesDashboard,
-  // Logs
   getLogs,
-  // CSV
   importCsv,
 } = require('../controllers/adminController');
+
+// 2. Importar desde adminUserController (Gestión de Usuarios)
+const {
+  getUsers,
+  createUser,
+  updateUser,
+} = require('../controllers/adminUserController');
 
 // 🔒 PROTECCIÓN GLOBAL: Solo ADMIN
 router.use(authenticateToken);
@@ -61,6 +58,9 @@ router.put('/stores/:id', updateStore);
 // ============================================================
 // RUTAS DE USUARIOS
 // ============================================================
+router.get('/users', getUsers);               // ← Ahora sí está importado
+router.post('/users', createUser);            // ← Ahora sí está importado
+router.put('/users/:id', updateUser);         // ← Ahora sí está importado
 router.post('/users/:userId/reset-password', resetUserPassword);
 
 // ============================================================
