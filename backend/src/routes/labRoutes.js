@@ -10,6 +10,7 @@ const {
   testPrint,
   getMyLabWarranties,
   updateLabConfig,
+  getMyStores,
 } = require('../controllers/labController');
 
 // Proteccion: solo LABORATORIO y ADMIN
@@ -30,6 +31,9 @@ router.post('/test-print', testPrint);
 
 // Garantias del laboratorio
 router.get('/warranties', getMyLabWarranties);
+
+// Tiendas del laboratorio
+router.get('/stores', getMyStores);
 
 // Configuracion del lab (ruta VCA)
 router.put('/config', updateLabConfig);

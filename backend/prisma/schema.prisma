@@ -98,6 +98,8 @@ model Warranty {
   processingStartedAt  DateTime? @map("processing_started_at")
   processedAt          DateTime? @map("processed_at")
   errorMessage         String?   @map("error_message")
+  warrantyType         String?   @map("warranty_type")
+  storeObservations    String?   @map("store_observations") @db.VarChar(300)
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
