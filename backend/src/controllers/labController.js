@@ -38,7 +38,8 @@ const reprintTicket = async (req, res) => {
 
     let ticketBuffer;
     try {
-      ticketBuffer = generateEscPosBuffer(warranty.orderData);
+      const orderForPrint = { ...warranty.orderData, warrantyType: warranty.warrantyType };
+      ticketBuffer = generateEscPosBuffer(orderForPrint);
     } catch (error) {
       return res.status(500).json({ error: 'Error al generar buffer.', details: error.message });
     }
@@ -149,7 +150,7 @@ const testPrint = async (req, res) => {
       od_esfera: '0.00', od_cilindro: '0.00', od_eje: '0',
       oi_esfera: '0.00', oi_cilindro: '0.00', oi_eje: '0',
       observaciones: 'Ticket de prueba - SGG',
-    });
+    }, []);
 
     const agentUrl = `http://${lab.ipAgente}:${lab.puertoAgente}/print`;
     await axios.post(agentUrl, { buffer: ticketBuffer.toString('base64'), warrantyId: 'test', orderNumber: 'TEST-0000' }, {
@@ -225,4 +226,22 @@ const updateLabConfig = async (req, res) => {
   }
 };
 
-module.exports = { reprintTicket, regenerateVca, agentStatus, testPrint, getMyLabWarranties, updateLabConfig };
+/**
+ * GET /api/lab/stores
+ * Devuelve las tiendas del laboratorio autenticado.
+ */
+const getMyStores = async (req, res) => {
+  try {
+    const stores = await prisma.store.findMany({
+      where: { labId: req.user.labId, active: true },
+      select: { id: true, name: true, accn: true },
+      orderBy: { name: 'asc' },
+    });
+    return res.status(200).json({ stores });
+  } catch (error) {
+    logger.error(`[getMyStores] ${error.message}`);
+    return res.status(500).json({ error: 'Error al obtener tiendas.' });
+  }
+};
+
+module.exports = { reprintTicket, regenerateVca, agentStatus, testPrint, getMyLabWarranties, updateLabConfig, getMyStores };

@@ -59,6 +59,7 @@ export const labAPI = {
   reprintTicket: (warrantyId) => api.post(`/lab/print/${warrantyId}`),
   regenerateVca: (warrantyId) => api.post(`/lab/regenerate-vca/${warrantyId}`),
   updateConfig: (data) => api.put('/lab/config', data),
+  getMyStores: () => api.get('/lab/stores'),
 };
 
 // ============================================================

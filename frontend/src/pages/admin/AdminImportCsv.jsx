@@ -83,7 +83,7 @@ const AdminImportCsv = () => {
             <tbody>
               <tr className="border-b border-opticolor-gray-100">
                 <td className="py-2 px-3 font-mono text-opticolor-gray-800">orden_numero</td>
-                <td className="py-2 px-3 text-opticolor-gray-600">Número de orden en GesVision</td>
+                <td className="py-2 px-3 text-opticolor-gray-600">Número de OTG en GesVision</td>
                 <td className="py-2 px-3"><span className="text-green-600 font-semibold">SI</span></td>
                 <td className="py-2 px-3 font-mono text-opticolor-gray-500">OV-001234</td>
               </tr>
@@ -110,6 +110,18 @@ const AdminImportCsv = () => {
                 <td className="py-2 px-3 text-opticolor-gray-600">Fecha de creación (ISO 8601)</td>
                 <td className="py-2 px-3"><span className="text-gray-400">No</span></td>
                 <td className="py-2 px-3 font-mono text-opticolor-gray-500">2025-06-15T10:30:00Z</td>
+              </tr>
+              <tr className="border-b border-opticolor-gray-100">
+                <td className="py-2 px-3 font-mono text-opticolor-gray-800">tipo_garantia</td>
+                <td className="py-2 px-3 text-opticolor-gray-600">Tipo de garantía</td>
+                <td className="py-2 px-3"><span className="text-gray-400">No</span></td>
+                <td className="py-2 px-3 font-mono text-opticolor-gray-500">Error de medición</td>
+              </tr>
+              <tr className="border-b border-opticolor-gray-100">
+                <td className="py-2 px-3 font-mono text-opticolor-gray-800">observaciones_tienda</td>
+                <td className="py-2 px-3 text-opticolor-gray-600">Observaciones de la tienda (máx. 300)</td>
+                <td className="py-2 px-3"><span className="text-gray-400">No</span></td>
+                <td className="py-2 px-3 font-mono text-opticolor-gray-500">Cliente reporta...</td>
               </tr>
             </tbody>
           </table>

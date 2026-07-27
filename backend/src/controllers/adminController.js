@@ -408,7 +408,7 @@ const resetUserPassword = async (req, res) => {
 /**
  * GET /api/admin/warranties
  * Dashboard con filtros y paginación.
- * Query params: storeId, labId, status, startDate, endDate, page, limit
+ * Query params: storeId, labId, status, warrantyType, search, startDate, endDate, page, limit
  */
 const getWarrantiesDashboard = async (req, res) => {
   try {
@@ -417,6 +417,7 @@ const getWarrantiesDashboard = async (req, res) => {
       labId,
       status,
       search,
+      warrantyType,
       startDate,
       endDate,
       page = 1,
@@ -430,6 +431,7 @@ const getWarrantiesDashboard = async (req, res) => {
     if (labId) where.labId = labId;
     if (status) where.status = status;
     if (search) where.orderNumber = { contains: search, mode: 'insensitive' };
+    if (warrantyType) where.warrantyType = warrantyType;
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
@@ -556,7 +558,7 @@ const { Readable } = require('stream');
 /**
  * POST /api/admin/import-csv
  * Importa garantías históricas desde un archivo CSV.
- * Columnas esperadas: orden_numero, tienda_nombre, datos_corregidos (JSON), observaciones, fecha_creacion
+ * Columnas esperadas: orden_numero, tienda_nombre, datos_corregidos (JSON), observaciones, fecha_creacion, tipo_garantia, observaciones_tienda
  */
 const importCsv = async (req, res) => {
   try {
@@ -594,6 +596,8 @@ const importCsv = async (req, res) => {
             const datosCorregidosRaw = row.datos_corregidos;
             const observaciones = row.observaciones || '';
             const fechaCreacion = row.fecha_creacion;
+            const warrantyType = row.tipo_garantia?.trim() || null;
+            const storeObservations = row.observaciones_tienda?.trim() || null;
 
             // Validaciones
             if (!orderNumber) {
@@ -633,9 +637,11 @@ const importCsv = async (req, res) => {
               labId: store.labId,
               orderNumber,
               orderData,
+              warrantyType,
+              storeObservations,
               observaciones,
               createdAt: fechaCreacion ? new Date(fechaCreacion) : new Date(),
-              status: 'COMPLETED', // RF-11.4: no las procesa el agente
+              status: 'COMPLETED',
             });
           } catch (e) {
             errors.push({ row: processedCount, error: e.message });

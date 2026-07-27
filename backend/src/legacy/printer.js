@@ -126,11 +126,17 @@ function generateTicketText(order, items) {
   const tableSep = '  +------+------+---+------+----+';
   const allLines = [];
   allLines.push('OPTI-COLOR #2, C.A.');
-  const ordText = `Orden: ${codigoCompleto} | Suc: ${sucursal}`;
+  allLines.push('*** G A R A N T I A ***');
+  const fullOrderNumber = order.orden_numero || codigoCompleto;
+  const ordText = `OTG: ${fullOrderNumber} | Suc: ${sucursal}`;
   const ordLines = wrapText(ordText, LINE_WIDTH);
   ordLines.forEach(l => allLines.push(l));
   const clienteLines = wrapText(`Cliente: ${cliente}`, LINE_WIDTH);
   clienteLines.forEach(l => allLines.push(l));
+  if (order.warrantyType) {
+    const tipoLines = wrapText(`Tipo: ${order.warrantyType}`, LINE_WIDTH);
+    tipoLines.forEach(l => allLines.push(l));
+  }
   allLines.push(`Fecha Impresion: ${fechaImpresion}`);
   allLines.push('');
   allLines.push('    Esf    Cil   Eje  Add   DP');
@@ -202,12 +208,13 @@ async function generateEscPosBuffer(order, items) {
       if (order.codigo_completo) {
         printer.feed(2);
         printer.align('CT');
-        printer.barcode(order.codigo_completo, 'CODE39', {
+        const barcodeValue = order.orden_numero || order.codigo_completo;
+        printer.barcode(barcodeValue, 'CODE39', {
           width: 1, height: 50, position: 'OFF'
         });
-        const formattedCode = '* ' + order.codigo_completo.split('').join(' ') + ' *';
+        const formattedCode = '* ' + barcodeValue.split('').join(' ') + ' *';
         printer.text(formattedCode);
-        logger.info(`Código de barras generado en CODE39 para: ${order.codigo_completo}`);
+        logger.info(`Código de barras generado en CODE39 para: ${barcodeValue}`);
       }
       printer.feed(3);
       printer.text('--------------------------------');

@@ -4,6 +4,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import Input from '../../components/ui/Input';
+import Modal from '../../components/ui/Modal';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -36,6 +37,13 @@ const REFRESH_OPTIONS = [
   { value: 30, label: '30 seg' },
 ];
 
+const WARRANTY_TYPES = [
+  'DP mal tomada', 'Error de medición', 'Error de DP', 'Error DP + RX',
+  'Error PIT + DP', 'Error de facturación', 'Defecto de producto', 'Cambio de material',
+  'Error de R', 'Error de altura', 'Error de transcripción', 'Mal asesoramiento',
+  'Mal manejo del producto', 'Insatisfacción del cliente', 'Altura mal tomada',
+];
+
 const AdminDashboard = () => {
   const [warranties, setWarranties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,12 +56,15 @@ const AdminDashboard = () => {
     storeId: '',
     labId: '',
     status: '',
+    warrantyType: '',
     startDate: '',
     endDate: '',
   });
 
   const [stores, setStores] = useState([]);
   const [labs, setLabs] = useState([]);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedWarranty, setSelectedWarranty] = useState(null);
 
   useEffect(() => {
     loadMeta();
@@ -80,6 +91,7 @@ const AdminDashboard = () => {
       if (filters.storeId) params.storeId = filters.storeId;
       if (filters.labId) params.labId = filters.labId;
       if (filters.status) params.status = filters.status;
+      if (filters.warrantyType) params.warrantyType = filters.warrantyType;
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
 
@@ -105,7 +117,7 @@ const AdminDashboard = () => {
   }, [refreshInterval, pagination.page, loadWarranties]);
 
   const handleClearFilters = () => {
-    setFilters({ search: '', storeId: '', labId: '', status: '', startDate: '', endDate: '' });
+    setFilters({ search: '', storeId: '', labId: '', status: '', warrantyType: '', startDate: '', endDate: '' });
   };
 
   const handleFilterChange = (field, value) => {
@@ -153,7 +165,7 @@ const AdminDashboard = () => {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Buscar OT</label>
+              <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Buscar OTG</label>
             <Input
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -197,6 +209,19 @@ const AdminDashboard = () => {
             >
               {STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Tipo Garantía</label>
+            <select
+              value={filters.warrantyType}
+              onChange={(e) => handleFilterChange('warrantyType', e.target.value)}
+              className="w-full px-3 py-2 border border-opticolor-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent"
+            >
+              <option value="">Todos</option>
+              {WARRANTY_TYPES.map((type) => (
+                <option key={type} value={type}>{type}</option>
               ))}
             </select>
           </div>
@@ -261,11 +286,13 @@ const AdminDashboard = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-opticolor-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700"># Orden</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700"># OTG</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Tienda</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Laboratorio</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Tipo</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Estado</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Fecha</th>
+                    <th className="text-right py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -274,8 +301,14 @@ const AdminDashboard = () => {
                       <td className="py-4 px-4 font-mono text-sm text-opticolor-gray-800">{w.orderNumber}</td>
                       <td className="py-4 px-4 text-sm text-opticolor-gray-700">{w.store?.name || '-'}</td>
                       <td className="py-4 px-4 text-sm text-opticolor-gray-700">{w.lab?.name || '-'}</td>
+                      <td className="py-4 px-4 text-xs text-opticolor-gray-600 max-w-[120px] truncate">{w.warrantyType || '-'}</td>
                       <td className="py-4 px-4"><StatusBadge status={w.status} /></td>
                       <td className="py-4 px-4 text-sm text-opticolor-gray-600">{formatDate(w.createdAt)}</td>
+                      <td className="py-4 px-4 text-right">
+                        <Button variant="secondary" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }} className="px-3 py-1 text-xs">
+                          Ver Detalle
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -310,6 +343,90 @@ const AdminDashboard = () => {
           </>
         )}
       </Card>
+
+      <Modal isOpen={detailModalOpen} onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }} title={`Detalle OTG #${selectedWarranty?.orderNumber || ''}`} size="xl">
+        {selectedWarranty && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Información General</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div><p className="text-xs text-opticolor-gray-500">Número de OTG</p><p className="font-mono font-semibold text-opticolor-gray-800">{selectedWarranty.orderNumber}</p></div>
+                <div><p className="text-xs text-opticolor-gray-500">Tienda</p><p className="text-opticolor-gray-800">{selectedWarranty.store?.name || '-'}</p></div>
+                <div><p className="text-xs text-opticolor-gray-500">Laboratorio</p><p className="text-opticolor-gray-800">{selectedWarranty.lab?.name || '-'}</p></div>
+                <div><p className="text-xs text-opticolor-gray-500">Estado</p><StatusBadge status={selectedWarranty.status} /></div>
+                <div><p className="text-xs text-opticolor-gray-500">Fecha de Registro</p><p className="text-opticolor-gray-800">{formatDate(selectedWarranty.createdAt)}</p></div>
+                <div><p className="text-xs text-opticolor-gray-500">Cliente</p><p className="text-opticolor-gray-800">{selectedWarranty.orderData?.cliente_nombre || '-'}</p></div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Datos de la Garantía</h3>
+              <div className="grid grid-cols-1 gap-4">
+                <div><p className="text-xs text-opticolor-gray-500">Tipo de Garantía</p><p className="font-semibold text-opticolor-gray-800">{selectedWarranty.warrantyType || '-'}</p></div>
+                {selectedWarranty.storeObservations && (
+                  <div><p className="text-xs text-opticolor-gray-500">Observaciones de la Tienda</p><p className="text-opticolor-gray-700 bg-opticolor-gray-50 p-3 rounded-lg text-sm italic">{selectedWarranty.storeObservations}</p></div>
+                )}
+              </div>
+            </div>
+
+            {selectedWarranty.orderData && (
+              <>
+                <div>
+                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Derecho (OD)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div><p className="text-xs text-opticolor-gray-500">Esfera</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_esfera ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Cilindro</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_cilindro ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Eje</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_eje ?? '-'}°</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Adición</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_adicion ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">DP</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_dp_centro ?? selectedWarranty.orderData.od_dp_cerca ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_od ?? '-'}</p></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Izquierdo (OI)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div><p className="text-xs text-opticolor-gray-500">Esfera</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_esfera ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Cilindro</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_cilindro ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Eje</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_eje ?? '-'}°</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Adición</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_adicion ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">DP</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_dp_centro ?? selectedWarranty.orderData.oi_dp_cerca ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_oi ?? '-'}</p></div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Medidas de Montura</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div><p className="text-xs text-opticolor-gray-500">Horizontal</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_horizontal ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Vertical</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_vertical ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Puente</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_puente ?? '-'}</p></div>
+                    <div><p className="text-xs text-opticolor-gray-500">Diámetro Máx</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_diametro_max ?? '-'}</p></div>
+                  </div>
+                </div>
+                {selectedWarranty.orderData.items?.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ítems de la OTG</h3>
+                    <div className="space-y-2">
+                      {selectedWarranty.orderData.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-3 bg-opticolor-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-opticolor-gray-800">{item.descripcion}</p>
+                            {item.codigo_completo && <p className="text-xs font-mono text-opticolor-gray-500">{item.codigo_completo}</p>}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-opticolor-gray-700">x{item.cantidad}</p>
+                            {item.es_montura && <span className="text-xs bg-opticolor-red text-white px-2 py-0.5 rounded">Montura</span>}
+                            {item.es_cristal && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded ml-1">Cristal</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

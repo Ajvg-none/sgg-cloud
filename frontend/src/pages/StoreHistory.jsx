@@ -118,7 +118,7 @@ const StoreHistory = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b-2 border-opticolor-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700"># Orden</th>
+                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700"># OTG</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Cliente</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Fecha de Registro</th>
                     <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Estado</th>
@@ -151,19 +151,38 @@ const StoreHistory = () => {
         </Card>
 
         {/* Modal de Detalle */}
-        <Modal isOpen={isModalOpen} onClose={closeModal} title={`Detalle de Garantía #${selectedWarranty?.orderNumber || ''}`} size="xl">
+        <Modal isOpen={isModalOpen} onClose={closeModal} title={`Detalle de Garantía OTG #${selectedWarranty?.orderNumber || ''}`} size="xl">
           {selectedWarranty && (
             <div className="space-y-6">
               {/* Información General */}
               <div>
                 <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">📋 Información General</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div><p className="text-xs text-opticolor-gray-500">Número de Orden</p><p className="font-mono font-semibold text-opticolor-gray-800">{selectedWarranty.orderNumber}</p></div>
+                  <div><p className="text-xs text-opticolor-gray-500">Número de OTG</p><p className="font-mono font-semibold text-opticolor-gray-800">{selectedWarranty.orderNumber}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Cliente</p><p className="font-semibold text-opticolor-gray-800">{selectedWarranty.orderData?.cliente_nombre || '-'}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Código Completo</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.codigo_completo || '-'}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Fecha de Registro</p><p className="text-opticolor-gray-800">{formatDate(selectedWarranty.createdAt)}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Estado</p><StatusBadge status={selectedWarranty.status} /></div>
                   <div><p className="text-xs text-opticolor-gray-500">Tipo de Lente</p><p className="text-opticolor-gray-800">{selectedWarranty.orderData?.tipo_lente || '-'}</p></div>
+                </div>
+              </div>
+
+              {/* Datos de la Garantía */}
+              <div>
+                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">📝 Datos de la Garantía</h3>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <p className="text-xs text-opticolor-gray-500">Tipo de Garantía</p>
+                    <p className="font-semibold text-opticolor-gray-800">{selectedWarranty.warrantyType || '-'}</p>
+                  </div>
+                  {selectedWarranty.storeObservations && (
+                    <div>
+                      <p className="text-xs text-opticolor-gray-500">Observaciones de la Tienda</p>
+                      <p className="text-opticolor-gray-700 bg-opticolor-gray-50 p-3 rounded-lg text-sm italic">
+                        {selectedWarranty.storeObservations}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
