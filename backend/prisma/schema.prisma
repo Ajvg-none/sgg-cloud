@@ -67,6 +67,7 @@ model Lab {
   puertoAgente String     @map("puerto_agente")
   rutaVcaRed   String     @map("ruta_vca_red")
   apiKey       String     @unique
+  lastHeartbeat DateTime?  @map("last_heartbeat")
   active       Boolean    @default(true)
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")

@@ -117,7 +117,7 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const { username, active } = req.body;
 
-    const existingUser = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+    const existingUser = await prisma.user.findUnique({ where: { id } });
     if (!existingUser) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
@@ -129,7 +129,7 @@ const updateUser = async (req, res) => {
         return res.status(400).json({ error: 'El nombre de usuario no puede estar vacío.' });
       }
       const userExists = await prisma.user.findFirst({
-        where: { username: username.toLowerCase(), NOT: { id: parseInt(id) } }
+        where: { username: username.toLowerCase(), NOT: { id } }
       });
       if (userExists) {
         return res.status(409).json({ error: 'Ya existe otro usuario con ese nombre de usuario.' });
@@ -149,7 +149,7 @@ const updateUser = async (req, res) => {
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: updateData
     });
 
@@ -182,7 +182,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+    const existingUser = await prisma.user.findUnique({ where: { id } });
     if (!existingUser) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
@@ -190,7 +190,7 @@ const resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: { password: hashedPassword }
     });
 

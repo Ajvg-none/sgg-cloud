@@ -1,15 +1,22 @@
 // frontend/src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Auth
+import Login from './pages/Login';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Layouts
 import StoreNavbar from './components/layout/StoreNavbar';
+import LabLayout from './components/layout/LabLayout';
 import AdminLayout from './components/layout/AdminLayout';
 
-// Páginas de Tienda
+// Páginas Tienda
 import StoreWarranty from './pages/StoreWarranty';
-import StoreHistory from './pages/StoreHistory'; // <-- Ahora sí existe
 
-// Páginas de Admin
+// Páginas Laboratorio
+import LabDashboard from './pages/lab/LabDashboard';
+
+// Páginas Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminLabs from './pages/admin/AdminLabs';
 import AdminStores from './pages/admin/AdminStores';
@@ -21,22 +28,34 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Rutas de Tienda (con Navbar) */}
-        <Route path="/" element={
-          <>
-            <StoreNavbar />
-            <StoreWarranty />
-          </>
-        } />
-        <Route path="/history" element={
-          <>
-            <StoreNavbar />
-            <StoreHistory />
-          </>
+        {/* Login (público) */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Tienda (solo TIENDA) */}
+        <Route path="/store" element={
+          <ProtectedRoute allowedRoles={['TIENDA']}>
+            <>
+              <StoreNavbar />
+              <StoreWarranty />
+            </>
+          </ProtectedRoute>
         } />
 
-        {/* Rutas de Admin (con Sidebar lateral) */}
-        <Route path="/admin" element={<AdminLayout />}>
+        {/* Laboratorio (solo LABORATORIO) */}
+        <Route path="/lab" element={
+          <ProtectedRoute allowedRoles={['LABORATORIO']}>
+            <LabLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<LabDashboard />} />
+        </Route>
+
+        {/* Admin (solo ADMIN) */}
+        <Route path="/admin" element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
           <Route index element={<AdminDashboard />} />
           <Route path="labs" element={<AdminLabs />} />
           <Route path="stores" element={<AdminStores />} />
@@ -44,6 +63,10 @@ function App() {
           <Route path="logs" element={<AdminLogs />} />
           <Route path="import" element={<AdminImportCsv />} />
         </Route>
+
+        {/* Redirección raíz */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

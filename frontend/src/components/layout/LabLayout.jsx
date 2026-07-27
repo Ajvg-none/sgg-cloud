@@ -1,0 +1,73 @@
+import React from 'react';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+
+const LabLayout = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const username = localStorage.getItem('username') || 'Laboratorio';
+
+  const menuItems = [
+    { path: '/lab', label: 'Panel', icon: '📊', exact: true },
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    localStorage.removeItem('storeId');
+    localStorage.removeItem('labId');
+    navigate('/login');
+  };
+
+  return (
+    <div className="min-h-screen bg-opticolor-gray-50 flex">
+      <aside className="w-64 bg-white border-r border-opticolor-gray-200 shadow-sm flex flex-col">
+        <div className="p-6 border-b border-opticolor-gray-200">
+          <h1 className="text-xl font-bold text-opticolor-red">OPTI-COLOR</h1>
+          <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Laboratorio</p>
+          <p className="text-xs text-opticolor-gray-400 mt-1 font-mono">{username}</p>
+        </div>
+
+        <nav className="p-4 flex-1">
+          <ul className="space-y-2">
+            {menuItems.map((item) => {
+              const isActive = item.exact
+                ? location.pathname === item.path
+                : location.pathname.startsWith(item.path);
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                      isActive
+                        ? 'bg-opticolor-red text-white shadow-md'
+                        : 'text-opticolor-gray-700 hover:bg-opticolor-gray-100'
+                    }`}
+                  >
+                    <span className="text-xl">{item.icon}</span>
+                    <span className="font-medium">{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-opticolor-gray-200">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
+          >
+            🚪 Cerrar Sesión
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+export default LabLayout;

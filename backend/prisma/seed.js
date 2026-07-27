@@ -4,84 +4,96 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
 
-// 1. Configurar el pool de PostgreSQL nativo
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
-// 2. Crear el adapter de Prisma
 const adapter = new PrismaPg(pool);
-
-// 3. Instanciar PrismaClient pasándole el adapter
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('🌱 Iniciando seed de la base de datos...');
+  console.log('🌱 Iniciando seed...\n');
 
-  // 1. Crear Laboratorio
-  const lab = await prisma.lab.upsert({
-    where: { apiKey: 'lab-test-api-key-123' },
+  // === LABORATORIOS ===
+  const labCentral = await prisma.lab.upsert({
+    where: { apiKey: 'sk-lab-central-abc123def456' },
     update: {},
     create: {
       name: 'Laboratorio Central',
       ipAgente: '192.168.1.100',
       puertoAgente: '3001',
       rutaVcaRed: '\\\\192.168.1.100\\Lensware\\VCA',
-      apiKey: 'lab-test-api-key-123',
+      apiKey: 'sk-lab-central-abc123def456',
       active: true,
     },
   });
-  console.log('✅ Laboratorio creado:', lab.name);
+  console.log('✅ Lab:', labCentral.name);
 
-  // 2. Crear Tienda
-  const store = await prisma.store.upsert({
-    where: { accn: '001' },
+  const labNorte = await prisma.lab.upsert({
+    where: { apiKey: 'sk-lab-norte-ghi789jkl012' },
     update: {},
     create: {
-      name: 'Óptica Centro',
-      accn: '001',
-      labId: lab.id,
+      name: 'Laboratorio Norte',
+      ipAgente: '192.168.2.100',
+      puertoAgente: '3001',
+      rutaVcaRed: '\\\\192.168.2.100\\Lensware\\VCA',
+      apiKey: 'sk-lab-norte-ghi789jkl012',
       active: true,
     },
   });
-  console.log('✅ Tienda creada:', store.name);
+  console.log('✅ Lab:', labNorte.name);
 
-  // 3. Crear Usuario Admin
-  const adminPassword = await bcrypt.hash('admin123', 10);
+  // === TIENDAS ===
+  const createStoreWithUser = async (name, accn, lab, username, password) => {
+    const store = await prisma.store.upsert({
+      where: { accn },
+      update: { labId: lab.id },
+      create: { name, accn, labId: lab.id, active: true },
+    });
+
+    const hashed = await bcrypt.hash(password, 10);
+    await prisma.user.upsert({
+      where: { username },
+      update: { password: hashed, role: 'TIENDA', storeId: store.id, labId: null, active: true },
+      create: { username, password: hashed, role: 'TIENDA', storeId: store.id, active: true },
+    });
+    console.log(`✅ Tienda: ${name} (${accn}) → ${username} / ${password}`);
+    return store;
+  };
+
+  await createStoreWithUser('Óptica Centro', '001', labCentral, 'tienda001', 'tienda123');
+  await createStoreWithUser('Óptica Norte', '002', labNorte, 'tienda002', 'tienda123');
+  await createStoreWithUser('Óptica Sur', '003', labCentral, 'tienda003', 'tienda123');
+
+  // === USUARIOS LABORATORIO ===
+  const createLabUser = async (username, password, lab) => {
+    const hashed = await bcrypt.hash(password, 10);
+    await prisma.user.upsert({
+      where: { username },
+      update: { password: hashed, role: 'LABORATORIO', labId: lab.id, storeId: null, active: true },
+      create: { username, password: hashed, role: 'LABORATORIO', labId: lab.id, active: true },
+    });
+    console.log(`✅ Lab User: ${username} / ${password} → ${lab.name}`);
+  };
+
+  await createLabUser('lab_central', 'lab123', labCentral);
+  await createLabUser('lab_norte', 'lab123', labNorte);
+
+  // === ADMIN ===
+  const adminHash = await bcrypt.hash('admin123', 10);
   await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},
-    create: {
-      username: 'admin',
-      password: adminPassword,
-      role: 'ADMIN',
-      active: true,
-    },
+    create: { username: 'admin', password: adminHash, role: 'ADMIN', active: true },
   });
-  console.log('✅ Usuario Admin creado: admin');
+  console.log('✅ Admin: admin / admin123');
 
-  // 4. Crear Usuario Tienda
-  const storePassword = await bcrypt.hash('tienda123', 10);
-  await prisma.user.upsert({
-    where: { username: 'tienda' },
-    update: {},
-    create: {
-      username: 'tienda001',
-      password: storePassword,
-      role: 'TIENDA',
-      storeId: store.id,
-      active: true,
-    },
-  });
-  console.log('✅ Usuario Tienda creado: tienda001');
-
-  console.log('🎉 Seed completado exitosamente!');
+  console.log('\n🎉 Seed completado!');
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error en el seed:', e);
+    console.error('❌ Error seed:', e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end(); // Importante: cerrar también el pool de pg
+    await pool.end();
   });
