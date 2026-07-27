@@ -32,6 +32,14 @@ api.interceptors.response.use(
 );
 
 // ============================================================
+// API DE AUTENTICACIÓN
+// ============================================================
+export const authAPI = {
+  login: (data) => api.post('/auth/login', data),
+  me: () => api.get('/auth/me'),
+};
+
+// ============================================================
 // API DE TIENDA
 // ============================================================
 export const storeAPI = {
@@ -39,6 +47,18 @@ export const storeAPI = {
   createWarranty: (data) => api.post('/store/warranties', data),
   getMyWarranties: () => api.get('/store/warranties'),
   getWarrantyDetail: (id) => api.get(`/store/warranties/${id}`),
+};
+
+// ============================================================
+// API DE LABORATORIO
+// ============================================================
+export const labAPI = {
+  getWarranties: (params) => api.get('/lab/warranties', { params }),
+  agentStatus: () => api.get('/lab/agent-status'),
+  testPrint: () => api.post('/lab/test-print'),
+  reprintTicket: (warrantyId) => api.post(`/lab/print/${warrantyId}`),
+  regenerateVca: (warrantyId) => api.post(`/lab/regenerate-vca/${warrantyId}`),
+  updateConfig: (data) => api.put('/lab/config', data),
 };
 
 // ============================================================
@@ -58,6 +78,9 @@ export const adminAPI = {
   updateStore: (id, data) => api.put(`/admin/stores/${id}`, data),
 
   // Usuarios
+  getUsers: () => api.get('/admin/users'),
+  createUser: (data) => api.post('/admin/users', data),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
   resetUserPassword: (userId, newPassword) =>
     api.post(`/admin/users/${userId}/reset-password`, { newPassword }),
 

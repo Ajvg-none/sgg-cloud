@@ -106,7 +106,7 @@ const completeWarranty = async (req, res) => {
     // Buscar la garantía y verificar que pertenezca a este laboratorio
     const warranty = await prisma.warranty.findFirst({
       where: {
-        id: parseInt(warrantyId),
+        id: warrantyId,
         labId,
       },
     });
@@ -166,7 +166,28 @@ const completeWarranty = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/agent/heartbeat
+ * El agente reporta que está vivo. Actualiza lastHeartbeat del lab.
+ */
+const heartbeat = async (req, res) => {
+  const labId = req.lab.id;
+
+  try {
+    await prisma.lab.update({
+      where: { id: labId },
+      data: { lastHeartbeat: new Date() },
+    });
+
+    return res.status(200).json({ message: 'Heartbeat registrado.' });
+  } catch (error) {
+    logger.error(`[heartbeat] Error: ${error.message}`, { labId });
+    return res.status(500).json({ error: 'Error al registrar heartbeat.' });
+  }
+};
+
 module.exports = {
   getPending,
   completeWarranty,
+  heartbeat,
 };

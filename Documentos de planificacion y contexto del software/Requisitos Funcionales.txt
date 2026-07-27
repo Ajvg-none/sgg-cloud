@@ -1,0 +1,184 @@
+REQUISITOS FUNCIONALES - SISTEMA DE GESTIÓN DE GARANTÍAS (SGG)
+Versión 2.0 - Actualizado (Incluye Puntos Ciegos Resueltos)
+
+--------------------------------------------------------------------
+RF-01: GESTIÓN DE USUARIOS Y AUTENTICACIÓN
+--------------------------------------------------------------------
+RF-01.1: El sistema debe manejar tres roles: Admin, Tienda, Laboratorio.
+RF-01.2: Autenticación mediante JWT (token en localStorage/session).
+RF-01.3: El Admin puede crear, editar, desactivar y resetear contraseñas de cuentas de Tienda y Laboratorio.
+RF-01.4: El Admin crea la cuenta de la tienda y asigna una contraseña manualmente. No se utiliza envío de correo electrónico. Las credenciales se comunican directamente entre el Admin y la tienda.
+RF-01.5: El Admin puede resetear la contraseña de cualquier usuario en cualquier momento.
+
+--------------------------------------------------------------------
+RF-02: SINCRONIZACIÓN Y EDICIÓN DE DATOS (MÓDULO TIENDA)
+--------------------------------------------------------------------
+RF-02.1: El usuario Tienda ingresa el número de orden (o código) en un campo de texto.
+RF-02.2: El sistema debe reutilizar la lógica heredada del Middleware en producción 
+         (ver RF-09) para consumir la API de GesVision, traer todos los datos de la 
+         orden (fórmula, medidas, items, cliente) y guardarlos localmente en la base 
+         de datos del nuevo sistema (tabla orders_cache).
+RF-02.3: Una vez sincronizada, la interfaz debe mostrar los datos en un formulario editable. 
+         Los campos editables son: OD_Esfera, OD_Cilindro, OD_Eje, OD_Adicion, 
+         OD_Dp_Centro, OD_Dp_Cerca, OI_Esfera, OI_Cilindro, OI_Eje, OI_Adicion, 
+         OI_Dp_Centro, OI_Dp_Cerca, Altura_OD, Altura_OI, Montura_Horizontal, 
+         Montura_Vertical, Observaciones.
+RF-02.4: Al guardar, el sistema crea un registro en la tabla warranties con los datos 
+         editados (almacenados en un campo JSONB), asociado a la tienda que lo crea y 
+         a la orden original. No se mostrarán estados de flujo (solo es un registro histórico).
+RF-02.5: VALIDACIONES OBLIGATORIAS: El sistema debe validar que:
+         - Los campos numéricos (esferas, cilindros, ejes, alturas, DP) sean números válidos.
+         - Los ejes estén en el rango 0-180.
+         - Las alturas y DP sean valores positivos (> 0).
+         - El ACCN de la tienda esté configurado (3 dígitos numéricos) antes de permitir guardar.
+         Las validaciones se aplican tanto en frontend (feedback inmediato) como en backend (seguridad).
+
+--------------------------------------------------------------------
+RF-03: LISTADO HISTÓRICO PARA TIENDAS
+--------------------------------------------------------------------
+RF-03.1: La tienda debe tener una vista (CRUD) de sus propias garantías guardadas.
+RF-03.2: La vista mostrará: Número de Orden, Fecha de Creación, y un botón "Ver Detalle" 
+         que muestra en un modal los datos editados que se guardaron.
+RF-03.3: POLÍTICA DE ACCESO: Una tienda SOLO puede ver sus propias garantías. 
+         El backend debe forzar el filtro por store_id = req.user.store_id.
+
+--------------------------------------------------------------------
+RF-04: ENCOLADO AUTOMÁTICO PARA EL LABORATORIO
+--------------------------------------------------------------------
+RF-04.1: Al guardar una garantía (RF-02.4), el sistema debe asignarla al laboratorio 
+         correspondiente a la tienda (campo laboratorio_asignado_id en tiendas) y 
+         cambiar su estado a PENDING.
+RF-04.2: CONCURRENCIA EN POLLING: El backend debe implementar un mecanismo de bloqueo:
+         - Al devolver órdenes PENDING, se marcan como PROCESSING con un timestamp.
+         - Las órdenes en PROCESSING por más de 5 minutos se consideran huérfanas 
+           y se resetean a PENDING (mediante cronjob automático).
+
+--------------------------------------------------------------------
+RF-05: AGENTE DE IMPRESIÓN (POLLING ACTIVO)
+--------------------------------------------------------------------
+RF-05.1: El Agente de Impresión (que corre en la PC local del laboratorio) debe realizar 
+         polling cada 5 segundos (configurable) al endpoint /api/agent/pending?labId=X 
+         del backend en la nube.
+RF-05.2: Si hay órdenes pendientes, el agente las recibe en formato JSON (incluyendo los 
+         datos editados y la ruta de red configurada para el VCA).
+RF-05.3: El agente reutilizará la lógica heredada del Middleware en producción 
+         (ver RF-09) para:
+         - Generar el contenido del archivo VCA (generateVCAContent desde lensware.js).
+         - Guardar el VCA en la ruta de red que recibe en el payload.
+         - Generar el buffer ESC/POS (generateEscPosBuffer desde printer.js).
+         - Enviar el buffer a la impresora Bixolon (usando el script PowerShell ya 
+           existente o la lógica de printBuffer del agente actual).
+RF-05.4: Una vez completado exitosamente (VCA guardado + impresión OK), el agente notifica 
+         al backend (POST /api/agent/complete) con el warrantyId. El backend marca la 
+         garantía como COMPLETED.
+RF-05.5: RECUPERACIÓN DE FALLOS: El agente debe instalarse como servicio de Windows 
+         (usando node-windows) para que arranque automáticamente al encender la PC.
+RF-05.6: HEALTH CHECK: El backend debe monitorear si el agente ha hecho polling 
+         recientemente (> 2 minutos sin polling = alerta).
+
+--------------------------------------------------------------------
+RF-06: REIMPRESIÓN DE TICKET (MANUAL)
+--------------------------------------------------------------------
+RF-06.1: El usuario Laboratorio (o Admin) puede solicitar la reimpresión de un ticket 
+         desde la interfaz web.
+RF-06.2: El backend reenvía los datos del ticket (formato ESC/POS buffer) al agente 
+         correspondiente, sin regenerar el VCA. El agente solo imprime.
+
+--------------------------------------------------------------------
+RF-07: PANEL DE ADMINISTRACIÓN (CONFIGURACIÓN CENTRALIZADA)
+--------------------------------------------------------------------
+RF-07.1: El Admin debe poder gestionar los laboratorios (CRUD). Cada laboratorio tiene:
+         - Nombre
+         - IP_Agente (dirección IP donde corre el agente)
+         - Puerto_Agente (puerto HTTP del agente)
+         - Ruta_VCA_Red (ruta de red donde se guardarán los archivos VCA, 
+           ej: \\192.168.1.100\Lensware\VCA).
+         - API_Key (generada automáticamente al crear el laboratorio)
+RF-07.2: El Admin debe poder gestionar las tiendas (CRUD) y asignarles:
+         - Laboratorio asignado (obligatorio)
+         - Código ACCN (3 dígitos numéricos, obligatorio)
+         - Estado (Activa/Inactiva)
+RF-07.3: El Admin debe visualizar un dashboard con todas las garantías del sistema, 
+         con filtros por tienda, fecha, estado (PENDING/COMPLETED/ERROR).
+RF-07.4: El Admin debe poder resetear la contraseña de cualquier usuario (tienda o laboratorio) 
+         desde el panel de administración.
+RF-07.5: El Admin debe poder importar garantías históricas mediante archivo CSV 
+         (para migración de datos del sistema anterior).
+
+--------------------------------------------------------------------
+RF-08: CONFIGURACIÓN DE RUTAS Y CONEXIONES (SIN .ENV)
+--------------------------------------------------------------------
+RF-08.1: Las configuraciones de IP, puerto y rutas de red no se manejarán por variables 
+         de entorno en el backend en la nube. Se almacenan en la base de datos 
+         (tabla laboratorios) y se editan desde el panel Admin.
+RF-08.2: El backend en la nube nunca escribe directamente en la carpeta de red. Solo 
+         envía la ruta como dato al agente, quien es el que escribe físicamente el 
+         archivo VCA.
+
+--------------------------------------------------------------------
+RF-09: REUTILIZACIÓN OBLIGATORIA DE CÓDIGO DEL MIDDLEWARE EN PRODUCCIÓN 
+      (REQUISITO TÉCNICO Y FUNCIONAL CRÍTICO)
+--------------------------------------------------------------------
+RF-09.1: El desarrollo del nuevo sistema DEBE aprovechar el código fuente del 
+         middleware actual que ya está en producción y ha sido probado en 
+         condiciones reales.
+
+RF-09.2: Los siguientes módulos del middleware existente deben ser copiados y 
+         adaptados (no reescritos desde cero) en el nuevo backend y en el agente:
+         a) src/services/gesvisionApi.js 
+            (Lógica de autenticación, manejo de tokens, reintentos con backoff y 
+             métodos GET para órdenes, facturas, clientes y productos).
+         b) src/services/orderSync.js (EXTRACCIÓN PARCIAL)
+            Se debe extraer la función interna que mapea los datos crudos de 
+            GesVision (formula, medidas, items, cliente) a un objeto plano. 
+            La parte de guardado en BD (UPSERT) se reemplazará por la lógica 
+            de guardado del nuevo sistema (tabla orders_cache).
+         c) src/services/lensware.js (EXTRACCIÓN PARCIAL)
+            Se debe copiar la función generateVCAContent (pura, sin dependencias 
+            de sistema de archivos). Esta función se usará en el backend para 
+            generar el contenido VCA que se envía al agente, y también en el 
+            agente para guardarlo físicamente en disco.
+         d) src/services/printer.js (EXTRACCIÓN PARCIAL)
+            Se deben copiar las funciones generateTicketText y generateEscPosBuffer 
+            (puras). Se usarán tanto en el backend (para reimpresiones) como en 
+            el agente (para la impresión inicial).
+
+RF-09.3: El Agente de Impresión existente (print-agent) debe ser ampliado (forkeado) 
+         para incluir el polling a la nube, pero DEBE conservar intactas las 
+         funciones de impresión física (printBuffer, checkPrinterConnected) y el 
+         script PowerShell (PRINT-TICKET.PS1) que ya funcionan correctamente.
+
+RF-09.4: Queda terminantemente prohibido reimplementar la lógica de conexión a 
+         GesVision, la generación del formato VCA o la construcción del buffer 
+         ESC/POS. Cualquier desviación de la lógica original deberá justificarse 
+         por escrito y someterse a revisión, ya que cambiar estos formatos 
+         rompería la integración con Lensware y con la impresora Bixolon.
+
+RF-09.5: Las pruebas unitarias de los módulos heredados (RF-09.2) deben ejecutarse 
+         en el nuevo entorno con los mismos datos mock que se usaban en el 
+         middleware para garantizar que la salida (contenido VCA y buffer de ticket) 
+         sea exactamente la misma.
+
+--------------------------------------------------------------------
+RF-10: LOGS Y MONITOREO
+--------------------------------------------------------------------
+RF-10.1: El backend debe implementar un sistema de logs estructurados (usando Winston) 
+         con rotación de archivos y niveles (info, warn, error).
+RF-10.2: El agente de impresión debe mantener su sistema de logs (Winston) y guardarlos 
+         en una carpeta persistente.
+RF-10.3: El Admin debe poder consultar logs recientes del backend desde la interfaz 
+         (endpoint GET /api/admin/logs).
+RF-10.4: Todos los errores de sincronización, generación de VCA, impresión y comunicación 
+         con el agente deben quedar registrados con el contexto necesario (orderId, 
+         warrantyId, timestamp).
+
+--------------------------------------------------------------------
+RF-11: MIGRACIÓN DE DATOS HISTÓRICOS
+--------------------------------------------------------------------
+RF-11.1: El sistema debe proporcionar un mecanismo para importar garantías históricas 
+         (del sistema anterior) mediante archivo CSV.
+RF-11.2: El Admin puede cargar un archivo CSV con las siguientes columnas: 
+         orden_numero, tienda_nombre, datos_corregidos (JSON), observaciones, fecha_creacion.
+RF-11.3: El sistema debe validar que la tienda exista en el sistema antes de importar.
+RF-11.4: Las garantías importadas se guardan en la tabla warranties con estado COMPLETED 
+         (para no ser procesadas por el agente).

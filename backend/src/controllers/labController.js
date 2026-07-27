@@ -12,9 +12,6 @@ const prisma = new PrismaClient({ adapter });
 
 /**
  * POST /api/lab/print/:warrantyId
- * Reimprime el ticket de una garantía ya completada.
- * RF-06.1: Solo usuarios con rol LABORATORIO o ADMIN pueden solicitar reimpresión.
- * RF-06.2: Reenvía los datos del ticket al agente local sin regenerar el VCA.
  */
 const reprintTicket = async (req, res) => {
   try {
@@ -22,156 +19,210 @@ const reprintTicket = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    // 1. Verificar rol (LABORATORIO o ADMIN)
     if (!['LABORATORIO', 'ADMIN'].includes(userRole)) {
-      logger.warn(`[reprintTicket] Usuario sin permisos intentó reimprimir`, {
-        userId,
-        userRole,
-        warrantyId,
-      });
-      return res.status(403).json({
-        error: 'Solo usuarios de Laboratorio o Administrador pueden reimprimir tickets.',
-      });
+      return res.status(403).json({ error: 'Solo Laboratorio o Administrador pueden reimprimir.' });
     }
 
-    // 2. Buscar la garantía
     const warranty = await prisma.warranty.findUnique({
-      where: { id: parseInt(warrantyId) },
+      where: { id: warrantyId },
       include: {
         lab: {
-          select: {
-            id: true,
-            name: true,
-            agentIp: true,
-            agentPort: true,
-          },
+          select: { id: true, name: true, ipAgente: true, puertoAgente: true, apiKey: true },
         },
       },
     });
 
-    if (!warranty) {
-      logger.warn(`[reprintTicket] Garantía no encontrada`, { warrantyId });
-      return res.status(404).json({
-        error: 'Garantía no encontrada.',
-      });
-    }
+    if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
+    if (warranty.status !== 'COMPLETED') return res.status(400).json({ error: `Estado: ${warranty.status}. Solo se reimprimen completadas.` });
+    if (!warranty.lab?.ipAgente || !warranty.lab?.puertoAgente) return res.status(400).json({ error: 'Lab sin agente configurado.' });
 
-    // 3. Verificar que la garantía esté COMPLETED
-    if (warranty.status !== 'COMPLETED') {
-      logger.warn(`[reprintTicket] Garantía no está completada`, {
-        warrantyId,
-        status: warranty.status,
-      });
-      return res.status(400).json({
-        error: `La garantía está en estado ${warranty.status}. Solo se pueden reimprimir garantías completadas.`,
-      });
-    }
-
-    // 4. Verificar que el laboratorio tenga configuración de agente
-    if (!warranty.lab || !warranty.lab.agentIp || !warranty.lab.agentPort) {
-      logger.error(`[reprintTicket] Laboratorio sin configuración de agente`, {
-        warrantyId,
-        labId: warranty.labId,
-      });
-      return res.status(400).json({
-        error: 'El laboratorio no tiene configurada la IP y puerto del agente.',
-      });
-    }
-
-    // 5. Generar el buffer ESC/POS usando la función legacy
     let ticketBuffer;
     try {
       ticketBuffer = generateEscPosBuffer(warranty.orderData);
-      logger.info(`[reprintTicket] Buffer ESC/POS generado exitosamente`, {
-        warrantyId,
-        bufferSize: ticketBuffer.length,
-      });
     } catch (error) {
-      logger.error(`[reprintTicket] Error generando buffer ESC/POS: ${error.message}`, {
-        warrantyId,
-      });
-      return res.status(500).json({
-        error: 'Error al generar el buffer de impresión.',
-        details: error.message,
-      });
+      return res.status(500).json({ error: 'Error al generar buffer.', details: error.message });
     }
 
-    // 6. Enviar el buffer al agente local
-    const agentUrl = `http://${warranty.lab.agentIp}:${warranty.lab.agentPort}/print`;
+    const agentUrl = `http://${warranty.lab.ipAgente}:${warranty.lab.puertoAgente}/print`;
     const bufferBase64 = ticketBuffer.toString('base64');
 
     try {
-      logger.info(`[reprintTicket] Enviando buffer al agente local`, {
-        warrantyId,
-        agentUrl,
-        labName: warranty.lab.name,
+      await axios.post(agentUrl, {
+        buffer: bufferBase64, warrantyId: warranty.id, orderNumber: warranty.orderNumber,
+      }, {
+        timeout: 10000,
+        headers: { 'Content-Type': 'application/json', 'X-API-Key': warranty.lab.apiKey },
       });
 
-      const response = await axios.post(
-        agentUrl,
-        {
-          buffer: bufferBase64,
-          warrantyId: warranty.id,
-          orderNumber: warranty.orderNumber,
-        },
-        {
-          timeout: 10000, // 10 segundos de timeout
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.status === 200) {
-        logger.info(`✅ Ticket reimpreso exitosamente`, {
-          warrantyId,
-          orderNumber: warranty.orderNumber,
-          labName: warranty.lab.name,
-          userId,
-        });
-
-        return res.status(200).json({
-          message: 'Ticket enviado a impresión exitosamente.',
-          warranty: {
-            id: warranty.id,
-            orderNumber: warranty.orderNumber,
-            lab: warranty.lab.name,
-          },
-        });
-      } else {
-        throw new Error(`Respuesta inesperada del agente: ${response.status}`);
-      }
+      return res.status(200).json({ message: 'Ticket enviado.', warranty: { id: warranty.id, orderNumber: warranty.orderNumber, lab: warranty.lab.name } });
     } catch (error) {
-      logger.error(`[reprintTicket] Error enviando al agente: ${error.message}`, {
-        warrantyId,
-        agentUrl,
-        errorCode: error.code,
-      });
-
-      // Diferenciar entre errores de conexión y otros errores
       if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-        return res.status(503).json({
-          error: 'No se pudo conectar con el agente de impresión. Verifica que el agente esté corriendo.',
-          details: error.message,
-        });
+        return res.status(503).json({ error: 'No se pudo conectar con el agente.' });
       }
-
-      return res.status(500).json({
-        error: 'Error al enviar el ticket al agente de impresión.',
-        details: error.message,
-      });
+      return res.status(500).json({ error: 'Error al enviar al agente.', details: error.message });
     }
   } catch (error) {
-    logger.error(`[reprintTicket] Error inesperado: ${error.message}`, {
-      warrantyId: req.params.warrantyId,
-      userId: req.user.id,
-    });
-    return res.status(500).json({
-      error: 'Error interno del servidor al procesar la reimpresión.',
-    });
+    logger.error(`[reprintTicket] ${error.message}`);
+    return res.status(500).json({ error: 'Error interno.' });
   }
 };
 
-module.exports = {
-  reprintTicket,
+/**
+ * POST /api/lab/regenerate-vca/:warrantyId
+ */
+const regenerateVca = async (req, res) => {
+  try {
+    const { warrantyId } = req.params;
+
+    const warranty = await prisma.warranty.findUnique({
+      where: { id: warrantyId },
+      include: {
+        lab: { select: { id: true, name: true, ipAgente: true, puertoAgente: true, apiKey: true } },
+        store: { select: { name: true, accn: true } },
+      },
+    });
+
+    if (!warranty || warranty.status !== 'COMPLETED') return res.status(400).json({ error: 'Garantía no encontrada o no completada.' });
+    if (!warranty.lab?.ipAgente || !warranty.lab?.puertoAgente) return res.status(400).json({ error: 'Lab sin agente configurado.' });
+
+    const agentUrl = `http://${warranty.lab.ipAgente}:${warranty.lab.puertoAgente}/api/vca`;
+
+    await axios.post(agentUrl, {
+      warrantyId: warranty.id, orderNumber: warranty.orderNumber,
+      orderData: warranty.orderData, accn: warranty.store?.accn || '000', tiendaNombre: warranty.store?.name || 'TIENDA',
+    }, { timeout: 10000, headers: { 'Content-Type': 'application/json', 'X-API-Key': warranty.lab.apiKey } });
+
+    return res.status(200).json({ message: 'VCA regenerado.' });
+  } catch (error) {
+    logger.error(`[regenerateVca] ${error.message}`);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') return res.status(503).json({ error: 'No se pudo conectar con el agente.' });
+    return res.status(500).json({ error: 'Error al regenerar VCA.', details: error.message });
+  }
 };
+
+/**
+ * GET /api/lab/agent-status
+ */
+const agentStatus = async (req, res) => {
+  try {
+    const lab = await prisma.lab.findUnique({
+      where: { id: req.user.labId },
+      select: { id: true, ipAgente: true, puertoAgente: true, rutaVcaRed: true, lastHeartbeat: true },
+    });
+
+    if (!lab) return res.status(404).json({ error: 'Laboratorio no encontrado.' });
+
+    const now = new Date();
+    const secondsSinceLastBeat = lab.lastHeartbeat
+      ? Math.floor((now - new Date(lab.lastHeartbeat)) / 1000)
+      : null;
+    const online = secondsSinceLastBeat !== null && secondsSinceLastBeat < 120;
+
+    return res.status(200).json({
+      online,
+      lastHeartbeat: lab.lastHeartbeat,
+      secondsSinceLastBeat,
+      agentIp: lab.ipAgente,
+      agentPort: lab.puertoAgente,
+      vcaNetworkPath: lab.rutaVcaRed,
+    });
+  } catch (error) {
+    logger.error(`[agentStatus] ${error.message}`);
+    return res.status(500).json({ error: 'Error al obtener estado del agente.' });
+  }
+};
+
+/**
+ * POST /api/lab/test-print
+ */
+const testPrint = async (req, res) => {
+  try {
+    const lab = await prisma.lab.findUnique({
+      where: { id: req.user.labId },
+      select: { ipAgente: true, puertoAgente: true, apiKey: true },
+    });
+
+    if (!lab?.ipAgente || !lab?.puertoAgente) return res.status(400).json({ error: 'Lab sin agente configurado.' });
+
+    const ticketBuffer = generateEscPosBuffer({
+      orden_numero: 'TEST-0000', cliente_nombre: 'PRUEBA DE IMPRESION',
+      od_esfera: '0.00', od_cilindro: '0.00', od_eje: '0',
+      oi_esfera: '0.00', oi_cilindro: '0.00', oi_eje: '0',
+      observaciones: 'Ticket de prueba - SGG',
+    });
+
+    const agentUrl = `http://${lab.ipAgente}:${lab.puertoAgente}/print`;
+    await axios.post(agentUrl, { buffer: ticketBuffer.toString('base64'), warrantyId: 'test', orderNumber: 'TEST-0000' }, {
+      timeout: 10000, headers: { 'Content-Type': 'application/json', 'X-API-Key': lab.apiKey },
+    });
+
+    return res.status(200).json({ message: 'Ticket de prueba enviado.' });
+  } catch (error) {
+    logger.error(`[testPrint] ${error.message}`);
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') return res.status(503).json({ error: 'No se pudo conectar con el agente.' });
+    return res.status(500).json({ error: 'Error en prueba de impresión.', details: error.message });
+  }
+};
+
+/**
+ * GET /api/lab/warranties
+ */
+const getMyLabWarranties = async (req, res) => {
+  try {
+    const labId = req.user.labId;
+    const { search, storeId, status, startDate, endDate, page = 1, limit = 20 } = req.query;
+
+    const where = { labId };
+    if (status) where.status = status;
+    if (storeId) where.storeId = storeId;
+    if (search) where.orderNumber = { contains: search, mode: 'insensitive' };
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [total, warranties] = await Promise.all([
+      prisma.warranty.count({ where }),
+      prisma.warranty.findMany({
+        where,
+        include: { store: { select: { id: true, name: true, accn: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: parseInt(limit),
+      }),
+    ]);
+
+    return res.status(200).json({
+      warranties,
+      pagination: { total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) },
+    });
+  } catch (error) {
+    logger.error(`[getMyLabWarranties] ${error.message}`);
+    return res.status(500).json({ error: 'Error al obtener garantías.' });
+  }
+};
+
+/**
+ * PUT /api/lab/config
+ */
+const updateLabConfig = async (req, res) => {
+  try {
+    const { vcaNetworkPath } = req.body;
+    if (!vcaNetworkPath) return res.status(400).json({ error: 'Ruta VCA obligatoria.' });
+
+    await prisma.lab.update({
+      where: { id: req.user.labId },
+      data: { rutaVcaRed: vcaNetworkPath },
+    });
+
+    return res.status(200).json({ message: 'Configuración actualizada.', vcaNetworkPath });
+  } catch (error) {
+    logger.error(`[updateLabConfig] ${error.message}`);
+    return res.status(500).json({ error: 'Error al actualizar.' });
+  }
+};
+
+module.exports = { reprintTicket, regenerateVca, agentStatus, testPrint, getMyLabWarranties, updateLabConfig };

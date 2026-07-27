@@ -34,9 +34,9 @@ const createLab = async (req, res) => {
     const lab = await prisma.lab.create({
       data: {
         name,
-        agentIp,
-        agentPort: parseInt(agentPort),
-        vcaNetworkPath,
+        ipAgente: agentIp,
+        puertoAgente: String(agentPort),
+        rutaVcaRed: vcaNetworkPath,
         apiKey,
       },
     });
@@ -48,10 +48,10 @@ const createLab = async (req, res) => {
       lab: {
         id: lab.id,
         name: lab.name,
-        agentIp: lab.agentIp,
-        agentPort: lab.agentPort,
-        vcaNetworkPath: lab.vcaNetworkPath,
-        apiKey: lab.apiKey, // ← Solo se muestra al crear
+        agentIp: lab.ipAgente,
+        agentPort: lab.puertoAgente,
+        vcaNetworkPath: lab.rutaVcaRed,
+        apiKey: lab.apiKey,
       },
     });
   } catch (error) {
@@ -70,9 +70,9 @@ const getLabs = async (req, res) => {
       select: {
         id: true,
         name: true,
-        agentIp: true,
-        agentPort: true,
-        vcaNetworkPath: true,
+        ipAgente: true,
+        puertoAgente: true,
+        rutaVcaRed: true,
         apiKey: true,
         createdAt: true,
         _count: {
@@ -82,7 +82,18 @@ const getLabs = async (req, res) => {
       orderBy: { name: 'asc' },
     });
 
-    return res.status(200).json({ labs });
+    return res.status(200).json({
+      labs: labs.map((lab) => ({
+        id: lab.id,
+        name: lab.name,
+        agentIp: lab.ipAgente,
+        agentPort: lab.puertoAgente,
+        vcaNetworkPath: lab.rutaVcaRed,
+        apiKey: lab.apiKey,
+        createdAt: lab.createdAt,
+        _count: lab._count,
+      })),
+    });
   } catch (error) {
     logger.error(`[getLabs] Error: ${error.message}`);
     return res.status(500).json({ error: 'Error al obtener los laboratorios.' });
@@ -99,12 +110,12 @@ const updateLab = async (req, res) => {
     const { name, agentIp, agentPort, vcaNetworkPath } = req.body;
 
     const lab = await prisma.lab.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: {
         ...(name && { name }),
-        ...(agentIp && { agentIp }),
-        ...(agentPort && { agentPort: parseInt(agentPort) }),
-        ...(vcaNetworkPath && { vcaNetworkPath }),
+        ...(agentIp && { ipAgente: agentIp }),
+        ...(agentPort && { puertoAgente: String(agentPort) }),
+        ...(vcaNetworkPath && { rutaVcaRed: vcaNetworkPath }),
       },
     });
 
@@ -112,7 +123,15 @@ const updateLab = async (req, res) => {
 
     return res.status(200).json({
       message: 'Laboratorio actualizado exitosamente.',
-      lab,
+      lab: {
+        id: lab.id,
+        name: lab.name,
+        agentIp: lab.ipAgente,
+        agentPort: lab.puertoAgente,
+        vcaNetworkPath: lab.rutaVcaRed,
+        apiKey: lab.apiKey,
+        active: lab.active,
+      },
     });
   } catch (error) {
     logger.error(`[updateLab] Error: ${error.message}`);
@@ -130,7 +149,7 @@ const deleteLab = async (req, res) => {
 
     // Verificar que no tenga tiendas asociadas
     const storesCount = await prisma.store.count({
-      where: { labId: parseInt(id) },
+      where: { labId: id },
     });
 
     if (storesCount > 0) {
@@ -140,7 +159,7 @@ const deleteLab = async (req, res) => {
     }
 
     await prisma.lab.delete({
-      where: { id: parseInt(id) },
+      where: { id },
     });
 
     logger.info(`✅ Laboratorio eliminado: ${id}`);
@@ -164,7 +183,7 @@ const regenerateLabApiKey = async (req, res) => {
     const newApiKey = crypto.randomBytes(32).toString('hex');
 
     const lab = await prisma.lab.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: { apiKey: newApiKey },
     });
 
@@ -217,7 +236,7 @@ const createStore = async (req, res) => {
 
     // Verificar que el laboratorio exista
     const lab = await prisma.lab.findUnique({
-      where: { id: parseInt(labId) },
+      where: { id: labId },
     });
     if (!lab) {
       return res.status(404).json({
@@ -234,14 +253,14 @@ const createStore = async (req, res) => {
         data: {
           name,
           accn,
-          labId: parseInt(labId),
+          labId,
           active: true,
         },
       });
 
       const user = await tx.user.create({
         data: {
-          email: email || `${accn}@tienda.local`,
+          username: email || `${accn}@tienda.local`,
           password: hashedPassword,
           role: 'TIENDA',
           storeId: store.id,
@@ -253,7 +272,7 @@ const createStore = async (req, res) => {
 
     logger.info(`✅ Tienda creada: ${name} (ACCN: ${accn})`, {
       storeId: result.store.id,
-      labId: parseInt(labId),
+      labId,
     });
 
     return res.status(201).json({
@@ -261,7 +280,7 @@ const createStore = async (req, res) => {
       store: result.store,
       user: {
         id: result.user.id,
-        email: result.user.email,
+        username: result.user.username,
         role: result.user.role,
       },
     });
@@ -317,7 +336,7 @@ const updateStore = async (req, res) => {
       const existing = await prisma.store.findFirst({
         where: {
           accn,
-          id: { not: parseInt(id) },
+          id: { not: id },
         },
       });
       if (existing) {
@@ -328,11 +347,11 @@ const updateStore = async (req, res) => {
     }
 
     const store = await prisma.store.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: {
         ...(name && { name }),
         ...(accn && { accn }),
-        ...(labId && { labId: parseInt(labId) }),
+        ...(labId && { labId }),
         ...(active !== undefined && { active }),
       },
     });
@@ -367,7 +386,7 @@ const resetUserPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.update({
-      where: { id: parseInt(userId) },
+      where: { id: userId },
       data: { password: hashedPassword },
     });
 
@@ -397,6 +416,7 @@ const getWarrantiesDashboard = async (req, res) => {
       storeId,
       labId,
       status,
+      search,
       startDate,
       endDate,
       page = 1,
@@ -406,9 +426,10 @@ const getWarrantiesDashboard = async (req, res) => {
     // Construir filtro dinámico
     const where = {};
 
-    if (storeId) where.storeId = parseInt(storeId);
-    if (labId) where.labId = parseInt(labId);
+    if (storeId) where.storeId = storeId;
+    if (labId) where.labId = labId;
     if (status) where.status = status;
+    if (search) where.orderNumber = { contains: search, mode: 'insensitive' };
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);

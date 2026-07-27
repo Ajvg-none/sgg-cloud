@@ -170,6 +170,7 @@ const getMyWarranties = async (req, res) => {
         orderNumber: true,
         status: true,
         createdAt: true,
+        orderData: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -201,7 +202,7 @@ const getWarrantyDetail = async (req, res) => {
 
     const warranty = await prisma.warranty.findFirst({
       where: {
-        id: parseInt(id),
+        id,
         storeId, // ← Filtro forzado por backend (RF-03.3)
       },
     });
