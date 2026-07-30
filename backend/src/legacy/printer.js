@@ -378,8 +378,7 @@ async function testAgentConnection(ip, puerto) {
 module.exports = {
   saveTicketToFile,
   generateTicketText,
+  generateEscPosBuffer,
   testAgentConnection,
   buildAgentUrl,
-  generateTicketText,
-  generateEscPosBuffer
 };

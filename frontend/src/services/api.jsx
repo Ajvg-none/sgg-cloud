@@ -1,7 +1,7 @@
 // frontend/src/services/api.jsx
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -54,6 +54,7 @@ export const storeAPI = {
 // ============================================================
 export const labAPI = {
   getWarranties: (params) => api.get('/lab/warranties', { params }),
+  processWarranty: (warrantyId) => api.post(`/lab/warranties/${warrantyId}/process`),
   agentStatus: () => api.get('/lab/agent-status'),
   testPrint: () => api.post('/lab/test-print'),
   reprintTicket: (warrantyId) => api.post(`/lab/print/${warrantyId}`),
