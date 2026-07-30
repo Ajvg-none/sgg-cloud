@@ -60,6 +60,7 @@ const LabDashboard = () => {
   const [savingConfig, setSavingConfig] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState(null);
+  const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
     loadMeta();
@@ -131,6 +132,25 @@ const LabDashboard = () => {
       setAlert({ type: 'success', message: `Archivo VCA de orden ${orderNumber} regenerado.` });
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al regenerar VCA' });
+    }
+  };
+
+  const handleProcess = async (warrantyId, orderNumber) => {
+    if (!window.confirm(`¿Procesar la orden ${orderNumber}? Se imprimirá el ticket y se generará el archivo VCA.`)) return;
+    setProcessingId(warrantyId);
+    try {
+      const res = await labAPI.processWarranty(warrantyId);
+      if (res.data.warning) {
+        setAlert({ type: 'warning', message: res.data.warning });
+      } else {
+        setAlert({ type: 'success', message: `Orden ${orderNumber} procesada exitosamente.` });
+      }
+      await loadWarranties(pagination.page);
+      await loadAgentStatus();
+    } catch (e) {
+      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al procesar la garantía' });
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -306,8 +326,20 @@ const LabDashboard = () => {
                               <Button variant="ghost" onClick={() => handleRegenerateVca(w.id, w.orderNumber)} className="px-2 py-1 text-xs">📄 VCA</Button>
                             </>
                           )}
-                          {w.status !== 'COMPLETED' && (
-                            <span className="text-xs text-opticolor-gray-400">—</span>
+                          {(w.status === 'PENDING' || w.status === 'ERROR') && (
+                            <Button
+                              variant="primary"
+                              onClick={() => handleProcess(w.id, w.orderNumber)}
+                              loading={processingId === w.id}
+                              className="px-2 py-1 text-xs"
+                            >
+                              {w.status === 'ERROR' ? 'Procesar' : 'Procesar'}
+                            </Button>
+                          )}
+                          {w.status === 'PROCESSING' && (
+                            <Button variant="secondary" disabled className="px-2 py-1 text-xs">
+                              Procesando...
+                            </Button>
                           )}
                         </div>
                       </td>

@@ -33,9 +33,9 @@ const apiKeyAuth = async (req, res, next) => {
       select: {
         id: true,
         name: true,
-        agentIp: true,
-        agentPort: true,
-        vcaNetworkPath: true,
+        ipAgente: true,
+        puertoAgente: true,
+        rutaVcaRed: true,
       },
     });
 
