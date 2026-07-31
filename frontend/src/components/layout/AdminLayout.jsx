@@ -23,8 +23,12 @@ const AdminLayout = () => {
     <div className="min-h-screen bg-opticolor-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-opticolor-gray-200 shadow-sm flex flex-col">
-        <div className="p-6 border-b border-opticolor-gray-200">
-          <h1 className="text-xl font-bold text-opticolor-red">OPTI-COLOR</h1>
+       <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center">
+          <img 
+            src="/logo-opti.jpg" 
+            alt="Opti-Color" 
+            className="h-48w-auto"   // ajusta según prefieras
+          />
           <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Administración</p>
         </div>
 
