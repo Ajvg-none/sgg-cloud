@@ -62,6 +62,12 @@ const LabDashboard = () => {
   const [selectedWarranty, setSelectedWarranty] = useState(null);
   const [processingId, setProcessingId] = useState(null);
 
+  // ✅ NUEVO: Estados para el modal de procesamiento
+  const [reprintModalOpen, setReprintModalOpen] = useState(false);
+  const [warrantyToReprint, setWarrantyToReprint] = useState(null);
+  const [processModalOpen, setProcessModalOpen] = useState(false);
+  const [warrantyToProcess, setWarrantyToProcess] = useState(null);
+
   useEffect(() => {
     loadMeta();
     loadAgentStatus();
@@ -92,7 +98,6 @@ const LabDashboard = () => {
       if (search.trim()) params.search = search.trim();
       if (statusFilter) params.status = statusFilter;
       if (storeFilter) params.storeId = storeFilter;
-
       const res = await labAPI.getWarranties(params);
       setWarranties(res.data.warranties || []);
       setPagination(res.data.pagination);
@@ -115,13 +120,48 @@ const LabDashboard = () => {
 
   const handleSearch = () => loadWarranties(1);
 
-  const handleReprint = async (warrantyId, orderNumber) => {
-    if (!window.confirm(`¿Reimprimir ticket de la orden ${orderNumber}?`)) return;
+  const handleReprintClick = (warranty) => {
+    setWarrantyToReprint(warranty);
+    setReprintModalOpen(true);
+  };
+
+  const handleReprintConfirm = async () => {
+    if (!warrantyToReprint) return;
     try {
-      await labAPI.reprintTicket(warrantyId);
-      setAlert({ type: 'success', message: `Ticket de orden ${orderNumber} enviado a impresión.` });
+      await labAPI.reprintTicket(warrantyToReprint.id);
+      setAlert({ type: 'success', message: `Ticket de orden ${warrantyToReprint.orderNumber} enviado a impresión.` });
+      setReprintModalOpen(false);
+      setWarrantyToReprint(null);
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al reimprimir' });
+    }
+  };
+
+  // ✅ NUEVO: Abrir modal de procesamiento
+  const handleProcessClick = (warranty) => {
+    setWarrantyToProcess(warranty);
+    setProcessModalOpen(true);
+  };
+
+  // ✅ NUEVO: Confirmar procesamiento (reemplaza el window.confirm)
+  const handleProcessConfirm = async () => {
+    if (!warrantyToProcess) return;
+    setProcessModalOpen(false);
+    setProcessingId(warrantyToProcess.id);
+    try {
+      const res = await labAPI.processWarranty(warrantyToProcess.id);
+      if (res.data.warning) {
+        setAlert({ type: 'warning', message: res.data.warning });
+      } else {
+        setAlert({ type: 'success', message: `Orden ${warrantyToProcess.orderNumber} procesada exitosamente.` });
+      }
+      await loadWarranties(pagination.page);
+      await loadAgentStatus();
+    } catch (e) {
+      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al procesar la garantía' });
+    } finally {
+      setProcessingId(null);
+      setWarrantyToProcess(null);
     }
   };
 
@@ -135,22 +175,11 @@ const LabDashboard = () => {
     }
   };
 
+  // ✅ MODIFICADO: Eliminado el window.confirm, ahora abre el modal
   const handleProcess = async (warrantyId, orderNumber) => {
-    if (!window.confirm(`¿Procesar la orden ${orderNumber}? Se imprimirá el ticket y se generará el archivo VCA.`)) return;
-    setProcessingId(warrantyId);
-    try {
-      const res = await labAPI.processWarranty(warrantyId);
-      if (res.data.warning) {
-        setAlert({ type: 'warning', message: res.data.warning });
-      } else {
-        setAlert({ type: 'success', message: `Orden ${orderNumber} procesada exitosamente.` });
-      }
-      await loadWarranties(pagination.page);
-      await loadAgentStatus();
-    } catch (e) {
-      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al procesar la garantía' });
-    } finally {
-      setProcessingId(null);
+    const warranty = warranties.find(w => w.id === warrantyId);
+    if (warranty) {
+      handleProcessClick(warranty);
     }
   };
 
@@ -255,7 +284,7 @@ const LabDashboard = () => {
         {/* Filtros */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 pb-4 border-b border-opticolor-gray-200">
           <div>
-              <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Buscar OTG</label>
+            <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Buscar OTG</label>
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -289,7 +318,7 @@ const LabDashboard = () => {
           <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div></div>
         ) : warranties.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">📋</div>
+            <div className="text-6xl mb-4"></div>
             <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">No hay garantías</h3>
             <p className="text-opticolor-gray-500">No se encontraron garantías con los filtros actuales</p>
           </div>
@@ -322,8 +351,20 @@ const LabDashboard = () => {
                           <Button variant="ghost" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }} className="px-2 py-1 text-xs">Detalle</Button>
                           {w.status === 'COMPLETED' && (
                             <>
-                              <Button variant="secondary" onClick={() => handleReprint(w.id, w.orderNumber)} className="px-2 py-1 text-xs">🖨️ Ticket</Button>
-                              <Button variant="ghost" onClick={() => handleRegenerateVca(w.id, w.orderNumber)} className="px-2 py-1 text-xs">📄 VCA</Button>
+                              <Button
+                                variant="secondary"
+                                onClick={() => handleReprintClick(w)}
+                                className="px-2 py-1 text-xs"
+                              >
+                                🖨️ Ticket
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                onClick={() => handleRegenerateVca(w.id, w.orderNumber)}
+                                className="px-2 py-1 text-xs"
+                              >
+                                📄 VCA
+                              </Button>
                             </>
                           )}
                           {(w.status === 'PENDING' || w.status === 'ERROR') && (
@@ -390,6 +431,7 @@ const LabDashboard = () => {
         </div>
       </Modal>
 
+      {/* Modal Detalle */}
       <Modal isOpen={detailModalOpen} onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }} title={`Detalle OTG #${selectedWarranty?.orderNumber || ''}`} size="xl">
         {selectedWarranty && (
           <div className="space-y-6">
@@ -427,6 +469,7 @@ const LabDashboard = () => {
                     <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_od ?? '-'}</p></div>
                   </div>
                 </div>
+
                 <div>
                   <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Izquierdo (OI)</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -438,6 +481,7 @@ const LabDashboard = () => {
                     <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_oi ?? '-'}</p></div>
                   </div>
                 </div>
+
                 <div>
                   <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Medidas de Montura</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -447,6 +491,7 @@ const LabDashboard = () => {
                     <div><p className="text-xs text-opticolor-gray-500">Diámetro Máx</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_diametro_max ?? '-'}</p></div>
                   </div>
                 </div>
+
                 {selectedWarranty.orderData.items?.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ítems de la OTG</h3>
@@ -464,6 +509,89 @@ const LabDashboard = () => {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Modal de Confirmación de Reimpresión */}
+      <Modal
+        isOpen={reprintModalOpen}
+        onClose={() => {
+          setReprintModalOpen(false);
+          setWarrantyToReprint(null);
+        }}
+        title="Confirmar Reimpresión"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <p className="text-sm text-yellow-800">
+              ¿Estás seguro de reimprimir el ticket de la orden{' '}
+              <span className="font-mono font-semibold">
+                #{warrantyToReprint?.orderNumber}
+              </span>
+              ?
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setReprintModalOpen(false);
+                setWarrantyToReprint(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleReprintConfirm}
+            >
+              🖨️ Reimprimir Ticket
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ✅ NUEVO: Modal de Confirmación de Procesamiento */}
+      <Modal
+        isOpen={processModalOpen}
+        onClose={() => {
+          setProcessModalOpen(false);
+          setWarrantyToProcess(null);
+        }}
+        title="Confirmar Procesamiento"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              ¿Procesar la orden{' '}
+              <span className="font-mono font-semibold">
+                #{warrantyToProcess?.orderNumber}
+              </span>
+              ?
+            </p>
+            <p className="text-xs text-blue-700 mt-2">
+              Se imprimirá el ticket y se generará el archivo VCA automáticamente.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setProcessModalOpen(false);
+                setWarrantyToProcess(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleProcessConfirm}
+            >
+              ✅ Procesar Orden
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
