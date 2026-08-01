@@ -163,7 +163,7 @@ const AdminLabs = () => {
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Ruta VCA</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Tiendas</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Garantías</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,13 +175,45 @@ const AdminLabs = () => {
                     <td className="py-4 px-4 text-sm text-opticolor-gray-600 max-w-xs truncate" title={lab.vcaNetworkPath}>{lab.vcaNetworkPath}</td>
                     <td className="py-4 px-4 text-sm text-opticolor-gray-700">{lab._count?.stores || 0}</td>
                     <td className="py-4 px-4 text-sm text-opticolor-gray-700">{lab._count?.warranties || 0}</td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" onClick={() => openEdit(lab)} className="px-3 py-1 text-xs">Editar</Button>
-                        <Button variant="ghost" onClick={() => handleRegenerateKey(lab)} className="px-3 py-1 text-xs">Nueva Key</Button>
-                        <Button variant="ghost" onClick={() => handleDelete(lab)} className="px-3 py-1 text-xs text-red-600 hover:text-red-800">Eliminar</Button>
-                      </div>
-                    </td>
+                    <td className="py-4 px-4">
+                    <div className="flex items-center gap-1">
+                      {/* Botón Editar */}
+                      <button
+                        onClick={() => openEdit(lab)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
+                                  bg-blue-50 text-blue-700 border border-blue-200 rounded-md
+                                  hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                        title="Editar laboratorio"
+                      >
+                        <span className="text-sm">✏️</span>
+                        <span>Editar</span>
+                      </button>
+
+                      {/* Botón Nueva Key */}
+                      <button
+                        onClick={() => handleRegenerateKey(lab)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium 
+                                  text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 
+                                  rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
+                        title="Regenerar API Key"
+                      >
+                        <span className="text-sm"></span>
+                        <span>Nueva Key</span>
+                      </button>
+
+                      {/* Botón Eliminar */}
+                      <button
+                        onClick={() => handleDelete(lab)}
+                        className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium 
+                                  text-red-600 hover:text-red-700 hover:bg-red-50 
+                                  rounded-md transition-colors border border-transparent hover:border-red-200"
+                        title="Eliminar laboratorio"
+                      >
+                        <span className="text-sm">🗑️</span>
+                        <span>Eliminar</span>
+                      </button>
+                    </div>
+                  </td>
                   </tr>
                 ))}
               </tbody>

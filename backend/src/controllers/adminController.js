@@ -13,24 +13,15 @@ const prisma = new PrismaClient({ adapter });
 // ============================================================
 // GESTIÓN DE LABORATORIOS (RF-07.1)
 // ============================================================
-
-/**
- * POST /api/admin/labs
- * Crea un nuevo laboratorio. Genera automáticamente la API Key.
- */
 const createLab = async (req, res) => {
   try {
     const { name, agentIp, agentPort, vcaNetworkPath } = req.body;
-
     if (!name || !agentIp || !agentPort || !vcaNetworkPath) {
       return res.status(400).json({
         error: 'Todos los campos son obligatorios: name, agentIp, agentPort, vcaNetworkPath.',
       });
     }
-
-    // Generar API Key única (RF-07.1)
     const apiKey = crypto.randomBytes(32).toString('hex');
-
     const lab = await prisma.lab.create({
       data: {
         name,
@@ -40,9 +31,7 @@ const createLab = async (req, res) => {
         apiKey,
       },
     });
-
     logger.info(`✅ Laboratorio creado: ${lab.name}`, { labId: lab.id });
-
     return res.status(201).json({
       message: 'Laboratorio creado exitosamente.',
       lab: {
@@ -60,10 +49,6 @@ const createLab = async (req, res) => {
   }
 };
 
-/**
- * GET /api/admin/labs
- * Lista todos los laboratorios.
- */
 const getLabs = async (req, res) => {
   try {
     const labs = await prisma.lab.findMany({
@@ -81,7 +66,6 @@ const getLabs = async (req, res) => {
       },
       orderBy: { name: 'asc' },
     });
-
     return res.status(200).json({
       labs: labs.map((lab) => ({
         id: lab.id,
@@ -100,15 +84,10 @@ const getLabs = async (req, res) => {
   }
 };
 
-/**
- * PUT /api/admin/labs/:id
- * Actualiza un laboratorio existente.
- */
 const updateLab = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, agentIp, agentPort, vcaNetworkPath } = req.body;
-
     const lab = await prisma.lab.update({
       where: { id },
       data: {
@@ -118,9 +97,7 @@ const updateLab = async (req, res) => {
         ...(vcaNetworkPath && { rutaVcaRed: vcaNetworkPath }),
       },
     });
-
     logger.info(`✅ Laboratorio actualizado: ${lab.name}`, { labId: lab.id });
-
     return res.status(200).json({
       message: 'Laboratorio actualizado exitosamente.',
       lab: {
@@ -139,31 +116,21 @@ const updateLab = async (req, res) => {
   }
 };
 
-/**
- * DELETE /api/admin/labs/:id
- * Elimina un laboratorio (solo si no tiene tiendas asociadas).
- */
 const deleteLab = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // Verificar que no tenga tiendas asociadas
     const storesCount = await prisma.store.count({
       where: { labId: id },
     });
-
     if (storesCount > 0) {
       return res.status(400).json({
         error: `No se puede eliminar el laboratorio: tiene ${storesCount} tienda(s) asociada(s). Reasígnalas primero.`,
       });
     }
-
     await prisma.lab.delete({
       where: { id },
     });
-
     logger.info(`✅ Laboratorio eliminado: ${id}`);
-
     return res.status(200).json({
       message: 'Laboratorio eliminado exitosamente.',
     });
@@ -173,22 +140,15 @@ const deleteLab = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/labs/:id/regenerate-key
- * Regenera la API Key de un laboratorio.
- */
 const regenerateLabApiKey = async (req, res) => {
   try {
     const { id } = req.params;
     const newApiKey = crypto.randomBytes(32).toString('hex');
-
     const lab = await prisma.lab.update({
       where: { id },
       data: { apiKey: newApiKey },
     });
-
     logger.info(`🔑 API Key regenerada para laboratorio: ${lab.name}`, { labId: lab.id });
-
     return res.status(200).json({
       message: 'API Key regenerada exitosamente.',
       apiKey: newApiKey,
@@ -200,30 +160,31 @@ const regenerateLabApiKey = async (req, res) => {
 };
 
 // ============================================================
-// GESTIÓN DE TIENDAS (RF-07.2)
+// GESTIÓN DE TIENDAS (RF-07.2) - MODIFICADO
 // ============================================================
-
 /**
  * POST /api/admin/stores
- * Crea una nueva tienda con usuario asociado.
+ * Crea una nueva tienda (entidad estática).
+ * Los usuarios se crean por separado y se asocian a la tienda.
  */
 const createStore = async (req, res) => {
   try {
-    const { name, accn, labId, password, email } = req.body;
-
-    if (!name || !accn || !labId || !password) {
+    const { name, accn, labId } = req.body;
+    
+    // Validación de campos obligatorios
+    if (!name || !accn || !labId) {
       return res.status(400).json({
-        error: 'Los campos name, accn, labId y password son obligatorios.',
+        error: 'Los campos name, accn y labId son obligatorios.',
       });
     }
-
-    // Validar ACCN: 3 dígitos numéricos (RF-07.2)
+    
+    // Validar ACCN: 3 dígitos numéricos
     if (!/^\d{3}$/.test(accn)) {
       return res.status(400).json({
         error: 'El ACCN debe ser exactamente 3 dígitos numéricos.',
       });
     }
-
+    
     // Verificar que el ACCN sea único
     const existingStore = await prisma.store.findFirst({
       where: { accn },
@@ -233,7 +194,7 @@ const createStore = async (req, res) => {
         error: `Ya existe una tienda con el ACCN ${accn}.`,
       });
     }
-
+    
     // Verificar que el laboratorio exista
     const lab = await prisma.lab.findUnique({
       where: { id: labId },
@@ -243,45 +204,30 @@ const createStore = async (req, res) => {
         error: 'El laboratorio especificado no existe.',
       });
     }
-
-    // Hashear contraseña (RF-01.4)
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Crear tienda y usuario en transacción
-    const result = await prisma.$transaction(async (tx) => {
-      const store = await tx.store.create({
-        data: {
-          name,
-          accn,
-          labId,
-          active: true,
-        },
-      });
-
-      const user = await tx.user.create({
-        data: {
-          username: email || `${accn}@tienda.local`,
-          password: hashedPassword,
-          role: 'TIENDA',
-          storeId: store.id,
-        },
-      });
-
-      return { store, user };
+    
+    // Crear solo la tienda (sin usuario)
+    const store = await prisma.store.create({
+      data: {
+        name,
+        accn,
+        labId,
+        active: true,
+      },
     });
-
+    
     logger.info(`✅ Tienda creada: ${name} (ACCN: ${accn})`, {
-      storeId: result.store.id,
+      storeId: store.id,
       labId,
     });
-
+    
     return res.status(201).json({
-      message: 'Tienda y usuario creados exitosamente.',
-      store: result.store,
-      user: {
-        id: result.user.id,
-        username: result.user.username,
-        role: result.user.role,
+      message: 'Tienda creada exitosamente.',
+      store: {
+        id: store.id,
+        name: store.name,
+        accn: store.accn,
+        labId: store.labId,
+        active: store.active,
       },
     });
   } catch (error) {
@@ -290,10 +236,6 @@ const createStore = async (req, res) => {
   }
 };
 
-/**
- * GET /api/admin/stores
- * Lista todas las tiendas con información de su laboratorio.
- */
 const getStores = async (req, res) => {
   try {
     const stores = await prisma.store.findMany({
@@ -302,12 +244,11 @@ const getStores = async (req, res) => {
           select: { id: true, name: true },
         },
         _count: {
-          select: { warranties: true },
+          select: { warranties: true, users: true },
         },
       },
       orderBy: { name: 'asc' },
     });
-
     return res.status(200).json({ stores });
   } catch (error) {
     logger.error(`[getStores] Error: ${error.message}`);
@@ -315,23 +256,17 @@ const getStores = async (req, res) => {
   }
 };
 
-/**
- * PUT /api/admin/stores/:id
- * Actualiza una tienda (ACCN, laboratorio, estado).
- */
 const updateStore = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, accn, labId, active } = req.body;
-
-    // Validar ACCN si se proporciona
+    
     if (accn && !/^\d{3}$/.test(accn)) {
       return res.status(400).json({
         error: 'El ACCN debe ser exactamente 3 dígitos numéricos.',
       });
     }
-
-    // Verificar unicidad de ACCN si se cambia
+    
     if (accn) {
       const existing = await prisma.store.findFirst({
         where: {
@@ -345,7 +280,7 @@ const updateStore = async (req, res) => {
         });
       }
     }
-
+    
     const store = await prisma.store.update({
       where: { id },
       data: {
@@ -355,9 +290,8 @@ const updateStore = async (req, res) => {
         ...(active !== undefined && { active }),
       },
     });
-
+    
     logger.info(`✅ Tienda actualizada: ${store.name}`, { storeId: store.id });
-
     return res.status(200).json({
       message: 'Tienda actualizada exitosamente.',
       store,
@@ -368,30 +302,21 @@ const updateStore = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/users/:userId/reset-password
- * Resetea la contraseña de un usuario (RF-07.4, RF-01.5).
- */
 const resetUserPassword = async (req, res) => {
   try {
     const { userId } = req.params;
     const { newPassword } = req.body;
-
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({
         error: 'La nueva contraseña debe tener al menos 6 caracteres.',
       });
     }
-
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
     });
-
     logger.info(`🔑 Contraseña reseteada para usuario: ${userId}`);
-
     return res.status(200).json({
       message: 'Contraseña reseteada exitosamente.',
     });
@@ -404,12 +329,6 @@ const resetUserPassword = async (req, res) => {
 // ============================================================
 // DASHBOARD DE GARANTÍAS (RF-07.3)
 // ============================================================
-
-/**
- * GET /api/admin/warranties
- * Dashboard con filtros y paginación.
- * Query params: storeId, labId, status, warrantyType, search, startDate, endDate, page, limit
- */
 const getWarrantiesDashboard = async (req, res) => {
   try {
     const {
@@ -424,9 +343,7 @@ const getWarrantiesDashboard = async (req, res) => {
       limit = 20,
     } = req.query;
 
-    // Construir filtro dinámico
     const where = {};
-
     if (storeId) where.storeId = storeId;
     if (labId) where.labId = labId;
     if (status) where.status = status;
@@ -440,7 +357,6 @@ const getWarrantiesDashboard = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Consulta paralela: total + datos paginados
     const [total, warranties] = await Promise.all([
       prisma.warranty.count({ where }),
       prisma.warranty.findMany({
@@ -474,219 +390,8 @@ const getWarrantiesDashboard = async (req, res) => {
   }
 };
 
-// ============================================================
-// SISTEMA DE LOGS (RF-10.3)
-// ============================================================
-
-const fs = require('fs');
-const path = require('path');
-
-/**
- * GET /api/admin/logs
- * Lee los archivos de log recientes (últimos N líneas).
- * Query params: lines (default 200), level (info|warn|error)
- */
-const getLogs = async (req, res) => {
-  try {
-    const { lines = 200, level } = req.query;
-    const logsDir = path.join(__dirname, '../../logs');
-
-    // Verificar que exista la carpeta de logs
-    if (!fs.existsSync(logsDir)) {
-      return res.status(200).json({
-        logs: [],
-        message: 'No hay archivos de log disponibles.',
-      });
-    }
-
-    // Obtener archivos .log ordenados por fecha (más reciente primero)
-    const logFiles = fs
-      .readdirSync(logsDir)
-      .filter((f) => f.endsWith('.log'))
-      .sort()
-      .reverse();
-
-    if (logFiles.length === 0) {
-      return res.status(200).json({
-        logs: [],
-        message: 'No hay archivos de log.',
-      });
-    }
-
-    // Leer el archivo más reciente
-    const latestLogFile = path.join(logsDir, logFiles[0]);
-    const content = fs.readFileSync(latestLogFile, 'utf-8');
-    let allLines = content.split('\n').filter((line) => line.trim() !== '');
-
-    // Filtrar por nivel si se especifica
-    if (level) {
-      const levelUpper = level.toUpperCase();
-      allLines = allLines.filter((line) => line.includes(`"level":"${levelUpper}"`) || line.includes(`"level":"${level.toLowerCase()}"`));
-    }
-
-    // Tomar las últimas N líneas
-    const recentLines = allLines.slice(-parseInt(lines));
-
-    // Parsear cada línea como JSON (si es posible)
-    const parsedLogs = recentLines.map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return { raw: line };
-      }
-    });
-
-    return res.status(200).json({
-      logs: parsedLogs,
-      file: logFiles[0],
-      totalLines: allLines.length,
-    });
-  } catch (error) {
-    logger.error(`[getLogs] Error: ${error.message}`);
-    return res.status(500).json({ error: 'Error al leer los logs.' });
-  }
-};
-
-
-// ============================================================
-// IMPORTACIÓN CSV (RF-11)
-// ============================================================
-
-const csv = require('csv-parser');
-const { Readable } = require('stream');
-
-/**
- * POST /api/admin/import-csv
- * Importa garantías históricas desde un archivo CSV.
- * Columnas esperadas: orden_numero, tienda_nombre, datos_corregidos (JSON), observaciones, fecha_creacion, tipo_garantia, observaciones_tienda
- */
-const importCsv = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        error: 'No se recibió ningún archivo CSV.',
-      });
-    }
-
-    const results = [];
-    const errors = [];
-    let processedCount = 0;
-
-    // Crear stream desde el buffer del archivo
-    const stream = Readable.from(req.file.buffer.toString('utf-8'));
-
-    // Pre-cargar todas las tiendas para búsqueda rápida
-    const allStores = await prisma.store.findMany({
-      select: { id: true, name: true, accn: true, labId: true },
-    });
-    const storeMap = new Map();
-    allStores.forEach((s) => {
-      storeMap.set(s.name.toLowerCase(), s);
-      storeMap.set(s.accn, s);
-    });
-
-    await new Promise((resolve, reject) => {
-      stream
-        .pipe(csv())
-        .on('data', (row) => {
-          processedCount++;
-          try {
-            const orderNumber = row.orden_numero?.trim();
-            const storeName = row.tienda_nombre?.trim();
-            const datosCorregidosRaw = row.datos_corregidos;
-            const observaciones = row.observaciones || '';
-            const fechaCreacion = row.fecha_creacion;
-            const warrantyType = row.tipo_garantia?.trim() || null;
-            const storeObservations = row.observaciones_tienda?.trim() || null;
-
-            // Validaciones
-            if (!orderNumber) {
-              errors.push({ row: processedCount, error: 'Falta orden_numero' });
-              return;
-            }
-            if (!storeName) {
-              errors.push({ row: processedCount, error: 'Falta tienda_nombre' });
-              return;
-            }
-
-            // Buscar tienda por nombre o ACCN (RF-11.3)
-            const store =
-              storeMap.get(storeName.toLowerCase()) || storeMap.get(storeName);
-            if (!store) {
-              errors.push({
-                row: processedCount,
-                error: `Tienda no encontrada: ${storeName}`,
-              });
-              return;
-            }
-
-            // Parsear JSON de datos_corregidos
-            let orderData;
-            try {
-              orderData = JSON.parse(datosCorregidosRaw || '{}');
-            } catch (e) {
-              errors.push({
-                row: processedCount,
-                error: `datos_corregidos no es JSON válido: ${e.message}`,
-              });
-              return;
-            }
-
-            results.push({
-              storeId: store.id,
-              labId: store.labId,
-              orderNumber,
-              orderData,
-              warrantyType,
-              storeObservations,
-              observaciones,
-              createdAt: fechaCreacion ? new Date(fechaCreacion) : new Date(),
-              status: 'COMPLETED',
-            });
-          } catch (e) {
-            errors.push({ row: processedCount, error: e.message });
-          }
-        })
-        .on('end', resolve)
-        .on('error', reject);
-    });
-
-    // Insertar en BD si hay resultados válidos
-    let insertedCount = 0;
-    if (results.length > 0) {
-      // Insertar en lotes de 100 para no saturar la BD
-      for (let i = 0; i < results.length; i += 100) {
-        const batch = results.slice(i, i + 100);
-        await prisma.warranty.createMany({
-          data: batch,
-        });
-        insertedCount += batch.length;
-      }
-    }
-
-    logger.info(`📥 Importación CSV completada`, {
-      processed: processedCount,
-      inserted: insertedCount,
-      errors: errors.length,
-    });
-
-    return res.status(200).json({
-      message: 'Importación completada.',
-      summary: {
-        processed: processedCount,
-        inserted: insertedCount,
-        errors: errors.length,
-      },
-      errors,
-    });
-  } catch (error) {
-    logger.error(`[importCsv] Error: ${error.message}`);
-    return res.status(500).json({ error: 'Error al procesar el archivo CSV.' });
-  }
-};
-
 module.exports = {
-    // Laboratorios
+  // Laboratorios
   createLab,
   getLabs,
   updateLab,
@@ -700,8 +405,4 @@ module.exports = {
   resetUserPassword,
   // Dashboard
   getWarrantiesDashboard,
-  // Logs
-  getLogs,
-  // CSV ← AGREGAR AQUÍ
-  importCsv
 };

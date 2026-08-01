@@ -22,13 +22,11 @@ const AdminUsers = () => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ username: '', password: '', role: 'TIENDA', storeId: '', labId: '' });
   const [formErrors, setFormErrors] = useState({});
-
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetUserId, setResetUserId] = useState(null);
   const [resetUsername, setResetUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
-
   const [stores, setStores] = useState([]);
   const [labs, setLabs] = useState([]);
 
@@ -164,7 +162,9 @@ const AdminUsers = () => {
 
       <Card>
         {loading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div></div>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div>
+          </div>
         ) : users.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">👥</div>
@@ -181,7 +181,7 @@ const AdminUsers = () => {
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Rol</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Asociado a</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Estado</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,17 +202,49 @@ const AdminUsers = () => {
                       </span>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" onClick={() => openEdit(user)} className="px-3 py-1 text-xs">Editar</Button>
-                        <Button variant="ghost" onClick={() => openResetPassword(user)} className="px-3 py-1 text-xs">Reset Password</Button>
-                        {user.role !== 'ADMIN' && (
-                          <Button
-                            variant="ghost"
+                      {/* ✅ NUEVO: Grid de 3 columnas con anchos fijos para alineación perfecta */}
+                      <div className="grid grid-cols-3 gap-2 items-center">
+                        {/* Botón Editar - ancho fijo */}
+                        <button
+                          onClick={() => openEdit(user)}
+                          className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium 
+                                     bg-blue-50 text-blue-700 border border-blue-200 rounded-md
+                                     hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                          title="Editar usuario"
+                        >
+                          <span className="text-sm">️</span>
+                          <span>Editar</span>
+                        </button>
+
+                        {/* Botón Reset - ancho fijo */}
+                        <button
+                          onClick={() => openResetPassword(user)}
+                          className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium 
+                                     text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 
+                                     rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
+                          title="Resetear contraseña"
+                        >
+                          <span className="text-sm">🔑</span>
+                          <span>Reset</span>
+                        </button>
+
+                        {/* Botón Activar/Desactivar - ancho fijo (oculto para ADMIN) */}
+                        {user.role !== 'ADMIN' ? (
+                          <button
                             onClick={() => handleToggleActive(user)}
-                            className={`px-3 py-1 text-xs ${user.active ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}`}
+                            className={`inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium 
+                                        rounded-md transition-colors border ${
+                              user.active
+                                ? 'text-orange-600 hover:text-orange-700 hover:bg-orange-50 border-orange-200'
+                                : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200'
+                            }`}
+                            title={user.active ? 'Desactivar usuario' : 'Activar usuario'}
                           >
-                            {user.active ? 'Desactivar' : 'Activar'}
-                          </Button>
+                            <span className="text-sm">{user.active ? '⏸️' : '▶️'}</span>
+                            <span>{user.active ? 'Desactivar' : 'Activar'}</span>
+                          </button>
+                        ) : (
+                          <div className="w-full"></div> // Espacio vacío para mantener alineación
                         )}
                       </div>
                     </td>

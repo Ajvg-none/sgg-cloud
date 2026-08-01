@@ -14,7 +14,7 @@ const AdminStores = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', accn: '', labId: '', password: '', email: '' });
+  const [form, setForm] = useState({ name: '', accn: '', labId: '' });
   const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const AdminStores = () => {
 
   const openCreate = () => {
     setEditingStore(null);
-    setForm({ name: '', accn: '', labId: labs[0]?.id || '', password: '', email: '' });
+    setForm({ name: '', accn: '', labId: labs[0]?.id || '' });
     setFormErrors({});
     setModalOpen(true);
   };
@@ -50,8 +50,6 @@ const AdminStores = () => {
       name: store.name,
       accn: store.accn,
       labId: store.labId || store.lab?.id || '',
-      password: '',
-      email: '',
     });
     setFormErrors({});
     setModalOpen(true);
@@ -62,7 +60,6 @@ const AdminStores = () => {
     if (!form.name.trim()) errors.name = 'El nombre es obligatorio';
     if (!form.accn || !/^\d{3}$/.test(form.accn)) errors.accn = 'El ACCN debe ser 3 dígitos numéricos';
     if (!form.labId) errors.labId = 'Selecciona un laboratorio';
-    if (!editingStore && (!form.password || form.password.length < 6)) errors.password = 'Mínimo 6 caracteres';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -121,7 +118,9 @@ const AdminStores = () => {
 
       <Card>
         {loading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div></div>
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div>
+          </div>
         ) : stores.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🏪</div>
@@ -138,8 +137,9 @@ const AdminStores = () => {
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">ACCN</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Laboratorio</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Garantías</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Usuarios</th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Estado</th>
-                  <th className="text-right py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -149,21 +149,40 @@ const AdminStores = () => {
                     <td className="py-4 px-4 font-mono text-sm text-opticolor-gray-700">{store.accn}</td>
                     <td className="py-4 px-4 text-sm text-opticolor-gray-700">{store.lab?.name || '-'}</td>
                     <td className="py-4 px-4 text-sm text-opticolor-gray-700">{store._count?.warranties || 0}</td>
+                    <td className="py-4 px-4 text-sm text-opticolor-gray-700">{store._count?.users || 0}</td>
                     <td className="py-4 px-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${store.active ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                        store.active 
+                          ? 'bg-green-100 text-green-800 border-green-300' 
+                          : 'bg-gray-100 text-gray-600 border-gray-300'
+                      }`}>
                         {store.active ? 'Activa' : 'Inactiva'}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button variant="secondary" onClick={() => openEdit(store)} className="px-3 py-1 text-xs">Editar</Button>
-                        <Button
-                          variant="ghost"
-                          onClick={() => handleToggleActive(store)}
-                          className={`px-3 py-1 text-xs ${store.active ? 'text-orange-600 hover:text-orange-800' : 'text-green-600 hover:text-green-800'}`}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button
+                          onClick={() => openEdit(store)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium
+                            bg-blue-50 text-blue-700 border border-blue-200 rounded-md
+                            hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                          title="Editar tienda"
                         >
-                          {store.active ? 'Desactivar' : 'Activar'}
-                        </Button>
+                          <span className="text-sm">✏️</span>
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleToggleActive(store)}
+                          className={`inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                            store.active
+                              ? 'text-orange-600 hover:text-orange-700 hover:bg-orange-50'
+                              : 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                          }`}
+                          title={store.active ? 'Desactivar tienda' : 'Activar tienda'}
+                        >
+                          <span className="text-sm">{store.active ? '⏸️' : '▶️'}</span>
+                          <span className="hidden xl:inline">{store.active ? 'Desactivar' : 'Activar'}</span>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -176,14 +195,29 @@ const AdminStores = () => {
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingStore ? 'Editar Tienda' : 'Nueva Tienda'} size="md">
         <div className="space-y-4">
-          <Input label="Nombre de la Tienda" value={form.name} onChange={(e) => handleChange('name', e.target.value)} error={formErrors.name} placeholder="Ej: Óptica Centro" />
-          <Input label="Código ACCN (3 dígitos)" value={form.accn} onChange={(e) => handleChange('accn', e.target.value)} error={formErrors.accn} placeholder="Ej: 001" maxLength={3} />
+          <Input 
+            label="Nombre de la Tienda" 
+            value={form.name} 
+            onChange={(e) => handleChange('name', e.target.value)} 
+            error={formErrors.name} 
+            placeholder="Ej: Óptica Centro" 
+          />
+          <Input 
+            label="Código ACCN (3 dígitos)" 
+            value={form.accn} 
+            onChange={(e) => handleChange('accn', e.target.value)} 
+            error={formErrors.accn} 
+            placeholder="Ej: 001" 
+            maxLength={3} 
+          />
           <div>
             <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Laboratorio Asignado</label>
             <select
               value={form.labId}
               onChange={(e) => handleChange('labId', e.target.value)}
-              className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${formErrors.labId ? 'border-opticolor-red-light bg-red-50' : 'border-opticolor-gray-200'}`}
+              className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${
+                formErrors.labId ? 'border-opticolor-red-light bg-red-50' : 'border-opticolor-gray-200'
+              }`}
             >
               <option value="">Seleccionar...</option>
               {labs.map((lab) => (
@@ -192,11 +226,11 @@ const AdminStores = () => {
             </select>
             {formErrors.labId && <p className="text-sm text-opticolor-red-light mt-1">{formErrors.labId}</p>}
           </div>
-          <Input label="Nombre de Usuario" value={form.email} onChange={(e) => handleChange('email', e.target.value)} placeholder="Ej: tienda001" disabled={!!editingStore} />
-          <Input label={editingStore ? 'Nueva Contraseña (dejar vacío si no se cambia)' : 'Contraseña'} type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} error={formErrors.password} placeholder="Mínimo 6 caracteres" />
           <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} loading={saving}>{editingStore ? 'Guardar Cambios' : 'Crear Tienda'}</Button>
+            <Button onClick={handleSave} loading={saving}>
+              {editingStore ? 'Guardar Cambios' : 'Crear Tienda'}
+            </Button>
           </div>
         </div>
       </Modal>

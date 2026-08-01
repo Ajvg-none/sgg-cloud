@@ -19,10 +19,14 @@ const StoreNavbar = () => {
     <nav className="bg-white shadow-md border-b-2 border-opticolor-red">
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-opticolor-red">OPTI-COLOR</span>
-            <span className="text-sm text-opticolor-gray-500">| Garantías</span>
-          </div>
+         <div className="flex items-center gap-2">
+          <img 
+            src="/logo-opti.jpg" 
+            alt="Opti-Color" 
+            className="h-16 w-auto"   // ajusta según el espacio en la navbar
+          />
+          <span className="text-sm text-opticolor-gray-500">| Garantías</span>
+        </div>
           <div className="flex items-center gap-4">
             <Link
               to="/store"

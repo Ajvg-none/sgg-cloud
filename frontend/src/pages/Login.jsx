@@ -1,3 +1,4 @@
+// frontend/src/pages/Login.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
@@ -54,15 +55,29 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-opticolor-gray-50 to-opticolor-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-fade-in-up">
+        {/* Logo y encabezado */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-opticolor-red mb-2">OPTI-COLOR</h1>
-          <p className="text-opticolor-gray-600">Sistema de Gestión de Garantías</p>
+          <div className="flex justify-center mb-3">
+            <div className="w-48 md:w-56 transition-transform duration-300 hover:scale-105">
+              <img 
+                src="/logo-opti.jpg" 
+                alt="Opti-Color" 
+                className="w-full h-auto drop-shadow-lg"
+              />
+            </div>
+          </div>
+          <p className="text-opticolor-gray-600 text-sm mt-1">
+            Sistema de Gestión de Garantías
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-xl p-8 border border-opticolor-gray-100">
-          <h2 className="text-2xl font-bold text-opticolor-gray-900 mb-6">Iniciar Sesión</h2>
+        {/* Tarjeta de login */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/30">
+          <h2 className="text-2xl font-bold text-opticolor-gray-900 text-center mb-6">
+            Iniciar Sesión
+          </h2>
 
           {error && (
             <div className="mb-4">
@@ -70,33 +85,48 @@ const Login = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Usuario"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Ingresa tu usuario"
-              autoComplete="username"
-            />
-            <Input
-              label="Contraseña"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Ingresa tu contraseña"
-              autoComplete="current-password"
-            />
-            <Button type="submit" loading={loading} className="w-full py-3 text-lg">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Campo Usuario con ícono */}
+            <div className="relative">
+              <div className="absolute left-3 top-9 text-opticolor-gray-400">
+                <span className="text-lg">👤</span>
+              </div>
+              <Input
+                label="Usuario"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ingresa tu usuario"
+                className="pl-10"
+                autoComplete="username"
+              />
+            </div>
+
+            {/* Campo Contraseña con ícono */}
+            <div className="relative">
+              <div className="absolute left-3 top-9 text-opticolor-gray-400">
+                <span className="text-lg">🔒</span>
+              </div>
+              <Input
+                label="Contraseña"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                className="pl-10"
+                autoComplete="current-password"
+              />
+            </div>
+
+            {/* Botón con gradiente */}
+            <Button 
+              type="submit" 
+              loading={loading} 
+              className="w-full py-3 text-lg bg-gradient-to-r from-opticolor-red to-opticolor-red-dark hover:from-opticolor-red-dark hover:to-opticolor-red transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
+            >
               {loading ? 'Ingresando...' : 'Ingresar'}
             </Button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-opticolor-gray-200">
-            <p className="text-xs text-opticolor-gray-400 text-center">
-              Cuentas de prueba: admin / admin123, tienda001 / tienda123, lab_central / lab123
-            </p>
-          </div>
         </div>
       </div>
     </div>

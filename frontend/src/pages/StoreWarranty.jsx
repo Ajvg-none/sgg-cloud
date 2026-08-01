@@ -7,21 +7,9 @@ import Card from '../components/ui/Card';
 import Alert from '../components/ui/Alert';
 
 const WARRANTY_TYPES = [
-  'DP mal tomada',
-  'Error de medición',
-  'Error de DP',
-  'Error DP + RX',
-  'Error PIT + DP',
-  'Error de facturación',
-  'Defecto de producto',
-  'Cambio de material',
-  'Error de R',
-  'Error de altura',
-  'Error de transcripción',
-  'Mal asesoramiento',
-  'Mal manejo del producto',
-  'Insatisfacción del cliente',
-  'Altura mal tomada',
+  'Error de Medida',
+  'Error de Transcripcion',
+  'Error de RX'
 ];
 
 const StoreWarranty = () => {
@@ -33,6 +21,34 @@ const StoreWarranty = () => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [alert, setAlert] = useState(null);
+
+  // ============================================================
+  // NUEVA FUNCIÓN: controla qué campos se bloquean según el tipo
+  // ============================================================
+  const isFieldDisabled = (fieldName) => {
+    // Si no hay tipo seleccionado, todo bloqueado
+    if (!warrantyType) return true;
+
+    // Si es "Error de Medida": solo se permiten DP, Altura y Montura
+    if (warrantyType === 'Error de Medida') {
+      const allowedFields = [
+        'od_dp_centro', 'od_dp_cerca',
+        'oi_dp_centro', 'oi_dp_cerca',
+        'altura_od', 'altura_oi',
+        'montura_horizontal', 'montura_vertical',
+        'montura_puente', 'montura_diametro_max'
+      ];
+      return !allowedFields.includes(fieldName);
+    }
+
+    // Si es "Error de Transcripcion" o "Error de RX": todo habilitado
+    if (warrantyType === 'Error de Transcripcion' || warrantyType === 'Error de RX') {
+      return false;
+    }
+
+    // Por defecto, bloqueado (por si acaso)
+    return true;
+  };
 
   const handleSearch = async () => {
     if (!orderNumber.trim()) {
@@ -47,7 +63,7 @@ const StoreWarranty = () => {
     try {
       const response = await storeAPI.getOrder(orderNumber);
       setOrderData(response.data.order);
-      setAlert({ type: 'success', message: 'OTG encontrada. Puedes editar los campos y guardar.' });
+      setAlert({ type: 'success', message: 'OTG encontrada. Selecciona un tipo de garantía para editar los campos.' });
     } catch (error) {
       setAlert({
         type: 'error',
@@ -134,6 +150,9 @@ const StoreWarranty = () => {
           </div>
         )}
 
+        {/* ============================================================
+            BUSCAR OTG
+            ============================================================ */}
         <Card className="mb-6">
           <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
             Buscar OTG
@@ -162,6 +181,10 @@ const StoreWarranty = () => {
 
         {orderData && (
           <div className="space-y-6 animate-fade-in">
+
+            {/* ============================================================
+                DATOS DEL CLIENTE (siempre editable)
+                ============================================================ */}
             <Card>
               <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
                 Datos del Cliente
@@ -171,59 +194,19 @@ const StoreWarranty = () => {
                   label="Nombre del Cliente"
                   value={orderData.cliente_nombre || ''}
                   onChange={(e) => handleFieldChange('cliente_nombre', e.target.value)}
-                  disabled={saving}
+                  disabled// solo se bloquea mientras se guarda
                 />
                 <Input
                   label="Código Completo"
                   value={orderData.codigo_completo || ''}
-                  disabled
+                  disabled // siempre de solo lectura
                 />
               </div>
             </Card>
 
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Ojo Derecho (OD)
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <Input label="Esfera" type="number" step="0.01" value={orderData.od_esfera ?? ''} onChange={(e) => handleFieldChange('od_esfera', e.target.value)} error={errors.od_esfera} disabled={saving} />
-                <Input label="Cilindro" type="number" step="0.01" value={orderData.od_cilindro ?? ''} onChange={(e) => handleFieldChange('od_cilindro', e.target.value)} error={errors.od_cilindro} disabled={saving} />
-                <Input label="Eje" type="number" min="0" max="180" value={orderData.od_eje ?? ''} onChange={(e) => handleFieldChange('od_eje', e.target.value)} error={errors.od_eje} disabled={saving} />
-                <Input label="Adición" type="number" step="0.01" value={orderData.od_adicion ?? ''} onChange={(e) => handleFieldChange('od_adicion', e.target.value)} error={errors.od_adicion} disabled={saving} />
-                <Input label="DP Centro" type="number" step="0.1" value={orderData.od_dp_centro ?? ''} onChange={(e) => handleFieldChange('od_dp_centro', e.target.value)} error={errors.od_dp_centro} disabled={saving} />
-                <Input label="DP Cerca" type="number" step="0.1" value={orderData.od_dp_cerca ?? ''} onChange={(e) => handleFieldChange('od_dp_cerca', e.target.value)} error={errors.od_dp_cerca} disabled={saving} />
-                <Input label="Altura" type="number" step="0.1" value={orderData.altura_od ?? ''} onChange={(e) => handleFieldChange('altura_od', e.target.value)} error={errors.altura_od} disabled={saving} />
-              </div>
-            </Card>
-
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Ojo Izquierdo (OI)
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <Input label="Esfera" type="number" step="0.01" value={orderData.oi_esfera ?? ''} onChange={(e) => handleFieldChange('oi_esfera', e.target.value)} error={errors.oi_esfera} disabled={saving} />
-                <Input label="Cilindro" type="number" step="0.01" value={orderData.oi_cilindro ?? ''} onChange={(e) => handleFieldChange('oi_cilindro', e.target.value)} error={errors.oi_cilindro} disabled={saving} />
-                <Input label="Eje" type="number" min="0" max="180" value={orderData.oi_eje ?? ''} onChange={(e) => handleFieldChange('oi_eje', e.target.value)} error={errors.oi_eje} disabled={saving} />
-                <Input label="Adición" type="number" step="0.01" value={orderData.oi_adicion ?? ''} onChange={(e) => handleFieldChange('oi_adicion', e.target.value)} error={errors.oi_adicion} disabled={saving} />
-                <Input label="DP Centro" type="number" step="0.1" value={orderData.oi_dp_centro ?? ''} onChange={(e) => handleFieldChange('oi_dp_centro', e.target.value)} error={errors.oi_dp_centro} disabled={saving} />
-                <Input label="DP Cerca" type="number" step="0.1" value={orderData.oi_dp_cerca ?? ''} onChange={(e) => handleFieldChange('oi_dp_cerca', e.target.value)} error={errors.oi_dp_cerca} disabled={saving} />
-                <Input label="Altura" type="number" step="0.1" value={orderData.altura_oi ?? ''} onChange={(e) => handleFieldChange('altura_oi', e.target.value)} error={errors.altura_oi} disabled={saving} />
-              </div>
-            </Card>
-
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Medidas de Montura
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Input label="Horizontal" type="number" step="0.1" value={orderData.montura_horizontal ?? ''} onChange={(e) => handleFieldChange('montura_horizontal', e.target.value)} disabled={saving} />
-                <Input label="Vertical" type="number" step="0.1" value={orderData.montura_vertical ?? ''} onChange={(e) => handleFieldChange('montura_vertical', e.target.value)} disabled={saving} />
-                <Input label="Puente" type="number" step="0.1" value={orderData.montura_puente ?? ''} onChange={(e) => handleFieldChange('montura_puente', e.target.value)} disabled={saving} />
-                <Input label="Diámetro Máximo" type="number" step="0.1" value={orderData.montura_diametro_max ?? ''} onChange={(e) => handleFieldChange('montura_diametro_max', e.target.value)} disabled={saving} />
-              </div>
-            </Card>
-
-            {/* Tipo de Garantía + Observaciones */}
+            {/* ============================================================
+                DATOS DE LA GARANTÍA (MOVIDO AQUÍ)
+                ============================================================ */}
             <Card>
               <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
                 Datos de la Garantía
@@ -235,9 +218,16 @@ const StoreWarranty = () => {
                   </label>
                   <select
                     value={warrantyType}
-                    onChange={(e) => { setWarrantyType(e.target.value); if (errors.warrantyType) setErrors(prev => ({ ...prev, warrantyType: null })); }}
+                    onChange={(e) => {
+                      setWarrantyType(e.target.value);
+                      if (errors.warrantyType) setErrors(prev => ({ ...prev, warrantyType: null }));
+                    }}
                     disabled={saving}
-                    className={`w-full px-4 py-2 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${errors.warrantyType ? 'border-opticolor-red-light bg-red-50' : 'border-opticolor-gray-200 hover:border-opticolor-gray-300'}`}
+                    className={`w-full px-4 py-2 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${
+                      errors.warrantyType
+                        ? 'border-opticolor-red-light bg-red-50'
+                        : 'border-opticolor-gray-200 hover:border-opticolor-gray-300'
+                    }`}
                   >
                     <option value="">Seleccionar tipo...</option>
                     {WARRANTY_TYPES.map((type) => (
@@ -260,7 +250,7 @@ const StoreWarranty = () => {
                     rows={3}
                     disabled={saving}
                     placeholder="Describe brevemente el caso (máx. 300 caracteres)"
-                    className={`w-full px-4 py-2 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent border-opticolor-gray-200 hover:border-opticolor-gray-300 disabled:bg-opticolor-gray-50 disabled:cursor-not-allowed`}
+                    className="w-full px-4 py-2 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent border-opticolor-gray-200 hover:border-opticolor-gray-300 disabled:bg-opticolor-gray-50 disabled:cursor-not-allowed"
                   />
                   <p className="text-xs text-opticolor-gray-400 mt-1 text-right">
                     {storeObservations.length}/300
@@ -269,6 +259,202 @@ const StoreWarranty = () => {
               </div>
             </Card>
 
+            {/* ============================================================
+                OJO DERECHO (OD)
+                ============================================================ */}
+            <Card>
+              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
+                Ojo Derecho (OD)
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <Input
+                  label="Esfera"
+                  type="number"
+                  step="0.01"
+                  value={orderData.od_esfera ?? ''}
+                  onChange={(e) => handleFieldChange('od_esfera', e.target.value)}
+                  error={errors.od_esfera}
+                  disabled={isFieldDisabled('od_esfera') || saving}
+                />
+                <Input
+                  label="Cilindro"
+                  type="number"
+                  step="0.01"
+                  value={orderData.od_cilindro ?? ''}
+                  onChange={(e) => handleFieldChange('od_cilindro', e.target.value)}
+                  error={errors.od_cilindro}
+                  disabled={isFieldDisabled('od_cilindro') || saving}
+                />
+                <Input
+                  label="Eje"
+                  type="number"
+                  min="0"
+                  max="180"
+                  value={orderData.od_eje ?? ''}
+                  onChange={(e) => handleFieldChange('od_eje', e.target.value)}
+                  error={errors.od_eje}
+                  disabled={isFieldDisabled('od_eje') || saving}
+                />
+                <Input
+                  label="Adición"
+                  type="number"
+                  step="0.01"
+                  value={orderData.od_adicion ?? ''}
+                  onChange={(e) => handleFieldChange('od_adicion', e.target.value)}
+                  error={errors.od_adicion}
+                  disabled={isFieldDisabled('od_adicion') || saving}
+                />
+                <Input
+                  label="DP Centro"
+                  type="number"
+                  step="0.1"
+                  value={orderData.od_dp_centro ?? ''}
+                  onChange={(e) => handleFieldChange('od_dp_centro', e.target.value)}
+                  error={errors.od_dp_centro}
+                  disabled={isFieldDisabled('od_dp_centro') || saving}
+                />
+                <Input
+                  label="DP Cerca"
+                  type="number"
+                  step="0.1"
+                  value={orderData.od_dp_cerca ?? ''}
+                  onChange={(e) => handleFieldChange('od_dp_cerca', e.target.value)}
+                  error={errors.od_dp_cerca}
+                  disabled={isFieldDisabled('od_dp_cerca') || saving}
+                />
+                <Input
+                  label="Altura"
+                  type="number"
+                  step="0.1"
+                  value={orderData.altura_od ?? ''}
+                  onChange={(e) => handleFieldChange('altura_od', e.target.value)}
+                  error={errors.altura_od}
+                  disabled={isFieldDisabled('altura_od') || saving}
+                />
+              </div>
+            </Card>
+
+            {/* ============================================================
+                OJO IZQUIERDO (OI)
+                ============================================================ */}
+            <Card>
+              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
+                Ojo Izquierdo (OI)
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <Input
+                  label="Esfera"
+                  type="number"
+                  step="0.01"
+                  value={orderData.oi_esfera ?? ''}
+                  onChange={(e) => handleFieldChange('oi_esfera', e.target.value)}
+                  error={errors.oi_esfera}
+                  disabled={isFieldDisabled('oi_esfera') || saving}
+                />
+                <Input
+                  label="Cilindro"
+                  type="number"
+                  step="0.01"
+                  value={orderData.oi_cilindro ?? ''}
+                  onChange={(e) => handleFieldChange('oi_cilindro', e.target.value)}
+                  error={errors.oi_cilindro}
+                  disabled={isFieldDisabled('oi_cilindro') || saving}
+                />
+                <Input
+                  label="Eje"
+                  type="number"
+                  min="0"
+                  max="180"
+                  value={orderData.oi_eje ?? ''}
+                  onChange={(e) => handleFieldChange('oi_eje', e.target.value)}
+                  error={errors.oi_eje}
+                  disabled={isFieldDisabled('oi_eje') || saving}
+                />
+                <Input
+                  label="Adición"
+                  type="number"
+                  step="0.01"
+                  value={orderData.oi_adicion ?? ''}
+                  onChange={(e) => handleFieldChange('oi_adicion', e.target.value)}
+                  error={errors.oi_adicion}
+                  disabled={isFieldDisabled('oi_adicion') || saving}
+                />
+                <Input
+                  label="DP Centro"
+                  type="number"
+                  step="0.1"
+                  value={orderData.oi_dp_centro ?? ''}
+                  onChange={(e) => handleFieldChange('oi_dp_centro', e.target.value)}
+                  error={errors.oi_dp_centro}
+                  disabled={isFieldDisabled('oi_dp_centro') || saving}
+                />
+                <Input
+                  label="DP Cerca"
+                  type="number"
+                  step="0.1"
+                  value={orderData.oi_dp_cerca ?? ''}
+                  onChange={(e) => handleFieldChange('oi_dp_cerca', e.target.value)}
+                  error={errors.oi_dp_cerca}
+                  disabled={isFieldDisabled('oi_dp_cerca') || saving}
+                />
+                <Input
+                  label="Altura"
+                  type="number"
+                  step="0.1"
+                  value={orderData.altura_oi ?? ''}
+                  onChange={(e) => handleFieldChange('altura_oi', e.target.value)}
+                  error={errors.altura_oi}
+                  disabled={isFieldDisabled('altura_oi') || saving}
+                />
+              </div>
+            </Card>
+
+            {/* ============================================================
+                MEDIDAS DE MONTURA
+                ============================================================ */}
+            <Card>
+              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
+                Medidas de Montura
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Input
+                  label="Horizontal"
+                  type="number"
+                  step="0.1"
+                  value={orderData.montura_horizontal ?? ''}
+                  onChange={(e) => handleFieldChange('montura_horizontal', e.target.value)}
+                  disabled={isFieldDisabled('montura_horizontal') || saving}
+                />
+                <Input
+                  label="Vertical"
+                  type="number"
+                  step="0.1"
+                  value={orderData.montura_vertical ?? ''}
+                  onChange={(e) => handleFieldChange('montura_vertical', e.target.value)}
+                  disabled={isFieldDisabled('montura_vertical') || saving}
+                />
+                <Input
+                  label="Puente"
+                  type="number"
+                  step="0.1"
+                  value={orderData.montura_puente ?? ''}
+                  onChange={(e) => handleFieldChange('montura_puente', e.target.value)}
+                  disabled={isFieldDisabled('montura_puente') || saving}
+                />
+                <Input
+                  label="Diámetro Máximo"
+                  type="number"
+                  step="0.1"
+                  value={orderData.montura_diametro_max ?? ''}
+                  onChange={(e) => handleFieldChange('montura_diametro_max', e.target.value)}
+                  disabled={isFieldDisabled('montura_diametro_max') || saving}
+                />
+              </div>
+            </Card>
+
+            {/* ============================================================
+                BOTÓN GUARDAR
+                ============================================================ */}
             <div className="flex justify-end">
               <Button
                 onClick={handleSave}
@@ -279,6 +465,7 @@ const StoreWarranty = () => {
                 💾 Guardar Garantía
               </Button>
             </div>
+
           </div>
         )}
       </div>
