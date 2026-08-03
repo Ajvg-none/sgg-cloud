@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { authAPI } from '../../services/api';
+import UserChip from '../ui/UserChip';
+import { LogoutIcon } from '../ui/Icons';
 
 const LabLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const username = localStorage.getItem('username') || 'Laboratorio';
+  const [lab, setLab] = useState(null);
+
+  useEffect(() => {
+    const loadLab = async () => {
+      try {
+        const res = await authAPI.me();
+        const l = res.data?.user?.lab;
+        if (l) setLab(l);
+      } catch {
+        // Sin nombre de laboratorio: se usa el username como respaldo
+      }
+    };
+    loadLab();
+  }, []);
 
   const menuItems = [
     { path: '/lab', label: 'Panel', icon: '📊', exact: true },
@@ -29,7 +46,9 @@ const LabLayout = () => {
             className="h-48 w-auto"
           />
           <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Laboratorio</p>
-          <p className="text-xs text-opticolor-gray-400 mt-1 font-mono">{username}</p>
+          <div className="mt-2">
+            <UserChip name={lab?.name || username} subtitle={username} />
+          </div>
         </div>
 
         <nav className="p-4 flex-1">
@@ -60,9 +79,10 @@ const LabLayout = () => {
         <div className="p-4 border-t border-opticolor-gray-200">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
           >
-            🚪 Cerrar Sesión
+            <LogoutIcon />
+            Cerrar Sesión
           </button>
         </div>
       </aside>

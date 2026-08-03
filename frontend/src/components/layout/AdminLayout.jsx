@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import UserChip from '../ui/UserChip';
+import { LogoutIcon } from '../ui/Icons';
 
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const username = localStorage.getItem('username') || 'Administrador';
 
   const menuItems = [
     { path: '/admin', label: 'Dashboard', icon: '📊', exact: true },
@@ -16,7 +19,7 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -27,9 +30,12 @@ const AdminLayout = () => {
           <img 
             src="/logo-opti.jpg" 
             alt="Opti-Color" 
-            className="h-48w-auto"   // ajusta según prefieras
+            className="h-48 w-auto"
           />
           <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Administración</p>
+          <div className="mt-2">
+            <UserChip name={username} subtitle="Administrador" />
+          </div>
         </div>
 
         <nav className="p-4 flex-1">
@@ -68,9 +74,10 @@ const AdminLayout = () => {
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
           >
-            🚪 Cerrar Sesión
+            <LogoutIcon />
+            Cerrar Sesión
           </button>
         </div>
       </aside>
