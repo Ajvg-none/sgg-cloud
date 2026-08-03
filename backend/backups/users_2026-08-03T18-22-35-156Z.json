@@ -1,0 +1,46 @@
+[
+  {
+    "id": "cmsaiu68c0000k0uqdtk1dvjy",
+    "password": "$2b$10$irYAd3KHxdXbcQzPyok.m.AOx4gXI2lvfUu51ezVK42NvgC0zM3Hq",
+    "role": "ADMIN",
+    "store_id": null,
+    "lab_id": null,
+    "active": true,
+    "created_at": "2026-08-01T19:23:38.124Z",
+    "updated_at": "2026-08-01T19:23:38.124Z",
+    "username": "admin"
+  },
+  {
+    "id": "cmsaizxzh0002n0uqbutzpkur",
+    "password": "$2b$10$OEanalq9lZc/XhlYb9SB9OzReIyK3FWYRC3CsDZ81ljOqoNS2/3Cq",
+    "role": "TIENDA",
+    "store_id": "cmsaiyreq0001n0uqgadrflhn",
+    "lab_id": null,
+    "active": true,
+    "created_at": "2026-08-01T19:28:07.373Z",
+    "updated_at": "2026-08-01T20:00:04.023Z",
+    "username": "puentecristal_opticolor"
+  },
+  {
+    "id": "cmsaj06710003n0uq03i9pkja",
+    "password": "$2b$10$ZqgskC6PhmIFiO8/tnaH.elaFePhr4by6YJTTIszfnUFo/DiJare6",
+    "role": "LABORATORIO",
+    "store_id": null,
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-08-01T19:28:18.013Z",
+    "updated_at": "2026-08-01T21:27:02.787Z",
+    "username": "lab_mcbo"
+  },
+  {
+    "id": "cmsan4pau0000bwuquxhw6ydn",
+    "password": "$2b$10$vJx4m67NkitwxbUbYd3k4eptUKv5a2/KnWHv9e0RoXSMgnU4n6R8a",
+    "role": "TIENDA",
+    "store_id": "cmsamzdzf0016iouq9jdnv264",
+    "lab_id": null,
+    "active": true,
+    "created_at": "2026-08-01T21:23:47.862Z",
+    "updated_at": "2026-08-01T21:23:47.862Z",
+    "username": "altavista_opticolor"
+  }
+]

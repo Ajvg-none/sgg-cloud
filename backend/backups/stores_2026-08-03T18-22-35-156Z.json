@@ -1,0 +1,821 @@
+[
+  {
+    "id": "cmsaiyreq0001n0uqgadrflhn",
+    "name": "Puente Cristal",
+    "accn": "003",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-08-01T19:27:12.194Z",
+    "updated_at": "2026-08-01T19:27:12.194Z"
+  },
+  {
+    "id": "cmsamf3yf0000r4uqv328p4qq",
+    "name": "Cima",
+    "accn": "004",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:18:37.583Z",
+    "updated_at": "2026-08-01T21:03:53.799Z"
+  },
+  {
+    "id": "cmsamf3yj0001r4uq3yw45q2n",
+    "name": "Sambil Maracaibo",
+    "accn": "007",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:23.443Z",
+    "updated_at": "2026-08-01T21:03:53.803Z"
+  },
+  {
+    "id": "cmsamf3yk0002r4uqsvvq1x8w",
+    "name": "Cabimas Borjas",
+    "accn": "175",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.366Z",
+    "updated_at": "2026-08-01T21:03:53.804Z"
+  },
+  {
+    "id": "cmsamf3ym0003r4uqkm0rv1eu",
+    "name": "Caribe Zulia",
+    "accn": "173",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.366Z",
+    "updated_at": "2026-08-01T21:03:53.806Z"
+  },
+  {
+    "id": "cmsamf3yo0004r4uqym788qlu",
+    "name": "Las Piedras",
+    "accn": "176",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.366Z",
+    "updated_at": "2026-08-01T21:03:53.808Z"
+  },
+  {
+    "id": "cmsamf3yp0005r4uqwgjt9emz",
+    "name": "Cabimas 5 de Julio",
+    "accn": "174",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.366Z",
+    "updated_at": "2026-08-01T21:03:53.809Z"
+  },
+  {
+    "id": "cmsamf3yr0006r4uqoyrqzbud",
+    "name": "La Lago",
+    "accn": "172",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.811Z"
+  },
+  {
+    "id": "cmsamf3yt0007r4uq4ydi2t0n",
+    "name": "Plaza Mar",
+    "accn": "006",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.813Z"
+  },
+  {
+    "id": "cmsamf3yu0008r4uq3bwg678u",
+    "name": "San Francisco",
+    "accn": "005",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.814Z"
+  },
+  {
+    "id": "cmsamf3yv0009r4uqgtuuyvzy",
+    "name": "Los Cortijos",
+    "accn": "171",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.815Z"
+  },
+  {
+    "id": "cmsamf3yx000ar4uqzmgrfhqt",
+    "name": "Guatire",
+    "accn": "169",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.817Z"
+  },
+  {
+    "id": "cmsamf3yy000br4uqm8ts2q8a",
+    "name": "Guarenas",
+    "accn": "170",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.818Z"
+  },
+  {
+    "id": "cmsamf3z0000cr4uqqcpc7hj7",
+    "name": "C.C. Lara",
+    "accn": "168",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:03:53.820Z"
+  },
+  {
+    "id": "cmsamf3z1000dr4uqqd3pte30",
+    "name": "Barquisimeto",
+    "accn": "167",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:03:53.821Z"
+  },
+  {
+    "id": "cmsamf3z3000er4uqosne9peg",
+    "name": "Valencia",
+    "accn": "166",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:03:53.823Z"
+  },
+  {
+    "id": "cmsamf3z4000fr4uqqsy5u21n",
+    "name": "Maracay",
+    "accn": "165",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:03:53.824Z"
+  },
+  {
+    "id": "cmsamf3z5000gr4uqf5nqf4k2",
+    "name": "Caracas",
+    "accn": "164",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:03:53.825Z"
+  },
+  {
+    "id": "cmsamzdv30005iouq4wc4g0as",
+    "name": "Chinita Plaza",
+    "accn": "024",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.365Z",
+    "updated_at": "2026-08-01T21:19:39.759Z"
+  },
+  {
+    "id": "cmsamzdw50006iouqe9x8rncr",
+    "name": "Galerías Mall",
+    "accn": "009",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:46.824Z",
+    "updated_at": "2026-08-01T21:19:39.797Z"
+  },
+  {
+    "id": "cmsamzdw70007iouqqbfrzjn2",
+    "name": "Gran Bazar",
+    "accn": "155",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:19:39.799Z"
+  },
+  {
+    "id": "cmsamzdw80008iouqly9lm3f6",
+    "name": "Lago Mall",
+    "accn": "030",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:19:39.800Z"
+  },
+  {
+    "id": "cmsamzdwa0009iouqe5bl8k8a",
+    "name": "Mall Delicias Plaza",
+    "accn": "037",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.364Z",
+    "updated_at": "2026-08-01T21:19:39.802Z"
+  },
+  {
+    "id": "cmsamzdwb000aiouqdc37gn7p",
+    "name": "Mall Paseo San Francisco",
+    "accn": "150",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:22.576Z",
+    "updated_at": "2026-08-01T21:19:39.803Z"
+  },
+  {
+    "id": "cmsamzdwf000ciouqbwhyapfx",
+    "name": "San Francisco La Coromoto",
+    "accn": "129",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.363Z",
+    "updated_at": "2026-08-01T21:19:39.807Z"
+  },
+  {
+    "id": "cmsamzdxf000diouqtnvhyn3b",
+    "name": "Terraza 77",
+    "accn": "053",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:31.815Z",
+    "updated_at": "2026-08-01T21:19:39.843Z"
+  },
+  {
+    "id": "cmsamzdxg000eiouqibrr164o",
+    "name": "Traki Cabimas",
+    "accn": "138",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.362Z",
+    "updated_at": "2026-08-01T21:19:39.844Z"
+  },
+  {
+    "id": "cmsamzdxh000fiouqxdpxqm7q",
+    "name": "Ciudad Crepuscular",
+    "accn": "124",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:42.659Z",
+    "updated_at": "2026-08-01T21:19:39.845Z"
+  },
+  {
+    "id": "cmsamzdxi000giouqc6mphtoo",
+    "name": "Las Virtudes",
+    "accn": "200",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.362Z",
+    "updated_at": "2026-08-01T21:19:39.846Z"
+  },
+  {
+    "id": "cmsamzdxk000hiouq866tytq6",
+    "name": "Metropolis Barquisimeto",
+    "accn": "208",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.362Z",
+    "updated_at": "2026-08-01T21:19:39.848Z"
+  },
+  {
+    "id": "cmsamzdxl000iiouqoq2lyod6",
+    "name": "Sambil Barquisimeto Plaza Central",
+    "accn": "194",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.361Z",
+    "updated_at": "2026-08-01T21:19:39.849Z"
+  },
+  {
+    "id": "cmsamzdxn000jiouqz96q6zrg",
+    "name": "Sambil Barquisimeto desarrollo",
+    "accn": "213",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.361Z",
+    "updated_at": "2026-08-01T21:19:39.851Z"
+  },
+  {
+    "id": "cmsamzdxo000kiouqkf95jhv4",
+    "name": "Sambil Paraguana Las Piedra",
+    "accn": "201",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:15.577Z",
+    "updated_at": "2026-08-01T21:19:39.852Z"
+  },
+  {
+    "id": "cmsamzdxp000liouqomy4wli9",
+    "name": "Sambil Paraguana Mar Caribe",
+    "accn": "202",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.360Z",
+    "updated_at": "2026-08-01T21:19:39.853Z"
+  },
+  {
+    "id": "cmsamzdxq000miouqu9yd2xim",
+    "name": "Sambil San Cristobal",
+    "accn": "199",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.360Z",
+    "updated_at": "2026-08-01T21:19:39.854Z"
+  },
+  {
+    "id": "cmsamzdxs000niouq4g9gk3mu",
+    "name": "Traki Cabudare",
+    "accn": "180",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.360Z",
+    "updated_at": "2026-08-01T21:19:39.856Z"
+  },
+  {
+    "id": "cmsamzdxt000oiouqsb3636k4",
+    "name": "Trinitarias",
+    "accn": "195",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:39.138Z",
+    "updated_at": "2026-08-01T21:19:39.857Z"
+  },
+  {
+    "id": "cmsamzdxv000piouqu1nu0psx",
+    "name": "Sambil Barquisimeto Plaza Norte Nueva",
+    "accn": "158",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:14.279Z",
+    "updated_at": "2026-08-01T21:19:39.859Z"
+  },
+  {
+    "id": "cmsamzdxw000qiouqpsz2l0wb",
+    "name": "Sole Tolon",
+    "accn": "152",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.359Z",
+    "updated_at": "2026-08-01T21:19:39.860Z"
+  },
+  {
+    "id": "cmsamzdxw000riouq6cdildi4",
+    "name": "El Marques",
+    "accn": "162",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.358Z",
+    "updated_at": "2026-08-01T21:19:39.860Z"
+  },
+  {
+    "id": "cmsamzdxx000siouqv1rq2f1m",
+    "name": "El Viñedo",
+    "accn": "198",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.358Z",
+    "updated_at": "2026-08-01T21:19:39.861Z"
+  },
+  {
+    "id": "cmsamzdxz000tiouqjiq6kir8",
+    "name": "Estacion Central",
+    "accn": "116",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.357Z",
+    "updated_at": "2026-08-01T21:19:39.863Z"
+  },
+  {
+    "id": "cmsamzdy0000uiouq8146xtzp",
+    "name": "Galeria Plaza 1",
+    "accn": "052",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.357Z",
+    "updated_at": "2026-08-01T21:19:39.864Z"
+  },
+  {
+    "id": "cmsamzdy2000viouqe8n4nupg",
+    "name": "Galeria Plaza 2",
+    "accn": "156",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.356Z",
+    "updated_at": "2026-08-01T21:19:39.866Z"
+  },
+  {
+    "id": "cmsamzdy3000wiouqob4pk5zi",
+    "name": "Hyper Jumbo",
+    "accn": "046",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:40.049Z",
+    "updated_at": "2026-08-01T21:19:39.867Z"
+  },
+  {
+    "id": "cmsamzdy4000xiouqyc5rl47x",
+    "name": "La Granja",
+    "accn": "193",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.355Z",
+    "updated_at": "2026-08-01T21:19:39.868Z"
+  },
+  {
+    "id": "cmsamzdy6000yiouqx98e6q1j",
+    "name": "Las Americas",
+    "accn": "157",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:32.633Z",
+    "updated_at": "2026-08-01T21:19:39.870Z"
+  },
+  {
+    "id": "cmsamzdy7000ziouqmum25fit",
+    "name": "Los Aviadores Aeropuerto",
+    "accn": "197",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.354Z",
+    "updated_at": "2026-08-01T21:19:39.871Z"
+  },
+  {
+    "id": "cmsamzdy80010iouqpd7nnzv9",
+    "name": "Los Aviadores",
+    "accn": "034",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.354Z",
+    "updated_at": "2026-08-01T21:19:39.872Z"
+  },
+  {
+    "id": "cmsamzdy90011iouqwu2tjh2e",
+    "name": "Metropolis Valencia",
+    "accn": "015",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:35:05.353Z",
+    "updated_at": "2026-08-01T21:19:39.873Z"
+  },
+  {
+    "id": "cmsamzdya0012iouqta3pijlv",
+    "name": "Parque Aragua",
+    "accn": "002",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.179Z",
+    "updated_at": "2026-08-01T21:19:39.874Z"
+  },
+  {
+    "id": "cmsamzdya0013iouqonbee3lb",
+    "name": "Sambil Valencia",
+    "accn": "192",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:47.640Z",
+    "updated_at": "2026-08-01T21:19:39.874Z"
+  },
+  {
+    "id": "cmsamzdyf0015iouq33zja4bd",
+    "name": "Unicentro",
+    "accn": "144",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.176Z",
+    "updated_at": "2026-08-01T21:19:39.879Z"
+  },
+  {
+    "id": "cmsamzdzf0016iouq9jdnv264",
+    "name": "Alta Vista",
+    "accn": "183",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.174Z",
+    "updated_at": "2026-08-01T21:19:39.915Z"
+  },
+  {
+    "id": "cmsamzdzh0017iouq26ijeykh",
+    "name": "Calle Libertad",
+    "accn": "020",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.173Z",
+    "updated_at": "2026-08-01T21:19:39.917Z"
+  },
+  {
+    "id": "cmsamzdzl0019iouqe4saddga",
+    "name": "La Vela",
+    "accn": "189",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.172Z",
+    "updated_at": "2026-08-01T21:19:39.922Z"
+  },
+  {
+    "id": "cmsamze0m001aiouqrkerq0xp",
+    "name": "Orinokia Acero",
+    "accn": "204",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.171Z",
+    "updated_at": "2026-08-01T21:19:39.958Z"
+  },
+  {
+    "id": "cmsamze0n001biouqecomr1er",
+    "name": "Orinokia Oro",
+    "accn": "206",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.171Z",
+    "updated_at": "2026-08-01T21:19:39.960Z"
+  },
+  {
+    "id": "cmsamze0o001ciouqf8dq9feu",
+    "name": "Plaza Mayor",
+    "accn": "039",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:41.807Z",
+    "updated_at": "2026-08-01T21:19:39.960Z"
+  },
+  {
+    "id": "cmsamze0q001diouqvac04obg",
+    "name": "Puente Real",
+    "accn": "021",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.169Z",
+    "updated_at": "2026-08-01T21:19:39.962Z"
+  },
+  {
+    "id": "cmsamze0r001eiouqyv4bennf",
+    "name": "Sambil Margarita",
+    "accn": "190",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.169Z",
+    "updated_at": "2026-08-01T21:19:39.963Z"
+  },
+  {
+    "id": "cmsamze0w001giouqjjmpky6k",
+    "name": "Santo Tomé",
+    "accn": "184",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:37.768Z",
+    "updated_at": "2026-08-01T21:19:39.968Z"
+  },
+  {
+    "id": "cmsamze24001hiouq7hmbmumt",
+    "name": "Traki Cumana",
+    "accn": "143",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.166Z",
+    "updated_at": "2026-08-01T21:19:40.012Z"
+  },
+  {
+    "id": "cmsamze25001iiouqhoipb0lc",
+    "name": "Las Olas",
+    "accn": "207",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.165Z",
+    "updated_at": "2026-08-01T21:19:40.013Z"
+  },
+  {
+    "id": "cmsamze26001jiouqqer3skoh",
+    "name": "CCCT 1",
+    "accn": "121",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:45.176Z",
+    "updated_at": "2026-08-01T21:19:40.015Z"
+  },
+  {
+    "id": "cmsamze28001kiouqyaf1tzpm",
+    "name": "Caracas Outlet",
+    "accn": "177",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:48.940Z",
+    "updated_at": "2026-08-01T21:19:40.016Z"
+  },
+  {
+    "id": "cmsamze29001liouqydhw5hcu",
+    "name": "CCCT 2",
+    "accn": "145",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.163Z",
+    "updated_at": "2026-08-01T21:19:40.017Z"
+  },
+  {
+    "id": "cmsamze2a001miouqu7d1t47s",
+    "name": "Cerro Verde 1",
+    "accn": "132",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:43.951Z",
+    "updated_at": "2026-08-01T21:19:40.018Z"
+  },
+  {
+    "id": "cmsamze2b001niouqobsu1d8x",
+    "name": "Cerro Verde 2",
+    "accn": "191",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.160Z",
+    "updated_at": "2026-08-01T21:19:40.019Z"
+  },
+  {
+    "id": "cmsamze6k001qiouq10n1hhq5",
+    "name": "Lider",
+    "accn": "135",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.157Z",
+    "updated_at": "2026-08-01T21:19:40.172Z"
+  },
+  {
+    "id": "cmsamze7j001riouqedjwbuvk",
+    "name": "Millenium",
+    "accn": "139",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.157Z",
+    "updated_at": "2026-08-01T21:19:40.207Z"
+  },
+  {
+    "id": "cmsamze7l001siouqtcvmxey0",
+    "name": "Paseo El Hatillo",
+    "accn": "147",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:19.967Z",
+    "updated_at": "2026-08-01T21:19:40.209Z"
+  },
+  {
+    "id": "cmsamze7m001tiouqj8xedea4",
+    "name": "Petare",
+    "accn": "153",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.155Z",
+    "updated_at": "2026-08-01T21:19:40.210Z"
+  },
+  {
+    "id": "cmsamze7r001viouqi8l32lp6",
+    "name": "FORUM GUATIRE",
+    "accn": "210",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.153Z",
+    "updated_at": "2026-08-01T21:19:40.215Z"
+  },
+  {
+    "id": "cmsamze8s001wiouq9pdqz0ze",
+    "name": "FORUM GUARENA",
+    "accn": "209",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.152Z",
+    "updated_at": "2026-08-01T21:19:40.252Z"
+  },
+  {
+    "id": "cmsamze8t001xiouqwn60p230",
+    "name": "FORUM LA URBINA",
+    "accn": "211",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.152Z",
+    "updated_at": "2026-08-01T21:19:40.253Z"
+  },
+  {
+    "id": "cmsamze8x001ziouq2y87t0l4",
+    "name": "Candelaria Center",
+    "accn": "114",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.151Z",
+    "updated_at": "2026-08-01T21:19:40.257Z"
+  },
+  {
+    "id": "cmsamze9x0020iouqtn2cxh8d",
+    "name": "Centro Lido",
+    "accn": "185",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.150Z",
+    "updated_at": "2026-08-01T21:19:40.293Z"
+  },
+  {
+    "id": "cmsamze9y0021iouq7hph37gm",
+    "name": "El Recreo",
+    "accn": "133",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:29.692Z",
+    "updated_at": "2026-08-01T21:19:40.294Z"
+  },
+  {
+    "id": "cmsamze9z0022iouql7999goz",
+    "name": "Expreso Chacaito",
+    "accn": "178",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.147Z",
+    "updated_at": "2026-08-01T21:19:40.295Z"
+  },
+  {
+    "id": "cmsamzea00023iouqy3btm0dl",
+    "name": "La Cascada",
+    "accn": "146",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.146Z",
+    "updated_at": "2026-08-01T21:19:40.296Z"
+  },
+  {
+    "id": "cmsamzeb50026iouqj8l0rzix",
+    "name": "Metro Center Avenida",
+    "accn": "196",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.144Z",
+    "updated_at": "2026-08-01T21:19:40.337Z"
+  },
+  {
+    "id": "cmsamzec30027iouqqt358cfv",
+    "name": "Multiplaza Paraiso",
+    "accn": "134",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.143Z",
+    "updated_at": "2026-08-01T21:19:40.371Z"
+  },
+  {
+    "id": "cmsamzec40028iouqewdvoqup",
+    "name": "Sambil Candelaria Andres Bello",
+    "accn": "131",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:35.292Z",
+    "updated_at": "2026-08-01T21:19:40.372Z"
+  },
+  {
+    "id": "cmsamzec50029iouqqfxjen8a",
+    "name": "Sambil Candelaria Miranda",
+    "accn": "130",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:21.276Z",
+    "updated_at": "2026-08-01T21:19:40.373Z"
+  },
+  {
+    "id": "cmsamzec7002aiouq3fbgrwup",
+    "name": "Sambil Chacao Nivel Autopista",
+    "accn": "159",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.140Z",
+    "updated_at": "2026-08-01T21:19:40.375Z"
+  },
+  {
+    "id": "cmsamzec8002biouqu751h99a",
+    "name": "Sambil Chacao Nivel Feria",
+    "accn": "123",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:58:36.651Z",
+    "updated_at": "2026-08-01T21:19:40.376Z"
+  },
+  {
+    "id": "cmsamzec9002ciouqisj7hg9c",
+    "name": "Sambil Chacao Nivel Libertador",
+    "accn": "188",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T15:55:19.086Z",
+    "updated_at": "2026-08-01T21:19:40.377Z"
+  },
+  {
+    "id": "cmsamzeca002diouqoecx9e47",
+    "name": "San Ignacio",
+    "accn": "119",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.137Z",
+    "updated_at": "2026-08-01T21:19:40.378Z"
+  },
+  {
+    "id": "cmsamzecc002eiouqknqjmhpt",
+    "name": "La Guaira",
+    "accn": "205",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-12T16:30:16.130Z",
+    "updated_at": "2026-08-01T21:19:40.380Z"
+  },
+  {
+    "id": "cmsamzecd002fiouqbrf95xpj",
+    "name": "FORUM SAN BERNARDINO",
+    "accn": "212",
+    "lab_id": "cmsaiyakl0000n0uqpbwehnw1",
+    "active": true,
+    "created_at": "2026-06-18T17:18:23.600Z",
+    "updated_at": "2026-08-01T21:19:40.381Z"
+  }
+]
