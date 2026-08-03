@@ -3,6 +3,7 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
 import UserChip from '../ui/UserChip';
 import { LogoutIcon } from '../ui/Icons';
+import { LayoutDashboard } from 'lucide-react';
 
 const LabLayout = () => {
   const location = useLocation();
@@ -24,7 +25,7 @@ const LabLayout = () => {
   }, []);
 
   const menuItems = [
-    { path: '/lab', label: 'Panel', icon: '📊', exact: true },
+    { path: '/lab', label: 'Panel', icon: LayoutDashboard, exact: true },
   ];
 
   const handleLogout = () => {
@@ -67,7 +68,10 @@ const LabLayout = () => {
                         : 'text-opticolor-gray-700 hover:bg-opticolor-gray-100'
                     }`}
                   >
-                    <span className="text-xl">{item.icon}</span>
+                    {(() => {
+                      const Icon = item.icon;
+                      return <Icon className="h-5 w-5" aria-hidden="true" />;
+                    })()}
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 </li>

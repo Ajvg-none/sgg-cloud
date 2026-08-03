@@ -5,6 +5,10 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
 import Modal from '../components/ui/Modal';
+import StatusBadge from '../components/ui/StatusBadge';
+import Spinner from '../components/ui/Spinner';
+import EmptyState from '../components/ui/EmptyState';
+import { Eye } from 'lucide-react';
 
 const StoreHistory = () => {
   const [warranties, setWarranties] = useState([]);
@@ -62,21 +66,6 @@ const StoreHistory = () => {
     });
   };
 
-  const StatusBadge = ({ status }) => {
-    const config = {
-      PENDING: { color: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: 'Pendiente' },
-      PROCESSING: { color: 'bg-blue-100 text-blue-800 border-blue-300', label: 'Procesando' },
-      COMPLETED: { color: 'bg-green-100 text-green-800 border-green-300', label: 'Completada' },
-      ERROR: { color: 'bg-red-100 text-red-800 border-red-300', label: 'Error' },
-    };
-    const { color, label } = config[status] || config.PENDING;
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${color}`}>
-        {label}
-      </span>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-opticolor-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -100,19 +89,12 @@ const StoreHistory = () => {
         {/* Tabla de Garantías */}
         <Card>
           {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div>
-            </div>
+            <Spinner size="lg" className="py-12" />
           ) : warranties.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📋</div>
-              <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">
-                No hay garantías registradas
-              </h3>
-              <p className="text-opticolor-gray-500">
-                Cuando registres una garantía, aparecerá aquí
-              </p>
-            </div>
+            <EmptyState
+              title="No hay garantías registradas"
+              description="Cuando registres una garantía, aparecerá aquí"
+            />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -139,7 +121,8 @@ const StoreHistory = () => {
                           loading={detailLoading && selectedWarranty?.id === warranty.id}
                           className="px-4 py-2 text-sm"
                         >
-                          👁 Ver Detalle
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                          Ver Detalle
                         </Button>
                       </td>
                     </tr>
@@ -156,7 +139,7 @@ const StoreHistory = () => {
             <div className="space-y-6">
               {/* Información General */}
               <div>
-                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">📋 Información General</h3>
+                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Información General</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div><p className="text-xs text-opticolor-gray-500">Número de OTG</p><p className="font-mono font-semibold text-opticolor-gray-800">{selectedWarranty.orderNumber}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Cliente</p><p className="font-semibold text-opticolor-gray-800">{selectedWarranty.orderData?.cliente_nombre || '-'}</p></div>
@@ -169,7 +152,7 @@ const StoreHistory = () => {
 
               {/* Datos de la Garantía */}
               <div>
-                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">📝 Datos de la Garantía</h3>
+                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Datos de la Garantía</h3>
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <p className="text-xs text-opticolor-gray-500">Tipo de Garantía</p>
@@ -188,7 +171,7 @@ const StoreHistory = () => {
 
               {/* Ojo Derecho */}
               <div>
-                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">👁 Ojo Derecho (OD)</h3>
+                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Derecho (OD)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div><p className="text-xs text-opticolor-gray-500">Esfera</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.od_esfera ?? '-'}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Cilindro</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.od_cilindro ?? '-'}</p></div>
@@ -202,7 +185,7 @@ const StoreHistory = () => {
 
               {/* Ojo Izquierdo */}
               <div>
-                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">👁 Ojo Izquierdo (OI)</h3>
+                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Izquierdo (OI)</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div><p className="text-xs text-opticolor-gray-500">Esfera</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.oi_esfera ?? '-'}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Cilindro</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.oi_cilindro ?? '-'}</p></div>
@@ -216,7 +199,7 @@ const StoreHistory = () => {
 
               {/* Medidas de Montura */}
               <div>
-                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">🕶️ Medidas de Montura</h3>
+                <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Medidas de Montura</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div><p className="text-xs text-opticolor-gray-500">Horizontal</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.montura_horizontal ?? '-'}</p></div>
                   <div><p className="text-xs text-opticolor-gray-500">Vertical</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData?.montura_vertical ?? '-'}</p></div>
@@ -228,7 +211,7 @@ const StoreHistory = () => {
               {/* Ítems */}
               {selectedWarranty.orderData?.items?.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">📦 Ítems de la Orden</h3>
+                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ítems de la Orden</h3>
                   <div className="space-y-2">
                     {selectedWarranty.orderData.items.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 bg-opticolor-gray-50 rounded-lg">

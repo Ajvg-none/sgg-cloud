@@ -1,4 +1,5 @@
 import React from 'react';
+import { CheckCircle2, XCircle, AlertTriangle, Info } from 'lucide-react';
 
 const Alert = ({ type = 'info', message, onClose }) => {
   const types = {
@@ -9,23 +10,29 @@ const Alert = ({ type = 'info', message, onClose }) => {
   };
 
   const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ',
+    success: CheckCircle2,
+    error: XCircle,
+    warning: AlertTriangle,
+    info: Info,
   };
 
+  const Icon = icons[type];
+
   return (
-    <div className={`
-      border-l-4 p-4 rounded-r-lg flex items-start gap-3
-      animate-slide-up
-      ${types[type]}
-    `}>
-      <span className="text-xl font-bold">{icons[type]}</span>
+    <div
+      role="alert"
+      className={`
+        border-l-4 p-4 rounded-r-lg flex items-start gap-3
+        animate-slide-up
+        ${types[type]}
+      `}
+    >
+      <Icon className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
       <p className="flex-1 text-sm">{message}</p>
       {onClose && (
-        <button 
+        <button
           onClick={onClose}
+          aria-label="Cerrar notificación"
           className="text-current opacity-60 hover:opacity-100 transition-opacity"
         >
           ✕

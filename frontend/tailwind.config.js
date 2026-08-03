@@ -30,6 +30,8 @@ export default {
         'fade-in': 'fadeIn 0.3s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
         'shake': 'shake 0.5s',
+        'fade-in-slow': 'fadeIn 0.5s ease-out',
+        'slide-up-sm': 'slideUp 0.2s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -45,6 +47,17 @@ export default {
           '25%': { transform: 'translateX(-5px)' },
           '75%': { transform: 'translateX(5px)' },
         },
+      },
+      boxShadow: {
+        soft: '0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06)',
+        card: '0 1px 3px 0 rgb(0 0 0 / 0.08), 0 4px 12px -2px rgb(0 0 0 / 0.08)',
+        modal: '0 20px 50px -12px rgb(0 0 0 / 0.25)',
+      },
+      transitionTimingFunction: {
+        'ease-out-soft': 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
+      transitionDuration: {
+        DEFAULT: '200ms',
       },
     },
   },

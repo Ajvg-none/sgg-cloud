@@ -5,6 +5,10 @@ import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
+import Spinner from '../../components/ui/Spinner';
+import EmptyState from '../../components/ui/EmptyState';
+import Select from '../../components/ui/Select';
+import { Pencil, KeyRound, Pause, Play } from 'lucide-react';
 
 const ROLE_LABELS = { ADMIN: 'Administrador', TIENDA: 'Tienda', LABORATORIO: 'Laboratorio' };
 const ROLE_COLORS = {
@@ -146,6 +150,7 @@ const AdminUsers = () => {
 
   return (
     <div className="p-8">
+      <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Usuarios</h1>
@@ -162,16 +167,13 @@ const AdminUsers = () => {
 
       <Card>
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div>
-          </div>
+          <Spinner size="lg" className="py-12" />
         ) : users.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">👥</div>
-            <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">No hay usuarios</h3>
-            <p className="text-opticolor-gray-500 mb-4">Crea el primer usuario para comenzar</p>
-            <Button onClick={openCreate}>+ Crear Usuario</Button>
-          </div>
+          <EmptyState
+            title="No hay usuarios"
+            description="Crea el primer usuario para comenzar"
+            action={<Button onClick={openCreate}>+ Crear Usuario</Button>}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -212,7 +214,7 @@ const AdminUsers = () => {
                                      hover:bg-blue-100 hover:border-blue-300 transition-colors"
                           title="Editar usuario"
                         >
-                          <span className="text-sm">️</span>
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                           <span>Editar</span>
                         </button>
 
@@ -224,7 +226,7 @@ const AdminUsers = () => {
                                      rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
                           title="Resetear contraseña"
                         >
-                          <span className="text-sm">🔑</span>
+                          <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
                           <span>Reset</span>
                         </button>
 
@@ -240,7 +242,11 @@ const AdminUsers = () => {
                             }`}
                             title={user.active ? 'Desactivar usuario' : 'Activar usuario'}
                           >
-                            <span className="text-sm">{user.active ? '⏸️' : '▶️'}</span>
+                            {user.active ? (
+                              <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+                            ) : (
+                              <Play className="h-3.5 w-3.5" aria-hidden="true" />
+                            )}
                             <span>{user.active ? 'Desactivar' : 'Activar'}</span>
                           </button>
                         ) : (
@@ -261,45 +267,35 @@ const AdminUsers = () => {
         <div className="space-y-4">
           <Input label="Nombre de Usuario" value={form.username} onChange={(e) => handleChange('username', e.target.value)} error={formErrors.username} placeholder="Ej: tienda001" disabled={!!editingUser} />
           <Input label={editingUser ? 'Nueva Contraseña (dejar vacío para no cambiar)' : 'Contraseña'} type="password" value={form.password} onChange={(e) => handleChange('password', e.target.value)} error={formErrors.password} placeholder="Mínimo 6 caracteres" />
-          <div>
-            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Rol</label>
-            <select
-              value={form.role}
-              onChange={(e) => handleChange('role', e.target.value)}
-              disabled={!!editingUser}
-              className="w-full px-4 py-2 border-2 border-opticolor-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent"
-            >
-              <option value="TIENDA">Tienda</option>
-              <option value="LABORATORIO">Laboratorio</option>
-            </select>
-          </div>
+          <Select
+            label="Rol"
+            value={form.role}
+            onChange={(e) => handleChange('role', e.target.value)}
+            disabled={!!editingUser}
+            options={[
+              { value: 'TIENDA', label: 'Tienda' },
+              { value: 'LABORATORIO', label: 'Laboratorio' },
+            ]}
+          />
           {form.role === 'TIENDA' && (
-            <div>
-              <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Tienda Asociada</label>
-              <select
-                value={form.storeId}
-                onChange={(e) => handleChange('storeId', e.target.value)}
-                className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${formErrors.storeId ? 'border-opticolor-red-light bg-red-50' : 'border-opticolor-gray-200'}`}
-              >
-                <option value="">Seleccionar...</option>
-                {stores.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.accn})</option>)}
-              </select>
-              {formErrors.storeId && <p className="text-sm text-opticolor-red-light mt-1">{formErrors.storeId}</p>}
-            </div>
+            <Select
+              label="Tienda Asociada"
+              value={form.storeId}
+              onChange={(e) => handleChange('storeId', e.target.value)}
+              error={formErrors.storeId}
+              placeholder="Seleccionar..."
+              options={stores.map((s) => ({ value: s.id, label: `${s.name} (${s.accn})` }))}
+            />
           )}
           {form.role === 'LABORATORIO' && (
-            <div>
-              <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Laboratorio Asociado</label>
-              <select
-                value={form.labId}
-                onChange={(e) => handleChange('labId', e.target.value)}
-                className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${formErrors.labId ? 'border-opticolor-red-light bg-red-50' : 'border-opticolor-gray-200'}`}
-              >
-                <option value="">Seleccionar...</option>
-                {labs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-              {formErrors.labId && <p className="text-sm text-opticolor-red-light mt-1">{formErrors.labId}</p>}
-            </div>
+            <Select
+              label="Laboratorio Asociado"
+              value={form.labId}
+              onChange={(e) => handleChange('labId', e.target.value)}
+              error={formErrors.labId}
+              placeholder="Seleccionar..."
+              options={labs.map((l) => ({ value: l.id, label: l.name }))}
+            />
           )}
           <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
@@ -318,6 +314,7 @@ const AdminUsers = () => {
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };
