@@ -5,6 +5,7 @@ import { authAPI } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -32,22 +34,21 @@ const Login = () => {
       setError('Usuario y contraseña son obligatorios.');
       return;
     }
-
     setLoading(true);
     setError(null);
-
+    
     try {
       const res = await authAPI.login({ username, password });
       const { token, user } = res.data;
-
       localStorage.setItem('token', token);
       localStorage.setItem('role', user.role);
       localStorage.setItem('username', user.username);
       if (user.storeId) localStorage.setItem('storeId', user.storeId);
       if (user.labId) localStorage.setItem('labId', user.labId);
-
       redirectByRole(user.role);
     } catch (err) {
+      // 🔍 PRUEBA DE FUEGO: Esto demuestra en la consola (F12) que React NO borra los datos.
+      console.log(" DEBUG: Los valores NO se borraron. Usuario:", username, "| Pass:", password);
       setError(err.response?.data?.error || 'Error al iniciar sesión. Verifica tus credenciales.');
     } finally {
       setLoading(false);
@@ -78,13 +79,11 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-opticolor-gray-900 text-center mb-6">
             Iniciar Sesión
           </h2>
-
           {error && (
             <div className="mb-4">
               <Alert type="error" message={error} onClose={() => setError(null)} />
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Campo Usuario con ícono */}
             <div className="relative">
@@ -102,20 +101,33 @@ const Login = () => {
               />
             </div>
 
-            {/* Campo Contraseña con ícono */}
+            {/* ✅ Campo Contraseña modificado con botón de ojo */}
             <div className="relative">
               <div className="absolute left-3 top-9 text-opticolor-gray-400">
-                <span className="text-lg">🔒</span>
+                <span className="text-lg"></span>
               </div>
               <Input
                 label="Contraseña"
-                type="password"
+                type={showPassword ? 'text' : 'password'} // ✅ Toggle dinámico
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Ingresa tu contraseña"
-                className="pl-10"
+                className="pl-10 pr-10" // ✅ pr-10 deja espacio para que el texto no tape el ojo
                 autoComplete="current-password"
               />
+              {/* ✅ Botón de Ojo (Hermano absoluto) */}
+              <button
+                type="button" // ⚠️ OBLIGATORIO: evita que el formulario se envíe al hacer clic
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-opticolor-gray-400 hover:text-opticolor-red transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
             </div>
 
             {/* Botón con gradiente */}
