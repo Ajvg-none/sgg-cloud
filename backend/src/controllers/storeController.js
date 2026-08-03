@@ -39,7 +39,8 @@ const getOrder = async (req, res) => {
 
 /**
  * Crea una nueva garantía con los datos editados por la tienda.
- * (Tarea 4.1)
+ * Calcula automáticamente el sufijo de revisión (ej: "113200000336-1")
+ * y lo inyecta en orderData para que el agente lo use en VCA y Tickets.
  */
 const createWarranty = async (req, res) => {
   try {
@@ -50,11 +51,9 @@ const createWarranty = async (req, res) => {
     if (!orderNumber || !orderData) {
       return res.status(400).json({ error: 'orderNumber y orderData son obligatorios.' });
     }
-
     if (!warrantyType) {
       return res.status(400).json({ error: 'El tipo de garantía es obligatorio.' });
     }
-
     if (storeObservations && storeObservations.length > 300) {
       return res.status(400).json({ error: 'Las observaciones no pueden exceder 300 caracteres.' });
     }
@@ -68,49 +67,109 @@ const createWarranty = async (req, res) => {
     if (!store) {
       return res.status(404).json({ error: 'Tienda no encontrada.' });
     }
-
-    // Validar que el ACCN exista y sea exactamente 3 dígitos numéricos
     if (!store.accn || !/^\d{3}$/.test(store.accn)) {
-      return res.status(400).json({ 
-        error: 'La tienda debe tener un código ACCN de 3 dígitos numéricos configurado para crear garantías.' 
+      return res.status(400).json({
+        error: 'La tienda debe tener un código ACCN de 3 dígitos numéricos configurado para crear garantías.'
       });
     }
-
     if (!store.labId) {
-      return res.status(400).json({ 
-        error: 'La tienda no tiene un laboratorio asignado.' 
-      });
+      return res.status(400).json({ error: 'La tienda no tiene un laboratorio asignado.' });
     }
 
-    // 4. Crear el registro en Warranty (RF-02.4 y RF-04.1)
-    const warranty = await prisma.warranty.create({
-      data: {
-        storeId: store.id,
-        labId: store.labId,
-        orderNumber: String(orderNumber),
-        orderData: orderData,
-        warrantyType,
-        storeObservations: storeObservations || null,
-        status: 'PENDING'
-      }
-    });
+    // 3. Lógica de Revisión con Reintento por Concurrencia
+    const MAX_RETRIES = 3;
+    let attempts = 0;
+    let createdWarranty = null;
 
-    logger.info(`✅ Garantía creada: ${warranty.id} para orden ${orderNumber} por tienda ${store.name}`);
+    // ✅ FIX DEFINITIVO: La base es codigo_completo (que tiene el número LARGO de GesVision)
+    const baseOrderNumber = String(orderData.codigo_completo || orderData.orden_numero || orderNumber).split('-')[0];
+
+    while (attempts < MAX_RETRIES) {
+      try {
+        createdWarranty = await prisma.$transaction(async (tx) => {
+          // a) Buscar TODAS las garantías para esta orden base
+          const existingWarranties = await tx.warranty.findMany({
+            where: {
+              OR: [
+                { orderNumber: baseOrderNumber },
+                { orderNumber: { startsWith: baseOrderNumber + '-' } }
+              ]
+            },
+            select: { revision: true }
+          });
+
+          // b) Encontrar la revisión máxima actual
+          let maxRevision = 0;
+          existingWarranties.forEach(w => {
+            if (w.revision > maxRevision) {
+              maxRevision = w.revision;
+            }
+          });
+
+          // c) Calcular nuevos valores
+          const newRevision = maxRevision + 1;
+          const newOrderNumber = `${baseOrderNumber}-${newRevision}`; // ej: "113200000336-1"
+
+          // d) ✅ FIX: Inyectar el número COMPLETO + sufijo en AMBOS campos
+          const updatedOrderData = {
+            ...orderData,
+            orden_numero: newOrderNumber,
+            codigo_completo: newOrderNumber // ← Sobreescribe para que los renderizadores lo lean completo
+          };
+
+          // e) Crear la garantía
+          return await tx.warranty.create({
+            data: {
+              storeId: store.id,
+              labId: store.labId,
+              orderNumber: newOrderNumber,
+              revision: newRevision,
+              orderData: updatedOrderData,
+              warrantyType,
+              storeObservations: storeObservations || null,
+              status: 'PENDING'
+            }
+          });
+        });
+        
+        // Si la transacción fue exitosa, salimos del bucle
+        break; 
+
+      } catch (error) {
+        // Si hay conflicto de unicidad (dos usuarios crearon al mismo tiempo), reintentar
+        if (error.code === 'P2002') {
+          attempts++;
+          logger.warn(`[createWarranty] Conflicto de concurrencia en orden ${baseOrderNumber}, reintento ${attempts}/${MAX_RETRIES}`);
+          
+          if (attempts >= MAX_RETRIES) {
+            throw new Error('Conflicto de concurrencia al crear la garantía después de múltiples intentos.');
+          }
+          
+          // Pausa exponencial pequeña antes de reintentar
+          await new Promise(resolve => setTimeout(resolve, 100 * attempts));
+        } else {
+          throw error; // Cualquier otro error se lanza inmediatamente
+        }
+      }
+    }
+
+    logger.info(`✅ Garantía creada: ${createdWarranty.id} para orden ${createdWarranty.orderNumber} (Rev: ${createdWarranty.revision}) por tienda ${store.name}`);
 
     return res.status(201).json({
       message: 'Garantía creada exitosamente y encolada para el laboratorio.',
       warranty: {
-        id: warranty.id,
-        orderNumber: warranty.orderNumber,
-        status: warranty.status,
-        createdAt: warranty.createdAt
+        id: createdWarranty.id,
+        orderNumber: createdWarranty.orderNumber,
+        revision: createdWarranty.revision,
+        status: createdWarranty.status,
+        createdAt: createdWarranty.createdAt
       }
     });
 
   } catch (error) {
     logger.error(`❌ Error en createWarranty: ${error.message}`);
     return res.status(500).json({ error: 'Error interno del servidor al crear la garantía.' });
-    }
+  }
 };
 
 
