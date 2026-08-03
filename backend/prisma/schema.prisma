@@ -93,6 +93,7 @@ model Warranty {
   storeId              String    @map("store_id")
   labId                String    @map("lab_id")
   orderNumber          String    @map("order_number")
+  revision             Int       @default(1) @map("revision") 
   orderData            Json      @map("order_data")
   status               Status    @default(PENDING)
   processingStartedAt  DateTime? @map("processing_started_at")
@@ -106,6 +107,7 @@ model Warranty {
   store Store @relation(fields: [storeId], references: [id])
   lab   Lab   @relation(fields: [labId], references: [id])
 
+  @@unique([orderNumber, revision]) 
   @@map("warranties")
 }
 

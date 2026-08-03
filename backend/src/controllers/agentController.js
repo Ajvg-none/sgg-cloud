@@ -19,17 +19,18 @@ try {
 const result = await prisma.$transaction(async (tx) => {
 // 1. Buscar garantías PENDING de este laboratorio
 const pendingWarranties = await tx.warranty.findMany({
-where: {
-labId,
-status: 'PENDING',
-},
-select: {
-id: true,
-orderNumber: true,
-orderData: true,
-storeId: true,
-},
-take: 10, // Limitar para no saturar al agente
+  where: {
+    labId,
+    status: 'PENDING',
+  },
+  select: {
+    id: true,
+    orderNumber: true,
+    orderData: true,
+    storeId: true,
+    warrantyType: true, 
+  },
+  take: 10,
 });
 
 if (pendingWarranties.length === 0) {
@@ -55,25 +56,24 @@ warrantyIds,
 
 // 3. Devolver los datos completos (incluyendo orderData y store)
 const warrantiesWithDetails = await tx.warranty.findMany({
-where: {
-id: { in: warrantyIds },
-},
-select: {
-id: true,
-orderNumber: true,
-orderData: true,
-storeId: true,
-status: true,
-processingStartedAt: true,
-// ✅ FIX: Incluir datos de la tienda para que el agente pueda
-// imprimir el nombre de la sucursal en el ticket
-store: {
-select: {
-name: true,
-accn: true,
-},
-},
-},
+  where: {
+    id: { in: warrantyIds },
+  },
+  select: {
+    id: true,
+    orderNumber: true,
+    orderData: true,
+    storeId: true,
+    status: true,
+    processingStartedAt: true,
+    warrantyType: true, // ✅ AGREGAR ESTA LÍNEA
+    store: {
+      select: {
+        name: true,
+        accn: true,
+      },
+    },
+  },
 });
 
 return warrantiesWithDetails;
