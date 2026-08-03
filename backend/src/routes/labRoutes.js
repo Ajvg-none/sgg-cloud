@@ -6,11 +6,9 @@ const requireRole = require('../middleware/role');
 const {
   processWarranty,
   reprintTicket,
-  regenerateVca,
   agentStatus,
   testPrint,
   getMyLabWarranties,
-  updateLabConfig,
   getMyStores,
 } = require('../controllers/labController');
 
@@ -24,9 +22,6 @@ router.post('/warranties/:warrantyId/process', processWarranty);
 // Reimpresion
 router.post('/print/:warrantyId', reprintTicket);
 
-// Nueva: regenerar VCA sin imprimir
-router.post('/regenerate-vca/:warrantyId', regenerateVca);
-
 // Estado del agente
 router.get('/agent-status', agentStatus);
 
@@ -38,8 +33,5 @@ router.get('/warranties', getMyLabWarranties);
 
 // Tiendas del laboratorio
 router.get('/stores', getMyStores);
-
-// Configuracion del lab (ruta VCA)
-router.put('/config', updateLabConfig);
 
 module.exports = router;

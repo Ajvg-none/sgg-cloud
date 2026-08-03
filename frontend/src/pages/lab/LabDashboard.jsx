@@ -38,31 +38,23 @@ const StatusBadge = ({ status }) => {
 
 const LabDashboard = () => {
   // Estado del sistema
-  const [agentState, setAgentState] = useState({ online: false, lastHeartbeat: null, secondsSinceLastBeat: null, vcaNetworkPath: '', agentIp: '', agentPort: '' });
+  const [agentState, setAgentState] = useState({ online: false, lastHeartbeat: null, secondsSinceLastBeat: null, agentIp: '', agentPort: '' });
   const [testPrintResult, setTestPrintResult] = useState(null);
-
   // Garantías
   const [warranties, setWarranties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
-
   // Filtros
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [stores, setStores] = useState([]);
   const [refreshInterval, setRefreshInterval] = useState(0);
-
-  // Config
-  const [configModalOpen, setConfigModalOpen] = useState(false);
-  const [vcaPath, setVcaPath] = useState('');
-  const [savingConfig, setSavingConfig] = useState(false);
+  // Modales
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState(null);
   const [processingId, setProcessingId] = useState(null);
-
-  // ✅ NUEVO: Estados para el modal de procesamiento
   const [reprintModalOpen, setReprintModalOpen] = useState(false);
   const [warrantyToReprint, setWarrantyToReprint] = useState(null);
   const [processModalOpen, setProcessModalOpen] = useState(false);
@@ -85,7 +77,6 @@ const LabDashboard = () => {
     try {
       const res = await labAPI.agentStatus();
       setAgentState(res.data);
-      setVcaPath(res.data.vcaNetworkPath || '');
     } catch (e) {
       setAgentState((prev) => ({ ...prev, online: false }));
     }
@@ -137,13 +128,13 @@ const LabDashboard = () => {
     }
   };
 
-  // ✅ NUEVO: Abrir modal de procesamiento
+  // Abrir modal de procesamiento
   const handleProcessClick = (warranty) => {
     setWarrantyToProcess(warranty);
     setProcessModalOpen(true);
   };
 
-  // ✅ NUEVO: Confirmar procesamiento (reemplaza el window.confirm)
+  // Confirmar procesamiento
   const handleProcessConfirm = async () => {
     if (!warrantyToProcess) return;
     setProcessModalOpen(false);
@@ -165,17 +156,6 @@ const LabDashboard = () => {
     }
   };
 
-  const handleRegenerateVca = async (warrantyId, orderNumber) => {
-    if (!window.confirm(`¿Regenerar archivo VCA para la orden ${orderNumber}?`)) return;
-    try {
-      await labAPI.regenerateVca(warrantyId);
-      setAlert({ type: 'success', message: `Archivo VCA de orden ${orderNumber} regenerado.` });
-    } catch (e) {
-      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al regenerar VCA' });
-    }
-  };
-
-  // ✅ MODIFICADO: Eliminado el window.confirm, ahora abre el modal
   const handleProcess = async (warrantyId, orderNumber) => {
     const warranty = warranties.find(w => w.id === warrantyId);
     if (warranty) {
@@ -190,21 +170,6 @@ const LabDashboard = () => {
       setTestPrintResult('success');
     } catch (e) {
       setTestPrintResult('error');
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    if (!vcaPath.trim()) return;
-    setSavingConfig(true);
-    try {
-      await labAPI.updateConfig({ vcaNetworkPath: vcaPath });
-      setAlert({ type: 'success', message: 'Ruta VCA actualizada.' });
-      setConfigModalOpen(false);
-      loadAgentStatus();
-    } catch (e) {
-      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al guardar' });
-    } finally {
-      setSavingConfig(false);
     }
   };
 
@@ -233,7 +198,7 @@ const LabDashboard = () => {
       )}
 
       {/* Sección 1: Estado del Sistema */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card className={`border-l-4 ${agentState.online ? 'border-l-green-500' : 'border-l-red-500'}`}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-opticolor-gray-500">Agente</p>
@@ -244,7 +209,6 @@ const LabDashboard = () => {
           <p className="text-xs text-opticolor-gray-400">Última vez: {formatSeconds(agentState.secondsSinceLastBeat)}</p>
           <p className="text-xs text-opticolor-gray-400 mt-1">{agentState.agentIp}:{agentState.agentPort}</p>
         </Card>
-
         <Card className="border-l-4 border-l-blue-500">
           <p className="text-sm text-opticolor-gray-500 mb-2">Impresora Bixolon</p>
           <div className="flex items-center gap-2">
@@ -252,14 +216,6 @@ const LabDashboard = () => {
             {testPrintResult === 'success' && <span className="text-green-600 text-sm">✅ Ok</span>}
             {testPrintResult === 'error' && <span className="text-red-600 text-sm">❌ Falló</span>}
           </div>
-        </Card>
-
-        <Card className="border-l-4 border-l-teal-500">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-opticolor-gray-500">Ruta VCA</p>
-            <Button variant="ghost" onClick={() => { setVcaPath(agentState.vcaNetworkPath || ''); setConfigModalOpen(true); }} className="px-2 py-1 text-xs">⚙️</Button>
-          </div>
-          <p className="text-xs text-opticolor-gray-700 font-mono truncate" title={agentState.vcaNetworkPath}>{agentState.vcaNetworkPath || '-'}</p>
         </Card>
       </div>
 
@@ -350,22 +306,13 @@ const LabDashboard = () => {
                         <div className="flex gap-1 justify-end">
                           <Button variant="ghost" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }} className="px-2 py-1 text-xs">Detalle</Button>
                           {w.status === 'COMPLETED' && (
-                            <>
-                              <Button
-                                variant="secondary"
-                                onClick={() => handleReprintClick(w)}
-                                className="px-2 py-1 text-xs"
-                              >
-                                🖨️ Ticket
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                onClick={() => handleRegenerateVca(w.id, w.orderNumber)}
-                                className="px-2 py-1 text-xs"
-                              >
-                                📄 VCA
-                              </Button>
-                            </>
+                            <Button
+                              variant="secondary"
+                              onClick={() => handleReprintClick(w)}
+                              className="px-2 py-1 text-xs"
+                            >
+                              🖨️ Ticket
+                            </Button>
                           )}
                           {(w.status === 'PENDING' || w.status === 'ERROR') && (
                             <Button
@@ -404,33 +351,6 @@ const LabDashboard = () => {
         )}
       </Card>
 
-      {/* Modal Configuración */}
-      <Modal isOpen={configModalOpen} onClose={() => setConfigModalOpen(false)} title="Configuración de Laboratorio" size="md">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">IP Agente (solo lectura)</label>
-            <Input value={agentState.agentIp || ''} disabled className="bg-opticolor-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Puerto Agente (solo lectura)</label>
-            <Input value={agentState.agentPort || ''} disabled className="bg-opticolor-gray-50" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Ruta VCA de Red</label>
-            <Input
-              value={vcaPath}
-              onChange={(e) => setVcaPath(e.target.value)}
-              placeholder="\\192.168.1.100\Lensware\VCA"
-            />
-            <p className="text-xs text-opticolor-gray-400 mt-1">Esta ruta la usa el agente para guardar los archivos .vca</p>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
-            <Button variant="secondary" onClick={() => setConfigModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveConfig} loading={savingConfig}>Guardar</Button>
-          </div>
-        </div>
-      </Modal>
-
       {/* Modal Detalle */}
       <Modal isOpen={detailModalOpen} onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }} title={`Detalle OTG #${selectedWarranty?.orderNumber || ''}`} size="xl">
         {selectedWarranty && (
@@ -445,7 +365,6 @@ const LabDashboard = () => {
                 <div><p className="text-xs text-opticolor-gray-500">Cliente</p><p className="text-opticolor-gray-800">{selectedWarranty.orderData?.cliente_nombre || '-'}</p></div>
               </div>
             </div>
-
             <div>
               <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Datos de la Garantía</h3>
               <div className="grid grid-cols-1 gap-4">
@@ -455,7 +374,6 @@ const LabDashboard = () => {
                 )}
               </div>
             </div>
-
             {selectedWarranty.orderData && (
               <>
                 <div>
@@ -469,7 +387,6 @@ const LabDashboard = () => {
                     <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_od ?? '-'}</p></div>
                   </div>
                 </div>
-
                 <div>
                   <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Izquierdo (OI)</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -481,7 +398,6 @@ const LabDashboard = () => {
                     <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_oi ?? '-'}</p></div>
                   </div>
                 </div>
-
                 <div>
                   <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Medidas de Montura</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -491,7 +407,6 @@ const LabDashboard = () => {
                     <div><p className="text-xs text-opticolor-gray-500">Diámetro Máx</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_diametro_max ?? '-'}</p></div>
                   </div>
                 </div>
-
                 {selectedWarranty.orderData.items?.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ítems de la OTG</h3>
@@ -551,7 +466,7 @@ const LabDashboard = () => {
         </div>
       </Modal>
 
-      {/* ✅ NUEVO: Modal de Confirmación de Procesamiento */}
+      {/* Modal de Confirmación de Procesamiento */}
       <Modal
         isOpen={processModalOpen}
         onClose={() => {

@@ -58,8 +58,6 @@ export const labAPI = {
   agentStatus: () => api.get('/lab/agent-status'),
   testPrint: () => api.post('/lab/test-print'),
   reprintTicket: (warrantyId) => api.post(`/lab/print/${warrantyId}`),
-  regenerateVca: (warrantyId) => api.post(`/lab/regenerate-vca/${warrantyId}`),
-  updateConfig: (data) => api.put('/lab/config', data),
   getMyStores: () => api.get('/lab/stores'),
 };
 
@@ -73,25 +71,20 @@ export const adminAPI = {
   updateLab: (id, data) => api.put(`/admin/labs/${id}`, data),
   deleteLab: (id) => api.delete(`/admin/labs/${id}`),
   regenerateLabApiKey: (id) => api.post(`/admin/labs/${id}/regenerate-key`),
-
   // Tiendas
   getStores: () => api.get('/admin/stores'),
   createStore: (data) => api.post('/admin/stores', data),
   updateStore: (id, data) => api.put(`/admin/stores/${id}`, data),
-
   // Usuarios
   getUsers: () => api.get('/admin/users'),
   createUser: (data) => api.post('/admin/users', data),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
   resetUserPassword: (userId, newPassword) =>
     api.post(`/admin/users/${userId}/reset-password`, { newPassword }),
-
   // Dashboard de Garantías
   getWarrantiesDashboard: (params) => api.get('/admin/warranties', { params }),
-
   // Logs
   getLogs: (params) => api.get('/admin/logs', { params }),
-
   // Importar CSV
   importCsv: (file) => {
     const formData = new FormData();
