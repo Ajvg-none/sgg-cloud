@@ -5,6 +5,10 @@ import { authAPI } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
+<<<<<<< Updated upstream
+=======
+import { Eye, EyeOff, User, Lock } from 'lucide-react';
+>>>>>>> Stashed changes
 
 const Login = () => {
   const navigate = useNavigate();
@@ -35,7 +39,10 @@ const Login = () => {
 
     setLoading(true);
     setError(null);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     try {
       const res = await authAPI.login({ username, password });
       const { token, user } = res.data;
@@ -61,9 +68,9 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <div className="w-48 md:w-56 transition-transform duration-300 hover:scale-105">
-              <img 
-                src="/logo-opti.jpg" 
-                alt="Opti-Color" 
+              <img
+                src="/logo-opti.jpg"
+                alt="Opti-Color"
                 className="w-full h-auto drop-shadow-lg"
               />
             </div>
@@ -102,6 +109,7 @@ const Login = () => {
               />
             </div>
 
+<<<<<<< Updated upstream
             {/* Campo Contraseña con ícono */}
             <div className="relative">
               <div className="absolute left-3 top-9 text-opticolor-gray-400">
@@ -123,6 +131,45 @@ const Login = () => {
               type="submit" 
               loading={loading} 
               className="w-full py-3 text-lg bg-gradient-to-r from-opticolor-red to-opticolor-red-dark hover:from-opticolor-red-dark hover:to-opticolor-red transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
+=======
+            {/* Campo Contraseña con ícono de candado + botón de ojo */}
+            <div className="relative">
+              {/* Ícono de Candado (izquierda) */}
+              <div className="absolute left-3 top-9 text-opticolor-gray-400">
+                <Lock className="h-5 w-5" aria-hidden="true" />
+              </div>
+
+              <Input
+                label="Contraseña"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                className="pl-10 pr-10"
+                autoComplete="current-password"
+              />
+
+              {/* Botón de Ojo (derecha) */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-opticolor-gray-400 hover:text-opticolor-red transition-colors"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+
+            {/* Botón con gradiente */}
+            <Button
+              type="submit"
+              loading={loading}
+              className="w-full text-lg bg-gradient-to-r from-opticolor-red to-opticolor-red-dark hover:from-opticolor-red-dark hover:to-opticolor-red transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
+>>>>>>> Stashed changes
             >
               {loading ? 'Ingresando...' : 'Ingresar'}
             </Button>

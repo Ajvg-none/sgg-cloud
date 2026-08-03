@@ -1,3 +1,4 @@
+// frontend/src/components/layout/AdminLayout.jsx
 import React from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 
@@ -16,13 +17,22 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+<<<<<<< Updated upstream
     navigate('/');
+=======
+    localStorage.removeItem('role');
+    localStorage.removeItem('username');
+    localStorage.removeItem('storeId');
+    localStorage.removeItem('labId');
+    navigate('/login');
+>>>>>>> Stashed changes
   };
 
   return (
     <div className="min-h-screen bg-opticolor-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-opticolor-gray-200 shadow-sm flex flex-col">
+<<<<<<< Updated upstream
        <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center">
           <img 
             src="/logo-opti.jpg" 
@@ -30,8 +40,28 @@ const AdminLayout = () => {
             className="h-48w-auto"   // ajusta según prefieras
           />
           <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Administración</p>
+=======
+        
+        {/* --- HEADER DEL SIDEBAR (RE DISEÑADO) --- */}
+        <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center gap-4">
+          {/* Logo */}
+          <img
+            src="/logo-opti.jpg"
+            alt="Opti-Color"
+            className="h-44 w-auto object-contain" 
+          />
+          
+          {/* Tarjeta de Usuario Compacta */}
+          <div className="w-full bg-opticolor-gray-50 rounded-xl p-3 border border-opticolor-gray-100 flex flex-col items-center text-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-opticolor-gray-400 mb-2">
+              Panel de Administración
+            </span>
+            <UserChip name={username} subtitle="Administrador" />
+          </div>
+>>>>>>> Stashed changes
         </div>
 
+        {/* Navegación */}
         <nav className="p-4 flex-1">
           <ul className="space-y-2">
             {menuItems.map((item) => {
@@ -59,6 +89,7 @@ const AdminLayout = () => {
           </ul>
         </nav>
 
+        {/* Footer del Sidebar */}
         <div className="p-4 border-t border-opticolor-gray-200 space-y-2">
           <Link
             to="/"
@@ -75,6 +106,7 @@ const AdminLayout = () => {
         </div>
       </aside>
 
+      {/* Contenido Principal */}
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>

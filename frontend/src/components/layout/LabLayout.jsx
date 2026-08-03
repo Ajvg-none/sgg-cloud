@@ -1,10 +1,32 @@
+<<<<<<< Updated upstream
 import React from 'react';
+=======
+// frontend/src/components/layout/LabLayout.jsx
+import React, { useState, useEffect } from 'react';
+>>>>>>> Stashed changes
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 
 const LabLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const username = localStorage.getItem('username') || 'Laboratorio';
+<<<<<<< Updated upstream
+=======
+  const [lab, setLab] = useState(null);
+
+  useEffect(() => {
+    const loadLab = async () => {
+      try {
+        const res = await authAPI.me();
+        const l = res.data?.user?.lab;
+        if (l) setLab(l);
+      } catch {
+        // Silencioso
+      }
+    };
+    loadLab();
+  }, []);
+>>>>>>> Stashed changes
 
   const menuItems = [
     { path: '/lab', label: 'Panel', icon: '📊', exact: true },
@@ -21,17 +43,33 @@ const LabLayout = () => {
 
   return (
     <div className="min-h-screen bg-opticolor-gray-50 flex">
+      {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-opticolor-gray-200 shadow-sm flex flex-col">
-        <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center">
-          <img 
-            src="/logo-opti.jpg" 
-            alt="Opti-Color" 
-            className="h-48 w-auto"
+        
+        {/* --- HEADER DEL SIDEBAR (RE DISEÑADO) --- */}
+        <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center gap-4">
+          {/* Logo */}
+          <img
+            src="/logo-opti.jpg"
+            alt="Opti-Color"
+            className="h-32 w-auto object-contain" 
           />
+<<<<<<< Updated upstream
           <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Laboratorio</p>
           <p className="text-xs text-opticolor-gray-400 mt-1 font-mono">{username}</p>
+=======
+          
+          {/* Tarjeta de Usuario Compacta */}
+          <div className="w-full bg-opticolor-gray-50 rounded-xl p-3 border border-opticolor-gray-100 flex flex-col items-center text-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-opticolor-gray-400 mb-2">
+              Panel de Laboratorio
+            </span>
+            <UserChip name={lab?.name || username} subtitle={username} />
+          </div>
+>>>>>>> Stashed changes
         </div>
 
+        {/* Navegación */}
         <nav className="p-4 flex-1">
           <ul className="space-y-2">
             {menuItems.map((item) => {
@@ -57,6 +95,7 @@ const LabLayout = () => {
           </ul>
         </nav>
 
+        {/* Footer del Sidebar */}
         <div className="p-4 border-t border-opticolor-gray-200">
           <button
             onClick={handleLogout}
@@ -67,6 +106,7 @@ const LabLayout = () => {
         </div>
       </aside>
 
+      {/* Contenido Principal */}
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
