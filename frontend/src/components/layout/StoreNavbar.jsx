@@ -28,12 +28,6 @@ const StoreNavbar = () => {
           <span className="text-sm text-opticolor-gray-500">| Garantías</span>
         </div>
           <div className="flex items-center gap-4">
-            <Link
-              to="/store"
-              className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${location.pathname === '/store' ? 'bg-opticolor-red text-white shadow-md' : 'text-opticolor-gray-700 hover:bg-opticolor-gray-100'}`}
-            >
-              ➕ Nueva Garantía
-            </Link>
             <span className="text-sm text-opticolor-gray-500 hidden sm:block">{username}</span>
             <button
               onClick={handleLogout}
