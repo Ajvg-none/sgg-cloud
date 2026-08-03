@@ -5,7 +5,7 @@ import { authAPI } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, User } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -47,8 +47,6 @@ const Login = () => {
       if (user.labId) localStorage.setItem('labId', user.labId);
       redirectByRole(user.role);
     } catch (err) {
-      // 🔍 PRUEBA DE FUEGO: Esto demuestra en la consola (F12) que React NO borra los datos.
-      console.log(" DEBUG: Los valores NO se borraron. Usuario:", username, "| Pass:", password);
       setError(err.response?.data?.error || 'Error al iniciar sesión. Verifica tus credenciales.');
     } finally {
       setLoading(false);
@@ -57,7 +55,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-fade-in-up">
+      <div className="w-full max-w-md animate-fade-in-slow">
         {/* Logo y encabezado */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
@@ -88,7 +86,7 @@ const Login = () => {
             {/* Campo Usuario con ícono */}
             <div className="relative">
               <div className="absolute left-3 top-9 text-opticolor-gray-400">
-                <span className="text-lg">👤</span>
+                <User className="h-5 w-5" aria-hidden="true" />
               </div>
               <Input
                 label="Usuario"
@@ -101,11 +99,8 @@ const Login = () => {
               />
             </div>
 
-            {/* ✅ Campo Contraseña modificado con botón de ojo */}
+            {/* Campo Contraseña con botón de ojo */}
             <div className="relative">
-              <div className="absolute left-3 top-9 text-opticolor-gray-400">
-                <span className="text-lg"></span>
-              </div>
               <Input
                 label="Contraseña"
                 type={showPassword ? 'text' : 'password'} // ✅ Toggle dinámico
@@ -134,7 +129,7 @@ const Login = () => {
             <Button 
               type="submit" 
               loading={loading} 
-              className="w-full py-3 text-lg bg-gradient-to-r from-opticolor-red to-opticolor-red-dark hover:from-opticolor-red-dark hover:to-opticolor-red transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
+              className="w-full text-lg bg-gradient-to-r from-opticolor-red to-opticolor-red-dark hover:from-opticolor-red-dark hover:to-opticolor-red transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
             >
               {loading ? 'Ingresando...' : 'Ingresar'}
             </Button>

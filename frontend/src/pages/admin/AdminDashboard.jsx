@@ -5,6 +5,11 @@ import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
+import StatusBadge from '../../components/ui/StatusBadge';
+import Spinner from '../../components/ui/Spinner';
+import EmptyState from '../../components/ui/EmptyState';
+import Select from '../../components/ui/Select';
+import Pagination from '../../components/ui/Pagination';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -13,22 +18,6 @@ const STATUS_OPTIONS = [
   { value: 'COMPLETED', label: 'Completada' },
   { value: 'ERROR', label: 'Error' },
 ];
-
-const StatusBadge = ({ status }) => {
-  const config = {
-    PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    PROCESSING: 'bg-blue-100 text-blue-800 border-blue-300',
-    COMPLETED: 'bg-green-100 text-green-800 border-green-300',
-    ERROR: 'bg-red-100 text-red-800 border-red-300',
-  };
-  const labels = { PENDING: 'Pendiente', PROCESSING: 'Procesando', COMPLETED: 'Completada', ERROR: 'Error' };
-  const color = config[status] || config.PENDING;
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${color}`}>
-      {labels[status] || status}
-    </span>
-  );
-};
 
 const REFRESH_OPTIONS = [
   { value: 0, label: 'OFF' },
@@ -135,6 +124,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="p-8">
+      <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Dashboard de Garantías</h1>
         <p className="text-opticolor-gray-600">Vista general de todas las garantías del sistema</p>
@@ -152,15 +142,12 @@ const AdminDashboard = () => {
           <h3 className="text-sm font-semibold text-opticolor-gray-700">Filtros</h3>
           <div className="flex items-center gap-2">
             <span className="text-xs text-opticolor-gray-500">Auto-refresh:</span>
-            <select
+            <Select
               value={refreshInterval}
               onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
-              className="px-2 py-1 border border-opticolor-gray-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-opticolor-red"
-            >
-              {REFRESH_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              options={REFRESH_OPTIONS}
+              className="py-1 text-xs"
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
@@ -176,54 +163,39 @@ const AdminDashboard = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Laboratorio</label>
-            <select
+            <Select
               value={filters.labId}
               onChange={(e) => handleFilterChange('labId', e.target.value)}
-              className="w-full px-3 py-2 border border-opticolor-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent"
-            >
-              <option value="">Todos</option>
-              {labs.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
+              options={[{ value: '', label: 'Todos' }, ...labs.map((l) => ({ value: l.id, label: l.name }))]}
+              className="py-2 text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Tienda</label>
-            <select
+            <Select
               value={filters.storeId}
               onChange={(e) => handleFilterChange('storeId', e.target.value)}
-              className="w-full px-3 py-2 border border-opticolor-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent"
-            >
-              <option value="">Todas</option>
-              {stores.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} ({s.accn})</option>
-              ))}
-            </select>
+              options={[{ value: '', label: 'Todas' }, ...stores.map((s) => ({ value: s.id, label: `${s.name} (${s.accn})` }))]}
+              className="py-2 text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Estado</label>
-            <select
+            <Select
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-opticolor-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              options={STATUS_OPTIONS}
+              className="py-2 text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Tipo Garantía</label>
-            <select
+            <Select
               value={filters.warrantyType}
               onChange={(e) => handleFilterChange('warrantyType', e.target.value)}
-              className="w-full px-3 py-2 border border-opticolor-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent"
-            >
-              <option value="">Todos</option>
-              {WARRANTY_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
+              options={[{ value: '', label: 'Todos' }, ...WARRANTY_TYPES.map((type) => ({ value: type, label: type }))]}
+              className="py-2 text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Desde</label>
@@ -250,7 +222,7 @@ const AdminDashboard = () => {
 
       {/* Resumen */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {['PENDING', 'PROCESSING', 'COMPLETED', 'ERROR'].map((status) => {
+        {['PENDING', 'PROCESSING', 'COMPLETED', 'ERROR'].map((status, index) => {
           const count = (warranties || []).filter((w) => w.status === status).length;
           const colors = {
             PENDING: 'border-l-yellow-500',
@@ -260,7 +232,7 @@ const AdminDashboard = () => {
           };
           const labels = { PENDING: 'Pendientes', PROCESSING: 'Procesando', COMPLETED: 'Completadas', ERROR: 'Errores' };
           return (
-            <Card key={status} className={`border-l-4 ${colors[status]}`}>
+            <Card key={status} className={`border-l-4 ${colors[status]} animate-fade-in`} style={{ animationDelay: `${index * 60}ms` }}>
               <p className="text-sm text-opticolor-gray-500">{labels[status]}</p>
               <p className="text-3xl font-bold text-opticolor-gray-900">{count}</p>
             </Card>
@@ -271,15 +243,12 @@ const AdminDashboard = () => {
       {/* Tabla */}
       <Card>
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div>
-          </div>
+          <Spinner size="lg" className="py-12" />
         ) : warranties.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📋</div>
-            <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">No hay garantías</h3>
-            <p className="text-opticolor-gray-500">No se encontraron garantías con los filtros seleccionados</p>
-          </div>
+          <EmptyState
+            title="No hay garantías"
+            description="No se encontraron garantías con los filtros seleccionados"
+          />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -321,24 +290,11 @@ const AdminDashboard = () => {
                 Mostrando {((pagination.page - 1) * pagination.limit) + 1}-
                 {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
               </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  disabled={pagination.page <= 1}
-                  onClick={() => loadWarranties(pagination.page - 1)}
-                  className="px-3 py-1 text-sm"
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="secondary"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => loadWarranties(pagination.page + 1)}
-                  className="px-3 py-1 text-sm"
-                >
-                  Siguiente
-                </Button>
-              </div>
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onChange={(page) => loadWarranties(page)}
+              />
             </div>
           </>
         )}
@@ -427,6 +383,7 @@ const AdminDashboard = () => {
           </div>
         )}
       </Modal>
+      </div>
     </div>
   );
 };

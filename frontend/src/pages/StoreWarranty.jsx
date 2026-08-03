@@ -5,6 +5,9 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
 import Alert from '../components/ui/Alert';
+import Select from '../components/ui/Select';
+import StoreHeader from '../components/layout/StoreHeader';
+import { Search, Save } from 'lucide-react';
 
 const WARRANTY_TYPES = [
   'Error de Medida',
@@ -129,8 +132,10 @@ const StoreWarranty = () => {
   };
 
   return (
-    <div className="min-h-screen bg-opticolor-gray-50 p-6">
+    <div className="min-h-screen bg-opticolor-gray-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
+        <StoreHeader />
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">
             Nueva Garantía
@@ -153,11 +158,12 @@ const StoreWarranty = () => {
         {/* ============================================================
             BUSCAR OTG
             ============================================================ */}
-        <Card className="mb-6">
-          <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-            Buscar OTG
-          </h2>
-          <div className="flex gap-4">
+        <Card
+          className="mb-6"
+          title="Buscar OTG"
+          subtitle="Ingresa el número de orden de GesVision para cargar los datos"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <div className="flex-1">
               <Input
                 label="Número de OTG"
@@ -165,6 +171,7 @@ const StoreWarranty = () => {
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 disabled={loading || saving}
+                className="py-2.5"
               />
             </div>
             <div className="flex items-end">
@@ -172,8 +179,10 @@ const StoreWarranty = () => {
                 onClick={handleSearch}
                 loading={loading}
                 disabled={saving}
+                className="w-full sm:w-auto"
               >
-                🔍 Buscar
+                <Search className="h-4 w-4" aria-hidden="true" />
+                Buscar
               </Button>
             </div>
           </div>
@@ -185,59 +194,39 @@ const StoreWarranty = () => {
             {/* ============================================================
                 DATOS DEL CLIENTE (siempre editable)
                 ============================================================ */}
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Datos del Cliente
-              </h2>
+            <Card title="Datos del Cliente">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Nombre del Cliente"
                   value={orderData.cliente_nombre || ''}
                   onChange={(e) => handleFieldChange('cliente_nombre', e.target.value)}
-                  disabled// solo se bloquea mientras se guarda
+                  disabled={saving}
                 />
                 <Input
                   label="Código Completo"
                   value={orderData.codigo_completo || ''}
-                  disabled // siempre de solo lectura
+                  readOnly
                 />
               </div>
             </Card>
 
             {/* ============================================================
-                DATOS DE LA GARANTÍA (MOVIDO AQUÍ)
+                DATOS DE LA GARANTÍA
                 ============================================================ */}
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Datos de la Garantía
-              </h2>
+            <Card title="Datos de la Garantía">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">
-                    Tipo de Garantía *
-                  </label>
-                  <select
-                    value={warrantyType}
-                    onChange={(e) => {
-                      setWarrantyType(e.target.value);
-                      if (errors.warrantyType) setErrors(prev => ({ ...prev, warrantyType: null }));
-                    }}
-                    disabled={saving}
-                    className={`w-full px-4 py-2 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${
-                      errors.warrantyType
-                        ? 'border-opticolor-red-light bg-red-50'
-                        : 'border-opticolor-gray-200 hover:border-opticolor-gray-300'
-                    }`}
-                  >
-                    <option value="">Seleccionar tipo...</option>
-                    {WARRANTY_TYPES.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                  {errors.warrantyType && (
-                    <p className="text-sm text-opticolor-red-light mt-1">{errors.warrantyType}</p>
-                  )}
-                </div>
+                <Select
+                  label="Tipo de Garantía *"
+                  value={warrantyType}
+                  onChange={(e) => {
+                    setWarrantyType(e.target.value);
+                    if (errors.warrantyType) setErrors(prev => ({ ...prev, warrantyType: null }));
+                  }}
+                  disabled={saving}
+                  error={errors.warrantyType}
+                  placeholder="Seleccionar tipo..."
+                  options={WARRANTY_TYPES.map((type) => ({ value: type, label: type }))}
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">
@@ -250,7 +239,7 @@ const StoreWarranty = () => {
                     rows={3}
                     disabled={saving}
                     placeholder="Describe brevemente el caso (máx. 300 caracteres)"
-                    className="w-full px-4 py-2 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent border-opticolor-gray-200 hover:border-opticolor-gray-300 disabled:bg-opticolor-gray-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2.5 border-2 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent border-opticolor-gray-200 hover:border-opticolor-gray-300 disabled:bg-opticolor-gray-50 disabled:cursor-not-allowed resize-none"
                   />
                   <p className="text-xs text-opticolor-gray-400 mt-1 text-right">
                     {storeObservations.length}/300
@@ -262,11 +251,8 @@ const StoreWarranty = () => {
             {/* ============================================================
                 OJO DERECHO (OD)
                 ============================================================ */}
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Ojo Derecho (OD)
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card title="Ojo Derecho (OD)">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Esfera"
                   type="number"
@@ -337,11 +323,8 @@ const StoreWarranty = () => {
             {/* ============================================================
                 OJO IZQUIERDO (OI)
                 ============================================================ */}
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Ojo Izquierdo (OI)
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card title="Ojo Izquierdo (OI)">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Esfera"
                   type="number"
@@ -412,11 +395,8 @@ const StoreWarranty = () => {
             {/* ============================================================
                 MEDIDAS DE MONTURA
                 ============================================================ */}
-            <Card>
-              <h2 className="text-xl font-semibold text-opticolor-gray-800 mb-4">
-                Medidas de Montura
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card title="Medidas de Montura">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Horizontal"
                   type="number"
@@ -455,14 +435,15 @@ const StoreWarranty = () => {
             {/* ============================================================
                 BOTÓN GUARDAR
                 ============================================================ */}
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <Button
                 onClick={handleSave}
                 loading={saving}
                 disabled={!orderData}
-                className="min-w-[200px]"
+                className="min-w-[200px] sm:min-w-[220px]"
               >
-                💾 Guardar Garantía
+                <Save className="h-4 w-4" aria-hidden="true" />
+                Guardar Garantía
               </Button>
             </div>
 

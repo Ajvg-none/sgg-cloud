@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import UserChip from '../ui/UserChip';
 import { LogoutIcon } from '../ui/Icons';
+import { LayoutDashboard, FlaskConical, Store, Users } from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -9,12 +10,10 @@ const AdminLayout = () => {
   const username = localStorage.getItem('username') || 'Administrador';
 
   const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: '📊', exact: true },
-    { path: '/admin/labs', label: 'Laboratorios', icon: '🔬' },
-    { path: '/admin/stores', label: 'Tiendas', icon: '🏪' },
-    { path: '/admin/users', label: 'Usuarios', icon: '👥' },
-    { path: '/admin/logs', label: 'Logs', icon: '📋' },
-    { path: '/admin/import', label: 'Importar CSV', icon: '📥' },
+    { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+    { path: '/admin/labs', label: 'Laboratorios', icon: FlaskConical },
+    { path: '/admin/stores', label: 'Tiendas', icon: Store },
+    { path: '/admin/users', label: 'Usuarios', icon: Users },
   ];
 
   const handleLogout = () => {
@@ -56,7 +55,10 @@ const AdminLayout = () => {
                       }
                     `}
                   >
-                    <span className="text-xl">{item.icon}</span>
+                    {(() => {
+                      const Icon = item.icon;
+                      return <Icon className="h-5 w-5" aria-hidden="true" />;
+                    })()}
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 </li>

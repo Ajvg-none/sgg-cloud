@@ -88,16 +88,6 @@ export const adminAPI = {
     api.post(`/admin/users/${userId}/reset-password`, { newPassword }),
   // Dashboard de Garantías
   getWarrantiesDashboard: (params) => api.get('/admin/warranties', { params }),
-  // Logs
-  getLogs: (params) => api.get('/admin/logs', { params }),
-  // Importar CSV
-  importCsv: (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post('/admin/import-csv', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
 };
 
 export default api;

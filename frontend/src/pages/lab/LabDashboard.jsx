@@ -5,6 +5,12 @@ import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
+import StatusBadge from '../../components/ui/StatusBadge';
+import Spinner from '../../components/ui/Spinner';
+import EmptyState from '../../components/ui/EmptyState';
+import Select from '../../components/ui/Select';
+import Pagination from '../../components/ui/Pagination';
+import { Printer, CheckCircle2, XCircle } from 'lucide-react';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -20,21 +26,6 @@ const REFRESH_OPTIONS = [
   { value: 10, label: '10 seg' },
   { value: 30, label: '30 seg' },
 ];
-
-const StatusBadge = ({ status }) => {
-  const config = {
-    PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    PROCESSING: 'bg-blue-100 text-blue-800 border-blue-300',
-    COMPLETED: 'bg-green-100 text-green-800 border-green-300',
-    ERROR: 'bg-red-100 text-red-800 border-red-300',
-  };
-  const labels = { PENDING: 'Pendiente', PROCESSING: 'Procesando', COMPLETED: 'Completada', ERROR: 'Error' };
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${config[status] || config.PENDING}`}>
-      {labels[status] || status}
-    </span>
-  );
-};
 
 const LabDashboard = () => {
   // Estado del sistema
@@ -186,6 +177,7 @@ const LabDashboard = () => {
 
   return (
     <div className="p-8">
+      <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Panel de Laboratorio</h1>
         <p className="text-opticolor-gray-600">Estado del sistema y gestión de garantías</p>
@@ -213,8 +205,16 @@ const LabDashboard = () => {
           <p className="text-sm text-opticolor-gray-500 mb-2">Impresora Bixolon</p>
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
-            {testPrintResult === 'success' && <span className="text-green-600 text-sm">✅ Ok</span>}
-            {testPrintResult === 'error' && <span className="text-red-600 text-sm">❌ Falló</span>}
+            {testPrintResult === 'success' && (
+              <span className="inline-flex items-center gap-1 text-green-600 text-sm">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Ok
+              </span>
+            )}
+            {testPrintResult === 'error' && (
+              <span className="inline-flex items-center gap-1 text-red-600 text-sm">
+                <XCircle className="h-4 w-4" aria-hidden="true" /> Falló
+              </span>
+            )}
           </div>
         </Card>
       </div>
@@ -225,15 +225,12 @@ const LabDashboard = () => {
           <h3 className="text-lg font-semibold text-opticolor-gray-900">Garantías del Laboratorio</h3>
           <div className="flex items-center gap-2">
             <span className="text-xs text-opticolor-gray-500">Auto-refresh:</span>
-            <select
+            <Select
               value={refreshInterval}
               onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
-              className="px-2 py-1 border border-opticolor-gray-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-opticolor-red"
-            >
-              {REFRESH_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              options={REFRESH_OPTIONS}
+              className="py-1 text-xs"
+            />
           </div>
         </div>
 
@@ -251,18 +248,21 @@ const LabDashboard = () => {
           </div>
           <div>
             <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Tienda</label>
-            <select value={storeFilter} onChange={(e) => setStoreFilter(e.target.value)}
-              className="w-full px-2 py-1.5 border border-opticolor-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red">
-              <option value="">Todas</option>
-              {stores.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <Select
+              value={storeFilter}
+              onChange={(e) => setStoreFilter(e.target.value)}
+              options={[{ value: '', label: 'Todas' }, ...stores.map((s) => ({ value: s.id, label: s.name }))]}
+              className="text-sm py-1.5"
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Estado</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-2 py-1.5 border border-opticolor-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-opticolor-red">
-              {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={STATUS_OPTIONS}
+              className="text-sm py-1.5"
+            />
           </div>
           <div className="flex items-end">
             <Button onClick={handleSearch} className="px-4 py-1.5 text-sm w-full">Buscar</Button>
@@ -271,13 +271,12 @@ const LabDashboard = () => {
 
         {/* Tabla */}
         {loading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div></div>
+          <Spinner size="lg" className="py-12" />
         ) : warranties.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4"></div>
-            <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">No hay garantías</h3>
-            <p className="text-opticolor-gray-500">No se encontraron garantías con los filtros actuales</p>
-          </div>
+          <EmptyState
+            title="No hay garantías"
+            description="No se encontraron garantías con los filtros actuales"
+          />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -311,7 +310,8 @@ const LabDashboard = () => {
                               onClick={() => handleReprintClick(w)}
                               className="px-2 py-1 text-xs"
                             >
-                              🖨️ Ticket
+                              <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                              Ticket
                             </Button>
                           )}
                           {(w.status === 'PENDING' || w.status === 'ERROR') && (
@@ -342,10 +342,11 @@ const LabDashboard = () => {
               <p className="text-xs text-opticolor-gray-600">
                 {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
               </p>
-              <div className="flex gap-2">
-                <Button variant="secondary" disabled={pagination.page <= 1} onClick={() => loadWarranties(pagination.page - 1)} className="px-3 py-1 text-xs">Anterior</Button>
-                <Button variant="secondary" disabled={pagination.page >= pagination.totalPages} onClick={() => loadWarranties(pagination.page + 1)} className="px-3 py-1 text-xs">Siguiente</Button>
-              </div>
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onChange={(page) => loadWarranties(page)}
+              />
             </div>
           </>
         )}
@@ -460,7 +461,8 @@ const LabDashboard = () => {
               variant="primary"
               onClick={handleReprintConfirm}
             >
-              🖨️ Reimprimir Ticket
+              <Printer className="h-4 w-4" aria-hidden="true" />
+              Reimprimir Ticket
             </Button>
           </div>
         </div>
@@ -503,11 +505,13 @@ const LabDashboard = () => {
               variant="primary"
               onClick={handleProcessConfirm}
             >
-              ✅ Procesar Orden
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Procesar Orden
             </Button>
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };
