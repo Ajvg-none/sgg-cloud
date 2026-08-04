@@ -45,7 +45,7 @@ const StoreHeader = () => {
           <img
             src="/logo-opti.jpg"
             alt="Opti-Color Logo"
-            className="h-44 w-auto object-contain" 
+            className="h-16 w-auto object-contain" 
             // h-16 es un buen tamaño dentro de la tarjeta. 
             // Si lo quieres más grande como en la foto, usa h-20
           />

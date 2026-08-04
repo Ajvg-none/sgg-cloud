@@ -1,4 +1,4 @@
-import React from 'react';
+// frontend/src/components/layout/LabLayout.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { authAPI } from '../../services/api';
@@ -52,9 +52,12 @@ const LabLayout = () => {
             alt="Opti-Color"
             className="h-32 w-auto object-contain" 
           />
-          <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Laboratorio</p>
-          <p className="text-xs text-opticolor-gray-400 mt-1 font-mono">{username}</p>
-          <div className="mt-2">
+          
+          {/* Tarjeta de Usuario Compacta */}
+          <div className="w-full bg-opticolor-gray-50 rounded-xl p-3 border border-opticolor-gray-100 flex flex-col items-center text-center">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-opticolor-gray-400 mb-2">
+              Panel de Laboratorio
+            </span>
             <UserChip name={lab?.name || username} subtitle={username} />
           </div>
         </div>

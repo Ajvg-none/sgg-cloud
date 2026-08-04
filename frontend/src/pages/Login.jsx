@@ -77,11 +77,13 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-opticolor-gray-900 text-center mb-6">
             Iniciar Sesión
           </h2>
+
           {error && (
             <div className="mb-4">
               <Alert type="error" message={error} onClose={() => setError(null)} />
             </div>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Campo Usuario con ícono */}
             <div className="relative">
@@ -101,6 +103,7 @@ const Login = () => {
 
             {/* Campo Contraseña con ícono de candado + botón de ojo */}
             <div className="relative">
+              {/* Ícono de Candado (izquierda) */}
               <div className="absolute left-3 top-9 text-opticolor-gray-400">
                 <Lock className="h-5 w-5" aria-hidden="true" />
               </div>
@@ -115,6 +118,7 @@ const Login = () => {
                 autoComplete="current-password"
               />
 
+              {/* Botón de Ojo (derecha) */}
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
