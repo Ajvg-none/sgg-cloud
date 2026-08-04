@@ -25,6 +25,7 @@ const LabLayout = () => {
     loadLab();
   }, []);
 
+
   const menuItems = [
     { path: '/lab', label: 'Panel', icon: LayoutDashboard, exact: true },
   ];
