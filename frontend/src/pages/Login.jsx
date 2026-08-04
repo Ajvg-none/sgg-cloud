@@ -14,6 +14,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,19 +35,16 @@ const Login = () => {
       setError('Usuario y contraseña son obligatorios.');
       return;
     }
-
     setLoading(true);
     setError(null);
     try {
       const res = await authAPI.login({ username, password });
       const { token, user } = res.data;
-
       localStorage.setItem('token', token);
       localStorage.setItem('role', user.role);
       localStorage.setItem('username', user.username);
       if (user.storeId) localStorage.setItem('storeId', user.storeId);
       if (user.labId) localStorage.setItem('labId', user.labId);
-
       redirectByRole(user.role);
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión. Verifica tus credenciales.');
@@ -57,7 +55,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-fade-in-up">
+      <div className="w-full max-w-md animate-fade-in-slow">
         {/* Logo y encabezado */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
@@ -79,13 +77,11 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-opticolor-gray-900 text-center mb-6">
             Iniciar Sesión
           </h2>
-
           {error && (
             <div className="mb-4">
               <Alert type="error" message={error} onClose={() => setError(null)} />
             </div>
           )}
-
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Campo Usuario con ícono */}
             <div className="relative">

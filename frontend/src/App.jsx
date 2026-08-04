@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // Layouts
-import StoreNavbar from './components/layout/StoreNavbar';
 import LabLayout from './components/layout/LabLayout';
 import AdminLayout from './components/layout/AdminLayout';
 
@@ -21,8 +20,6 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminLabs from './pages/admin/AdminLabs';
 import AdminStores from './pages/admin/AdminStores';
 import AdminUsers from './pages/admin/AdminUsers';
-import AdminLogs from './pages/admin/AdminLogs';
-import AdminImportCsv from './pages/admin/AdminImportCsv';
 
 function App() {
   return (
@@ -34,10 +31,7 @@ function App() {
         {/* Tienda (solo TIENDA) */}
         <Route path="/store" element={
           <ProtectedRoute allowedRoles={['TIENDA']}>
-            <>
-              <StoreNavbar />
-              <StoreWarranty />
-            </>
+            <StoreWarranty />
           </ProtectedRoute>
         } />
 
@@ -60,8 +54,6 @@ function App() {
           <Route path="labs" element={<AdminLabs />} />
           <Route path="stores" element={<AdminStores />} />
           <Route path="users" element={<AdminUsers />} />
-          <Route path="logs" element={<AdminLogs />} />
-          <Route path="import" element={<AdminImportCsv />} />
         </Route>
 
         {/* Redirección raíz */}

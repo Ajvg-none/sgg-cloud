@@ -24,8 +24,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Excluimos la petición de login para que el error llegue al componente
+      // en lugar de recargar la página completa
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      if (!isLoginRequest) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -83,16 +88,6 @@ export const adminAPI = {
     api.post(`/admin/users/${userId}/reset-password`, { newPassword }),
   // Dashboard de Garantías
   getWarrantiesDashboard: (params) => api.get('/admin/warranties', { params }),
-  // Logs
-  getLogs: (params) => api.get('/admin/logs', { params }),
-  // Importar CSV
-  importCsv: (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post('/admin/import-csv', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
 };
 
 export default api;

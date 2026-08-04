@@ -1,64 +1,42 @@
 // frontend/src/components/layout/AdminLayout.jsx
 import React from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import UserChip from '../ui/UserChip';
+import { LogoutIcon } from '../ui/Icons';
+import { LayoutDashboard, FlaskConical, Store, Users } from 'lucide-react';
 
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const username = localStorage.getItem('username') || 'Administrador';
 
   const menuItems = [
-    { path: '/admin', label: 'Dashboard', icon: '📊', exact: true },
-    { path: '/admin/labs', label: 'Laboratorios', icon: '🔬' },
-    { path: '/admin/stores', label: 'Tiendas', icon: '🏪' },
-    { path: '/admin/users', label: 'Usuarios', icon: '👥' },
-    { path: '/admin/logs', label: 'Logs', icon: '📋' },
-    { path: '/admin/import', label: 'Importar CSV', icon: '📥' },
+    { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+    { path: '/admin/labs', label: 'Laboratorios', icon: FlaskConical },
+    { path: '/admin/stores', label: 'Tiendas', icon: Store },
+    { path: '/admin/users', label: 'Usuarios', icon: Users },
   ];
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-<<<<<<< Updated upstream
     navigate('/');
-=======
-    localStorage.removeItem('role');
-    localStorage.removeItem('username');
-    localStorage.removeItem('storeId');
-    localStorage.removeItem('labId');
     navigate('/login');
->>>>>>> Stashed changes
   };
 
   return (
     <div className="min-h-screen bg-opticolor-gray-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-opticolor-gray-200 shadow-sm flex flex-col">
-<<<<<<< Updated upstream
        <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center">
           <img 
             src="/logo-opti.jpg" 
             alt="Opti-Color" 
-            className="h-48w-auto"   // ajusta según prefieras
+            className="h-48 w-auto"
           />
           <p className="text-sm text-opticolor-gray-500 mt-1">Panel de Administración</p>
-=======
-        
-        {/* --- HEADER DEL SIDEBAR (RE DISEÑADO) --- */}
-        <div className="p-6 border-b border-opticolor-gray-200 flex flex-col items-center gap-4">
-          {/* Logo */}
-          <img
-            src="/logo-opti.jpg"
-            alt="Opti-Color"
-            className="h-44 w-auto object-contain" 
-          />
-          
-          {/* Tarjeta de Usuario Compacta */}
-          <div className="w-full bg-opticolor-gray-50 rounded-xl p-3 border border-opticolor-gray-100 flex flex-col items-center text-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-opticolor-gray-400 mb-2">
-              Panel de Administración
-            </span>
+          <div className="mt-2">
             <UserChip name={username} subtitle="Administrador" />
           </div>
->>>>>>> Stashed changes
         </div>
 
         {/* Navegación */}
@@ -80,7 +58,10 @@ const AdminLayout = () => {
                       }
                     `}
                   >
-                    <span className="text-xl">{item.icon}</span>
+                    {(() => {
+                      const Icon = item.icon;
+                      return <Icon className="h-5 w-5" aria-hidden="true" />;
+                    })()}
                     <span className="font-medium">{item.label}</span>
                   </Link>
                 </li>
@@ -99,9 +80,10 @@ const AdminLayout = () => {
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
           >
-            🚪 Cerrar Sesión
+            <LogoutIcon />
+            Cerrar Sesión
           </button>
         </div>
       </aside>

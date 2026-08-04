@@ -5,6 +5,9 @@ import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
+import Spinner from '../../components/ui/Spinner';
+import EmptyState from '../../components/ui/EmptyState';
+import { Pencil, Trash2, KeyRound } from 'lucide-react';
 
 const AdminLabs = () => {
   const [labs, setLabs] = useState([]);
@@ -115,6 +118,7 @@ const AdminLabs = () => {
 
   return (
     <div className="p-8">
+      <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Laboratorios</h1>
@@ -144,14 +148,13 @@ const AdminLabs = () => {
 
       <Card>
         {loading ? (
-          <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div></div>
+          <Spinner size="lg" className="py-12" />
         ) : labs.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔬</div>
-            <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">No hay laboratorios</h3>
-            <p className="text-opticolor-gray-500 mb-4">Crea el primer laboratorio para comenzar</p>
-            <Button onClick={openCreate}>+ Crear Laboratorio</Button>
-          </div>
+          <EmptyState
+            title="No hay laboratorios"
+            description="Crea el primer laboratorio para comenzar"
+            action={<Button onClick={openCreate}>+ Crear Laboratorio</Button>}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -185,7 +188,8 @@ const AdminLabs = () => {
                                   hover:bg-blue-100 hover:border-blue-300 transition-colors"
                         title="Editar laboratorio"
                       >
-                        <span className="text-sm">✏️</span>
+                        <span className="text-sm"></span>
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                         <span>Editar</span>
                       </button>
 
@@ -197,7 +201,7 @@ const AdminLabs = () => {
                                   rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
                         title="Regenerar API Key"
                       >
-                        <span className="text-sm"></span>
+                        <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
                         <span>Nueva Key</span>
                       </button>
 
@@ -209,7 +213,7 @@ const AdminLabs = () => {
                                   rounded-md transition-colors border border-transparent hover:border-red-200"
                         title="Eliminar laboratorio"
                       >
-                        <span className="text-sm">🗑️</span>
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         <span>Eliminar</span>
                       </button>
                     </div>
@@ -235,6 +239,7 @@ const AdminLabs = () => {
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };

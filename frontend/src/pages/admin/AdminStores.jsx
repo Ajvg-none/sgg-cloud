@@ -5,6 +5,10 @@ import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
+import Spinner from '../../components/ui/Spinner';
+import EmptyState from '../../components/ui/EmptyState';
+import Select from '../../components/ui/Select';
+import { Pencil, Pause, Play } from 'lucide-react';
 
 const AdminStores = () => {
   const [stores, setStores] = useState([]);
@@ -102,6 +106,7 @@ const AdminStores = () => {
 
   return (
     <div className="p-8">
+      <div className="max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Tiendas</h1>
@@ -118,16 +123,13 @@ const AdminStores = () => {
 
       <Card>
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-opticolor-red"></div>
-          </div>
+          <Spinner size="lg" className="py-12" />
         ) : stores.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🏪</div>
-            <h3 className="text-xl font-semibold text-opticolor-gray-700 mb-2">No hay tiendas</h3>
-            <p className="text-opticolor-gray-500 mb-4">Crea la primera tienda para empezar</p>
-            <Button onClick={openCreate}>+ Crear Tienda</Button>
-          </div>
+          <EmptyState
+            title="No hay tiendas"
+            description="Crea la primera tienda para empezar"
+            action={<Button onClick={openCreate}>+ Crear Tienda</Button>}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -168,7 +170,7 @@ const AdminStores = () => {
                             hover:bg-blue-100 hover:border-blue-300 transition-colors"
                           title="Editar tienda"
                         >
-                          <span className="text-sm">✏️</span>
+                          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                           Editar
                         </button>
                         <button
@@ -180,7 +182,11 @@ const AdminStores = () => {
                           }`}
                           title={store.active ? 'Desactivar tienda' : 'Activar tienda'}
                         >
-                          <span className="text-sm">{store.active ? '⏸️' : '▶️'}</span>
+                          {store.active ? (
+                            <Pause className="h-3.5 w-3.5" aria-hidden="true" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5" aria-hidden="true" />
+                          )}
                           <span className="hidden xl:inline">{store.active ? 'Desactivar' : 'Activar'}</span>
                         </button>
                       </div>
@@ -210,22 +216,14 @@ const AdminStores = () => {
             placeholder="Ej: 001" 
             maxLength={3} 
           />
-          <div>
-            <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">Laboratorio Asignado</label>
-            <select
-              value={form.labId}
-              onChange={(e) => handleChange('labId', e.target.value)}
-              className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-opticolor-red focus:border-transparent ${
-                formErrors.labId ? 'border-opticolor-red-light bg-red-50' : 'border-opticolor-gray-200'
-              }`}
-            >
-              <option value="">Seleccionar...</option>
-              {labs.map((lab) => (
-                <option key={lab.id} value={lab.id}>{lab.name}</option>
-              ))}
-            </select>
-            {formErrors.labId && <p className="text-sm text-opticolor-red-light mt-1">{formErrors.labId}</p>}
-          </div>
+          <Select
+            label="Laboratorio Asignado"
+            value={form.labId}
+            onChange={(e) => handleChange('labId', e.target.value)}
+            error={formErrors.labId}
+            placeholder="Seleccionar..."
+            options={labs.map((lab) => ({ value: lab.id, label: lab.name }))}
+          />
           <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
             <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} loading={saving}>
@@ -234,6 +232,7 @@ const AdminStores = () => {
           </div>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };

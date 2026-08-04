@@ -1,7 +1,12 @@
 // frontend/src/components/ui/Modal.jsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'lg' }) => {
+  const closeButtonRef = useRef(null);
+  const titleId = useRef(
+    `modal-title-${Math.random().toString(36).slice(2, 9)}`
+  );
+
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') onClose();
@@ -9,6 +14,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'lg' }) => {
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      closeButtonRef.current?.focus();
     }
     return () => {
       document.removeEventListener('keydown', handleEscape);
@@ -28,20 +34,27 @@ const Modal = ({ isOpen, onClose, title, children, size = 'lg' }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div
-        className="absolute inset-0 bg-opticolor-gray-900 bg-opacity-50"
+        className="absolute inset-0 bg-opticolor-gray-900 bg-opacity-50 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden="true"
       />
-      <div className={`
-        relative bg-white rounded-xl shadow-2xl w-full ${sizes[size]}
-        max-h-[90vh] flex flex-col animate-slide-up
-      `}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId.current}
+        className={`
+          relative bg-white rounded-xl shadow-modal w-full ${sizes[size]}
+          max-h-[90vh] flex flex-col animate-slide-up
+        `}
+      >
         <div className="flex items-center justify-between p-6 border-b border-opticolor-gray-200">
-          <h2 className="text-2xl font-bold text-opticolor-gray-900">
+          <h2 id={titleId.current} className="text-2xl font-bold text-opticolor-gray-900">
             {title}
           </h2>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
-            className="text-opticolor-gray-400 hover:text-opticolor-red transition-colors text-2xl font-bold"
+            className="text-opticolor-gray-400 hover:text-opticolor-red transition-colors text-2xl font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-opticolor-red rounded"
             aria-label="Cerrar"
           >
             ✕
