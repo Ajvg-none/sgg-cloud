@@ -5,7 +5,7 @@ import { authAPI } from '../services/api';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Alert from '../components/ui/Alert';
-import { Eye, EyeOff, User } from 'lucide-react';
+import { Eye, EyeOff, User, Lock } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -36,7 +36,6 @@ const Login = () => {
     }
     setLoading(true);
     setError(null);
-    
     try {
       const res = await authAPI.login({ username, password });
       const { token, user } = res.data;
@@ -60,9 +59,9 @@ const Login = () => {
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
             <div className="w-48 md:w-56 transition-transform duration-300 hover:scale-105">
-              <img 
-                src="/logo-opti.jpg" 
-                alt="Opti-Color" 
+              <img
+                src="/logo-opti.jpg"
+                alt="Opti-Color"
                 className="w-full h-auto drop-shadow-lg"
               />
             </div>
@@ -77,11 +76,13 @@ const Login = () => {
           <h2 className="text-2xl font-bold text-opticolor-gray-900 text-center mb-6">
             Iniciar Sesión
           </h2>
+
           {error && (
             <div className="mb-4">
               <Alert type="error" message={error} onClose={() => setError(null)} />
             </div>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Campo Usuario con ícono */}
             <div className="relative">
@@ -99,20 +100,26 @@ const Login = () => {
               />
             </div>
 
-            {/* Campo Contraseña con botón de ojo */}
+            {/* Campo Contraseña con ícono de candado + botón de ojo */}
             <div className="relative">
+              {/* Ícono de Candado (izquierda) */}
+              <div className="absolute left-3 top-9 text-opticolor-gray-400">
+                <Lock className="h-5 w-5" aria-hidden="true" />
+              </div>
+
               <Input
                 label="Contraseña"
-                type={showPassword ? 'text' : 'password'} // ✅ Toggle dinámico
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Ingresa tu contraseña"
-                className="pl-10 pr-10" // ✅ pr-10 deja espacio para que el texto no tape el ojo
+                className="pl-10 pr-10"
                 autoComplete="current-password"
               />
-              {/* ✅ Botón de Ojo (Hermano absoluto) */}
+
+              {/* Botón de Ojo (derecha) */}
               <button
-                type="button" // ⚠️ OBLIGATORIO: evita que el formulario se envíe al hacer clic
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-9 text-opticolor-gray-400 hover:text-opticolor-red transition-colors"
                 aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
@@ -126,9 +133,9 @@ const Login = () => {
             </div>
 
             {/* Botón con gradiente */}
-            <Button 
-              type="submit" 
-              loading={loading} 
+            <Button
+              type="submit"
+              loading={loading}
               className="w-full text-lg bg-gradient-to-r from-opticolor-red to-opticolor-red-dark hover:from-opticolor-red-dark hover:to-opticolor-red transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg"
             >
               {loading ? 'Ingresando...' : 'Ingresar'}
