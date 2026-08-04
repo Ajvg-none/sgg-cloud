@@ -1,3 +1,4 @@
+// frontend/src/components/layout/AdminLayout.jsx
 import React from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import UserChip from '../ui/UserChip';
@@ -18,6 +19,7 @@ const AdminLayout = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    navigate('/');
     navigate('/login');
   };
 
@@ -37,6 +39,7 @@ const AdminLayout = () => {
           </div>
         </div>
 
+        {/* Navegación */}
         <nav className="p-4 flex-1">
           <ul className="space-y-2">
             {menuItems.map((item) => {
@@ -67,6 +70,7 @@ const AdminLayout = () => {
           </ul>
         </nav>
 
+        {/* Footer del Sidebar */}
         <div className="p-4 border-t border-opticolor-gray-200 space-y-2">
           <Link
             to="/"
@@ -84,6 +88,7 @@ const AdminLayout = () => {
         </div>
       </aside>
 
+      {/* Contenido Principal */}
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
