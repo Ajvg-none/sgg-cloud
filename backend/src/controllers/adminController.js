@@ -343,10 +343,9 @@ const getWarrantiesDashboard = async (req, res) => {
       limit = 20,
     } = req.query;
 
-    const where = {};
+     const where = {};
     if (storeId) where.storeId = storeId;
     if (labId) where.labId = labId;
-    if (status) where.status = status;
     if (search) where.orderNumber = { contains: search, mode: 'insensitive' };
     if (warrantyType) where.warrantyType = warrantyType;
     if (startDate || endDate) {
@@ -355,9 +354,13 @@ const getWarrantiesDashboard = async (req, res) => {
       if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
+    // Contadores para tarjetas: mismos filtros, EXCEPTO estado
+    const whereCounts = { ...where };
+    if (status) where.status = status;
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [total, warranties] = await Promise.all([
+    const [total, warranties, statusCounts] = await Promise.all([
       prisma.warranty.count({ where }),
       prisma.warranty.findMany({
         where,
@@ -373,10 +376,19 @@ const getWarrantiesDashboard = async (req, res) => {
         skip,
         take: parseInt(limit),
       }),
+      prisma.warranty.groupBy({
+        by: ['status'],
+        where: whereCounts,
+        _count: { _all: true },
+      }),
     ]);
 
     return res.status(200).json({
       warranties,
+      statusCounts: statusCounts.reduce(
+        (acc, row) => ({ ...acc, [row.status]: row._count._all }),
+        {}
+      ),
       pagination: {
         total,
         page: parseInt(page),
