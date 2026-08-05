@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { labAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -10,7 +10,7 @@ import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
-import { Printer, CheckCircle2, XCircle } from 'lucide-react';
+import { Printer, CheckCircle2, XCircle, Search, RefreshCw, Eye } from 'lucide-react';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -26,6 +26,32 @@ const REFRESH_OPTIONS = [
   { value: 10, label: '10 seg' },
   { value: 30, label: '30 seg' },
 ];
+
+const LIMIT_OPTIONS = [
+  { value: 5, label: '5 filas' },
+  { value: 10, label: '10 filas' },
+  { value: 20, label: '20 filas' },
+  { value: 50, label: '50 filas' },
+];
+
+const OrderNumber = ({ code }) => {
+  if (!code) return <span className="text-sm text-opticolor-gray-400">-</span>;
+  const idx = code.lastIndexOf('-');
+  const suffix = idx > 0 ? code.slice(idx + 1) : '';
+  const hasRevision = suffix !== '' && /^\d+$/.test(suffix);
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap" title={code}>
+      <span className="text-sm font-semibold text-opticolor-gray-800 tabular-nums tracking-tight">
+        {hasRevision ? code.slice(0, idx) : code}
+      </span>
+      {hasRevision && (
+        <span className="rounded-md border border-opticolor-gray-200 bg-opticolor-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-opticolor-gray-500">
+          R{suffix}
+        </span>
+      )}
+    </span>
+  );
+};
 
 const LabDashboard = () => {
   // Estado del sistema
@@ -73,10 +99,10 @@ const LabDashboard = () => {
     }
   };
 
-  const loadWarranties = useCallback(async (page = 1) => {
+  const loadWarranties = useCallback(async (page = 1, limitOverride) => {
     setLoading(true);
     try {
-      const params = { page, limit: pagination.limit };
+      const params = { page, limit: limitOverride ?? pagination.limit };
       if (search.trim()) params.search = search.trim();
       if (statusFilter) params.status = statusFilter;
       if (storeFilter) params.storeId = storeFilter;
@@ -101,6 +127,22 @@ const LabDashboard = () => {
   }, [refreshInterval, pagination.page, loadWarranties]);
 
   const handleSearch = () => loadWarranties(1);
+
+  const handleLimitChange = (newLimit) => {
+    setPagination((prev) => ({ ...prev, limit: newLimit }));
+    loadWarranties(1, newLimit);
+  };
+
+  // Re-consulta automática con debounce al cambiar filtros
+  const isFirstFilterRun = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterRun.current) {
+      isFirstFilterRun.current = false;
+      return;
+    }
+    const timer = setTimeout(() => loadWarranties(1), 400);
+    return () => clearTimeout(timer);
+  }, [search, statusFilter, storeFilter]);
 
   const handleReprintClick = (warranty) => {
     setWarrantyToReprint(warranty);
@@ -234,38 +276,45 @@ const LabDashboard = () => {
           </div>
         </div>
 
-        {/* Filtros */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 pb-4 border-b border-opticolor-gray-200">
-          <div>
-            <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Buscar OTG</label>
+        {/* Toolbar: búsqueda, filtros, filas por página y actualizar */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-5">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Número de orden..."
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="text-sm py-1.5"
+              placeholder="Buscar por OTG…"
+              aria-label="Buscar por OTG"
+              className="pl-9 py-2 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Tienda</label>
+          <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
             <Select
               value={storeFilter}
               onChange={(e) => setStoreFilter(e.target.value)}
-              options={[{ value: '', label: 'Todas' }, ...stores.map((s) => ({ value: s.id, label: s.name }))]}
-              className="text-sm py-1.5"
+              options={[{ value: '', label: 'Todas las tiendas' }, ...stores.map((s) => ({ value: s.id, label: s.name }))]}
+              aria-label="Tienda"
+              className="py-2 text-sm"
             />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-opticolor-gray-600 mb-1">Estado</label>
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               options={STATUS_OPTIONS}
-              className="text-sm py-1.5"
+              aria-label="Estado"
+              className="py-2 text-sm"
             />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={handleSearch} className="px-4 py-1.5 text-sm w-full">Buscar</Button>
+            <Select
+              value={pagination.limit}
+              onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+              options={LIMIT_OPTIONS}
+              aria-label="Filas por página"
+              className="py-2 text-sm"
+            />
+            <Button variant="secondary" onClick={() => loadWarranties(pagination.page)} disabled={loading} className="px-3 py-2 text-sm">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+              Actualizar
+            </Button>
           </div>
         </div>
 
@@ -280,52 +329,67 @@ const LabDashboard = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
+                <colgroup>
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '21%' }} />
+                </colgroup>
                 <thead>
-                  <tr className="border-b-2 border-opticolor-gray-200">
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-opticolor-gray-700"># OTG</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-opticolor-gray-700">Tienda</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-opticolor-gray-700">Cliente</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-opticolor-gray-700">Tipo</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-opticolor-gray-700">Fecha</th>
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-opticolor-gray-700">Estado</th>
-                    <th className="text-right py-2 px-3 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
+                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tienda</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Cliente</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tipo</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
+                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
                   {warranties.map((w) => (
-                    <tr key={w.id} className="border-b border-opticolor-gray-100 hover:bg-opticolor-gray-50 transition-colors">
-                      <td className="py-3 px-3 font-mono text-sm text-opticolor-gray-800">{w.orderNumber}</td>
-                      <td className="py-3 px-3 text-sm text-opticolor-gray-700">{w.store?.name || '-'}</td>
-                      <td className="py-3 px-3 text-sm text-opticolor-gray-600 max-w-[120px] truncate">{w.orderData?.cliente_nombre || '-'}</td>
-                      <td className="py-3 px-3 text-xs text-opticolor-gray-600 max-w-[100px] truncate">{w.warrantyType || '-'}</td>
-                      <td className="py-3 px-3 text-xs text-opticolor-gray-500">{formatDate(w.createdAt)}</td>
-                      <td className="py-3 px-3"><StatusBadge status={w.status} /></td>
-                      <td className="py-3 px-3">
-                        <div className="flex gap-1 justify-end">
-                          <Button variant="ghost" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }} className="px-2 py-1 text-xs">Detalle</Button>
+                    <tr key={w.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
+                      <td className="py-3.5 px-3 align-middle text-center overflow-hidden whitespace-nowrap text-ellipsis">
+                        <OrderNumber code={w.orderNumber} />
+                      </td>
+                      <td className="py-3.5 px-3 align-middle text-center text-sm font-medium text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
+                        {w.store?.name || '-'}
+                      </td>
+                      <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.orderData?.cliente_nombre || ''}>
+                        {w.orderData?.cliente_nombre || '-'}
+                      </td>
+                      <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.warrantyType || ''}>
+                        {w.warrantyType || '-'}
+                      </td>
+                      <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
+                        {formatDate(w.createdAt)}
+                      </td>
+                      <td className="py-3.5 px-3 align-middle text-center">
+                        <StatusBadge status={w.status} />
+                      </td>
+                      <td className="py-3.5 px-3 align-middle text-center">
+                        <div className="flex flex-wrap items-center justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}>
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                            Detalle
+                          </Button>
                           {w.status === 'COMPLETED' && (
-                            <Button
-                              variant="secondary"
-                              onClick={() => handleReprintClick(w)}
-                              className="px-2 py-1 text-xs"
-                            >
-                              <Printer className="h-3.5 w-3.5" aria-hidden="true" />
+                            <Button variant="secondary" size="sm" onClick={() => handleReprintClick(w)}>
+                              <Printer className="h-4 w-4" aria-hidden="true" />
                               Ticket
                             </Button>
                           )}
                           {(w.status === 'PENDING' || w.status === 'ERROR') && (
-                            <Button
-                              variant="primary"
-                              onClick={() => handleProcess(w.id, w.orderNumber)}
-                              loading={processingId === w.id}
-                              className="px-2 py-1 text-xs"
-                            >
-                              {w.status === 'ERROR' ? 'Procesar' : 'Procesar'}
+                            <Button variant="primary" size="sm" onClick={() => handleProcess(w.id, w.orderNumber)} loading={processingId === w.id}>
+                              Procesar
                             </Button>
                           )}
                           {w.status === 'PROCESSING' && (
-                            <Button variant="secondary" disabled className="px-2 py-1 text-xs">
+                            <Button variant="secondary" size="sm" disabled>
                               Procesando...
                             </Button>
                           )}
@@ -335,6 +399,18 @@ const LabDashboard = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Paginación */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5">
+              <p className="text-sm text-opticolor-gray-600">
+                Mostrando <span className="font-semibold">{((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)}</span> de <span className="font-semibold">{pagination.total}</span> garantías
+              </p>
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onChange={(page) => loadWarranties(page)}
+              />
             </div>
 
             {/* Paginación */}

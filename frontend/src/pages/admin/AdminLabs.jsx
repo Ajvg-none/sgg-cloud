@@ -7,7 +7,16 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
-import { Pencil, Trash2, KeyRound } from 'lucide-react';
+import Select from '../../components/ui/Select';
+import Pagination from '../../components/ui/Pagination';
+import { Pencil, Trash2, KeyRound, Search, RefreshCw } from 'lucide-react';
+
+const LIMIT_OPTIONS = [
+  { value: 5, label: '5 filas' },
+  { value: 10, label: '10 filas' },
+  { value: 20, label: '20 filas' },
+  { value: 50, label: '50 filas' },
+];
 
 const AdminLabs = () => {
   const [labs, setLabs] = useState([]);
@@ -19,6 +28,9 @@ const AdminLabs = () => {
   const [form, setForm] = useState({ name: '', agentIp: '', agentPort: '', vcaNetworkPath: '' });
   const [formErrors, setFormErrors] = useState({});
   const [generatedKey, setGeneratedKey] = useState(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   useEffect(() => { loadLabs(); }, []);
 
@@ -111,14 +123,28 @@ const AdminLabs = () => {
     });
   };
 
+  // Filtro y paginación en el navegador (el endpoint trae todos los labs)
+  const filteredLabs = (labs || []).filter((lab) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (lab.name || '').toLowerCase().includes(q) ||
+      (lab.agentIp || '').toLowerCase().includes(q) ||
+      (lab.vcaNetworkPath || '').toLowerCase().includes(q)
+    );
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredLabs.length / limit));
+  const safePage = Math.min(page, totalPages);
+  const pagedLabs = filteredLabs.slice((safePage - 1) * limit, safePage * limit);
+
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (formErrors[field]) setFormErrors((prev) => ({ ...prev, [field]: null }));
   };
 
   return (
-    <div className="p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-4 md:p-6">
+      <div className="max-w-[1400px] mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Laboratorios</h1>
@@ -147,6 +173,32 @@ const AdminLabs = () => {
       )}
 
       <Card>
+        {/* Toolbar: búsqueda, filas por página y actualizar */}
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+            <Input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Buscar por nombre, IP o ruta…"
+              aria-label="Buscar laboratorio"
+              className="pl-9 py-2 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2 md:ml-auto">
+            <Select
+              value={limit}
+              onChange={(e) => { setLimit(parseInt(e.target.value)); setPage(1); }}
+              options={LIMIT_OPTIONS}
+              aria-label="Filas por página"
+              className="py-2 text-sm"
+            />
+            <Button variant="secondary" onClick={loadLabs} disabled={loading} className="px-3 py-2 text-sm">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+              Actualizar
+            </Button>
+          </div>
+        </div>
         {loading ? (
           <Spinner size="lg" className="py-12" />
         ) : labs.length === 0 ? (
@@ -155,74 +207,84 @@ const AdminLabs = () => {
             description="Crea el primer laboratorio para comenzar"
             action={<Button onClick={openCreate}>+ Crear Laboratorio</Button>}
           />
+                ) : filteredLabs.length === 0 ? (
+          <EmptyState
+            title="Sin resultados"
+            description={`No se encontraron laboratorios para "${search}"`}
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-opticolor-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Nombre</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">IP Agente</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Puerto</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Ruta VCA</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Tiendas</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Garantías</th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {labs.map((lab) => (
-                  <tr key={lab.id} className="border-b border-opticolor-gray-100 hover:bg-opticolor-gray-50 transition-colors">
-                    <td className="py-4 px-4 font-medium text-opticolor-gray-800">{lab.name}</td>
-                    <td className="py-4 px-4 font-mono text-sm text-opticolor-gray-700">{lab.agentIp}</td>
-                    <td className="py-4 px-4 font-mono text-sm text-opticolor-gray-700">{lab.agentPort}</td>
-                    <td className="py-4 px-4 text-sm text-opticolor-gray-600 max-w-xs truncate" title={lab.vcaNetworkPath}>{lab.vcaNetworkPath}</td>
-                    <td className="py-4 px-4 text-sm text-opticolor-gray-700">{lab._count?.stores || 0}</td>
-                    <td className="py-4 px-4 text-sm text-opticolor-gray-700">{lab._count?.warranties || 0}</td>
-                    <td className="py-4 px-4">
-                    <div className="flex items-center gap-1">
-                      {/* Botón Editar */}
-                      <button
-                        onClick={() => openEdit(lab)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium 
-                                  bg-blue-50 text-blue-700 border border-blue-200 rounded-md
-                                  hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                        title="Editar laboratorio"
-                      >
-                        <span className="text-sm"></span>
-                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                        <span>Editar</span>
-                      </button>
-
-                      {/* Botón Nueva Key */}
-                      <button
-                        onClick={() => handleRegenerateKey(lab)}
-                        className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium 
-                                  text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 
-                                  rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
-                        title="Regenerar API Key"
-                      >
-                        <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-                        <span>Nueva Key</span>
-                      </button>
-
-                      {/* Botón Eliminar */}
-                      <button
-                        onClick={() => handleDelete(lab)}
-                        className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium 
-                                  text-red-600 hover:text-red-700 hover:bg-red-50 
-                                  rounded-md transition-colors border border-transparent hover:border-red-200"
-                        title="Eliminar laboratorio"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        <span>Eliminar</span>
-                      </button>
-                    </div>
-                  </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full table-fixed">
+                <colgroup>
+                  <col style={{ width: '17%' }} />
+                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '7%' }} />
+                  <col style={{ width: '19%' }} />
+                  <col style={{ width: '7%' }} />
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '29%' }} />
+                </colgroup>
+                <thead>
+                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Nombre</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">IP Agente</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Puerto</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Ruta VCA</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tiendas</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Garantías</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                  {pagedLabs.map((lab) => (
+                    <tr key={lab.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
+                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{lab.name}</td>
+                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 tabular-nums">{lab.agentIp}</td>
+                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 tabular-nums">{lab.agentPort}</td>
+                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={lab.vcaNetworkPath}>{lab.vcaNetworkPath}</td>
+                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.stores || 0}</td>
+                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.warranties || 0}</td>
+                      <td className="py-3.5 px-2 align-middle text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => openEdit(lab)}
+                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            title="Editar laboratorio"
+                          >
+                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            onClick={() => handleRegenerateKey(lab)}
+                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
+                            title="Regenerar API Key"
+                          >
+                            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>Nueva Key</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lab)}
+                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                            title="Eliminar laboratorio"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5">
+              <p className="text-sm text-opticolor-gray-600">
+                Mostrando <span className="font-semibold">{(safePage - 1) * limit + 1}–{Math.min(safePage * limit, filteredLabs.length)}</span> de <span className="font-semibold">{filteredLabs.length}</span> laboratorios
+              </p>
+              <Pagination page={safePage} totalPages={totalPages} onChange={(p) => setPage(p)} />
+            </div>
+          </>
         )}
       </Card>
 

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, RefreshCw, Eye } from 'lucide-react';
 import { adminAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -25,6 +26,12 @@ const REFRESH_OPTIONS = [
   { value: 10, label: '10 seg' },
   { value: 30, label: '30 seg' },
 ];
+const LIMIT_OPTIONS = [
+  { value: 5, label: '5 filas' },
+  { value: 10, label: '10 filas' },
+  { value: 20, label: '20 filas' },
+  { value: 50, label: '50 filas' },
+];
 
 const WARRANTY_TYPES = [
   'DP mal tomada', 'Error de medición', 'Error de DP', 'Error DP + RX',
@@ -33,11 +40,31 @@ const WARRANTY_TYPES = [
   'Mal manejo del producto', 'Insatisfacción del cliente', 'Altura mal tomada',
 ];
 
+const OrderNumber = ({ code }) => {
+  if (!code) return <span className="text-sm text-opticolor-gray-400">-</span>;
+  const idx = code.lastIndexOf('-');
+  const suffix = idx > 0 ? code.slice(idx + 1) : '';
+  const hasRevision = suffix !== '' && /^\d+$/.test(suffix);
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap" title={code}>
+      <span className="text-sm font-semibold text-opticolor-gray-800 tabular-nums tracking-tight">
+        {hasRevision ? code.slice(0, idx) : code}
+      </span>
+      {hasRevision && (
+        <span className="rounded-md border border-opticolor-gray-200 bg-opticolor-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-opticolor-gray-500">
+          R{suffix}
+        </span>
+      )}
+    </span>
+  );
+};
+
 const AdminDashboard = () => {
   const [warranties, setWarranties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
+  const [statusCounts, setStatusCounts] = useState({});
   const [refreshInterval, setRefreshInterval] = useState(0);
 
   const [filters, setFilters] = useState({
@@ -72,10 +99,10 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadWarranties = useCallback(async (page = 1) => {
+    const loadWarranties = useCallback(async (page = 1, limitOverride) => {
     setLoading(true);
     try {
-      const params = { page, limit: pagination.limit };
+    const params = { page, limit: limitOverride ?? pagination.limit };
       if (filters.search.trim()) params.search = filters.search.trim();
       if (filters.storeId) params.storeId = filters.storeId;
       if (filters.labId) params.labId = filters.labId;
@@ -84,9 +111,10 @@ const AdminDashboard = () => {
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
 
-      const res = await adminAPI.getWarrantiesDashboard(params);
-      setWarranties(res.data.warranties || []);
-      setPagination(res.data.pagination);
+    const res = await adminAPI.getWarrantiesDashboard(params);
+    setWarranties(res.data.warranties || []);
+    setPagination(res.data.pagination);
+    setStatusCounts(res.data.statusCounts || {});
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al cargar garantías' });
     } finally {
@@ -94,9 +122,20 @@ const AdminDashboard = () => {
     }
   }, [filters, pagination.limit]);
 
-  useEffect(() => {
-    loadWarranties(1);
-  }, []);
+useEffect(() => {
+loadWarranties(1);
+}, []);
+
+// Re-consulta automática con debounce cuando cambia cualquier filtro
+const isFirstFiltersRun = useRef(true);
+useEffect(() => {
+  if (isFirstFiltersRun.current) {
+    isFirstFiltersRun.current = false;
+    return;
+  }
+  const timer = setTimeout(() => loadWarranties(1), 400);
+  return () => clearTimeout(timer);
+}, [filters]);
 
   // Auto-refresh
   useEffect(() => {
@@ -114,7 +153,11 @@ const AdminDashboard = () => {
   };
 
   const handleSearch = () => {
-    loadWarranties(1);
+  loadWarranties(1);
+  };
+  const handleLimitChange = (newLimit) => {
+    setPagination((prev) => ({ ...prev, limit: newLimit }));
+    loadWarranties(1, newLimit);
   };
 
   const formatDate = (d) => {
@@ -222,8 +265,9 @@ const AdminDashboard = () => {
 
       {/* Resumen */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {['PENDING', 'PROCESSING', 'COMPLETED', 'ERROR'].map((status, index) => {
-          const count = (warranties || []).filter((w) => w.status === status).length;
+      {['PENDING', 'PROCESSING', 'COMPLETED', 'ERROR'].map((status, index) => {
+        const count = statusCounts[status] || 0;
+        const active = filters.status === status;
           const colors = {
             PENDING: 'border-l-yellow-500',
             PROCESSING: 'border-l-blue-500',
@@ -232,17 +276,52 @@ const AdminDashboard = () => {
           };
           const labels = { PENDING: 'Pendientes', PROCESSING: 'Procesando', COMPLETED: 'Completadas', ERROR: 'Errores' };
           return (
-            <Card key={status} className={`border-l-4 ${colors[status]} animate-fade-in`} style={{ animationDelay: `${index * 60}ms` }}>
-              <p className="text-sm text-opticolor-gray-500">{labels[status]}</p>
-              <p className="text-3xl font-bold text-opticolor-gray-900">{count}</p>
-            </Card>
+          <Card
+            key={status}
+            onClick={() => handleFilterChange('status', active ? '' : status)}
+            style={{ animationDelay: `${index * 60}ms` }}
+            className={`border-l-4 ${colors[status]} animate-fade-in cursor-pointer transition-all hover:shadow-lg ${active ? 'ring-2 ring-opticolor-red' : ''}`}
+          >
+            <p className="text-sm text-opticolor-gray-500">{labels[status]}</p>
+            <p className="text-3xl font-bold text-opticolor-gray-900">{count}</p>
+            <p className="mt-1 text-[11px] text-opticolor-gray-400">
+              {active ? 'Click para quitar el filtro' : 'Click para filtrar'}
+            </p>
+          </Card>
           );
         })}
       </div>
 
-      {/* Tabla */}
-      <Card>
-        {loading ? (
+   {/* Tabla */}
+   <Card>
+     {/* Toolbar: búsqueda rápida, filas por página y actualizar */}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
+       <div className="relative flex-1 max-w-sm">
+         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+         <Input
+           value={filters.search}
+           onChange={(e) => handleFilterChange('search', e.target.value)}
+           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+           placeholder="Buscar por OTG…"
+           aria-label="Buscar por OTG"
+           className="pl-9 py-2 text-sm"
+         />
+       </div>
+       <div className="flex items-center gap-2 md:ml-auto">
+         <Select
+           value={pagination.limit}
+           onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+           options={LIMIT_OPTIONS}
+           aria-label="Filas por página"
+           className="py-2 text-sm"
+         />
+         <Button variant="secondary" onClick={() => loadWarranties(pagination.page)} disabled={loading} className="px-3 py-2 text-sm">
+           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+           Actualizar
+         </Button>
+       </div>
+     </div>
+     {loading ? (
           <Spinner size="lg" className="py-12" />
         ) : warranties.length === 0 ? (
           <EmptyState
@@ -251,45 +330,70 @@ const AdminDashboard = () => {
           />
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-opticolor-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700"># OTG</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Tienda</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Laboratorio</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Tipo</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Estado</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Fecha</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {warranties.map((w) => (
-                    <tr key={w.id} className="border-b border-opticolor-gray-100 hover:bg-opticolor-gray-50 transition-colors">
-                      <td className="py-4 px-4 font-mono text-sm text-opticolor-gray-800">{w.orderNumber}</td>
-                      <td className="py-4 px-4 text-sm text-opticolor-gray-700">{w.store?.name || '-'}</td>
-                      <td className="py-4 px-4 text-sm text-opticolor-gray-700">{w.lab?.name || '-'}</td>
-                      <td className="py-4 px-4 text-xs text-opticolor-gray-600 max-w-[120px] truncate">{w.warrantyType || '-'}</td>
-                      <td className="py-4 px-4"><StatusBadge status={w.status} /></td>
-                      <td className="py-4 px-4 text-sm text-opticolor-gray-600">{formatDate(w.createdAt)}</td>
-                      <td className="py-4 px-4 text-right">
-                        <Button variant="secondary" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }} className="px-3 py-1 text-xs">
-                          Ver Detalle
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <div className="overflow-x-auto">
+           <table className="w-full table-fixed">
+             <colgroup>
+               <col style={{ width: '20%' }} />
+               <col style={{ width: '14%' }} />
+               <col style={{ width: '15%' }} />
+               <col style={{ width: '16%' }} />
+               <col style={{ width: '10%' }} />
+               <col style={{ width: '15%' }} />
+               <col style={{ width: '10%' }} />
+             </colgroup>
+             <thead>
+               <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tienda</th>
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Laboratorio</th>
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tipo</th>
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha</th>
+                 <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+               </tr>
+             </thead>
+             <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+               {warranties.map((w) => (
+                 <tr key={w.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
+                   <td className="py-3.5 px-4 align-middle text-center overflow-hidden whitespace-nowrap text-ellipsis">
+                     <OrderNumber code={w.orderNumber} />
+                   </td>
+                   <td className="py-3.5 px-4 align-middle text-center text-sm font-medium text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
+                     {w.store?.name || '-'}
+                   </td>
+                   <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
+                     {w.lab?.name || '-'}
+                   </td>
+                   <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.warrantyType || ''}>
+                     {w.warrantyType || '-'}
+                   </td>
+                   <td className="py-3.5 px-4 align-middle text-center">
+                     <StatusBadge status={w.status} />
+                   </td>
+                   <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
+                     {formatDate(w.createdAt)}
+                   </td>
+                   <td className="py-3.5 px-4 align-middle text-center">
+                     <Button
+                       variant="secondary"
+                       size="sm"
+                       onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}
+                     >
+                       <Eye className="h-4 w-4" aria-hidden="true" />
+                       Detalle
+                     </Button>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         </div>
 
             {/* Paginación */}
-            <div className="flex items-center justify-between pt-4 border-t border-opticolor-gray-200 mt-4">
-              <p className="text-sm text-opticolor-gray-600">
-                Mostrando {((pagination.page - 1) * pagination.limit) + 1}-
-                {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
-              </p>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5">
+           <p className="text-sm text-opticolor-gray-600">
+             Mostrando <span className="font-semibold">{((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)}</span> de <span className="font-semibold">{pagination.total}</span> garantías
+           </p>
               <Pagination
                 page={pagination.page}
                 totalPages={pagination.totalPages}
