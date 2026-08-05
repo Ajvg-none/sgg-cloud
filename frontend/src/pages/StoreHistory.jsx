@@ -8,6 +8,7 @@ import Modal from '../components/ui/Modal';
 import StatusBadge from '../components/ui/StatusBadge';
 import Spinner from '../components/ui/Spinner';
 import EmptyState from '../components/ui/EmptyState';
+import StoreHeader from '../components/layout/StoreHeader';
 import { Eye } from 'lucide-react';
 
 const StoreHistory = () => {
@@ -67,9 +68,12 @@ const StoreHistory = () => {
   };
 
   return (
-    <div className="min-h-screen bg-opticolor-gray-50 p-6">
+    <div className="min-h-screen bg-opticolor-gray-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* ✅ Header con logo, usuario y pestañas de navegación */}
+        <StoreHeader />
+
+        {/* Título de la página */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">
             Historial de Garantías
