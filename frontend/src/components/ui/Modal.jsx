@@ -3,24 +3,35 @@ import React, { useEffect, useRef } from 'react';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'lg' }) => {
   const closeButtonRef = useRef(null);
+  // ✅ Ref para mantener siempre la última versión de onClose
+  const onCloseRef = useRef(onClose);
   const titleId = useRef(
     `modal-title-${Math.random().toString(36).slice(2, 9)}`
   );
 
+  // ✅ Sincroniza el ref sin provocar re-ejecuciones del efecto principal
   useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    // ✅ Si el modal está cerrado, no hacemos nada
+    if (!isOpen) return;
+
     const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-      closeButtonRef.current?.focus();
-    }
+
+    document.addEventListener('keydown', handleEscape);
+    document.body.style.overflow = 'hidden';
+    // ✅ El foco al botón ✕ ahora ocurre UNA SOLA VEZ al abrir el modal
+    closeButtonRef.current?.focus();
+
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]); // ✅ ANTES: [isOpen, onClose] → el efecto se re-ejecutaba en cada tecla
 
   if (!isOpen) return null;
 
