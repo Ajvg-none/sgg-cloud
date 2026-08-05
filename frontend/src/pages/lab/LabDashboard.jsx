@@ -10,6 +10,7 @@ import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
+import WarrantyDetailModal from '../../components/ui/WarrantyDetailModal';
 import { Printer, CheckCircle2, XCircle, Search, RefreshCw, Eye } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -412,96 +413,16 @@ const LabDashboard = () => {
                 onChange={(page) => loadWarranties(page)}
               />
             </div>
-
-            {/* Paginación */}
-            <div className="flex items-center justify-between pt-3 border-t border-opticolor-gray-200 mt-3">
-              <p className="text-xs text-opticolor-gray-600">
-                {(pagination.page - 1) * pagination.limit + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total}
-              </p>
-              <Pagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                onChange={(page) => loadWarranties(page)}
-              />
-            </div>
           </>
         )}
       </Card>
 
       {/* Modal Detalle */}
-      <Modal isOpen={detailModalOpen} onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }} title={`Detalle OTG #${selectedWarranty?.orderNumber || ''}`} size="xl">
-        {selectedWarranty && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Información General</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div><p className="text-xs text-opticolor-gray-500">Número de OTG</p><p className="font-mono font-semibold text-opticolor-gray-800">{selectedWarranty.orderNumber}</p></div>
-                <div><p className="text-xs text-opticolor-gray-500">Tienda</p><p className="text-opticolor-gray-800">{selectedWarranty.store?.name || '-'}</p></div>
-                <div><p className="text-xs text-opticolor-gray-500">Estado</p><StatusBadge status={selectedWarranty.status} /></div>
-                <div><p className="text-xs text-opticolor-gray-500">Fecha de Registro</p><p className="text-opticolor-gray-800">{formatDate(selectedWarranty.createdAt)}</p></div>
-                <div><p className="text-xs text-opticolor-gray-500">Cliente</p><p className="text-opticolor-gray-800">{selectedWarranty.orderData?.cliente_nombre || '-'}</p></div>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Datos de la Garantía</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <div><p className="text-xs text-opticolor-gray-500">Tipo de Garantía</p><p className="font-semibold text-opticolor-gray-800">{selectedWarranty.warrantyType || '-'}</p></div>
-                {selectedWarranty.storeObservations && (
-                  <div><p className="text-xs text-opticolor-gray-500">Observaciones de la Tienda</p><p className="text-opticolor-gray-700 bg-opticolor-gray-50 p-3 rounded-lg text-sm italic">{selectedWarranty.storeObservations}</p></div>
-                )}
-              </div>
-            </div>
-            {selectedWarranty.orderData && (
-              <>
-                <div>
-                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Derecho (OD)</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><p className="text-xs text-opticolor-gray-500">Esfera</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_esfera ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Cilindro</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_cilindro ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Eje</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_eje ?? '-'}°</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Adición</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_adicion ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">DP</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.od_dp_centro ?? selectedWarranty.orderData.od_dp_cerca ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_od ?? '-'}</p></div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ojo Izquierdo (OI)</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><p className="text-xs text-opticolor-gray-500">Esfera</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_esfera ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Cilindro</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_cilindro ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Eje</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_eje ?? '-'}°</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Adición</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_adicion ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">DP</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.oi_dp_centro ?? selectedWarranty.orderData.oi_dp_cerca ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Altura</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.altura_oi ?? '-'}</p></div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Medidas de Montura</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div><p className="text-xs text-opticolor-gray-500">Horizontal</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_horizontal ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Vertical</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_vertical ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Puente</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_puente ?? '-'}</p></div>
-                    <div><p className="text-xs text-opticolor-gray-500">Diámetro Máx</p><p className="font-mono text-opticolor-gray-800">{selectedWarranty.orderData.montura_diametro_max ?? '-'}</p></div>
-                  </div>
-                </div>
-                {selectedWarranty.orderData.items?.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-opticolor-gray-800 mb-3 border-b border-opticolor-gray-200 pb-2">Ítems de la OTG</h3>
-                    <div className="space-y-2">
-                      {selectedWarranty.orderData.items.map((item, idx) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-opticolor-gray-50 rounded-lg">
-                          <div className="flex-1"><p className="text-sm font-medium text-opticolor-gray-800">{item.descripcion}</p>{item.codigo_completo && <p className="text-xs font-mono text-opticolor-gray-500">{item.codigo_completo}</p>}</div>
-                          <div className="text-right"><p className="text-sm font-semibold text-opticolor-gray-700">x{item.cantidad}</p>{item.es_montura && <span className="text-xs bg-opticolor-red text-white px-2 py-0.5 rounded">Montura</span>}{item.es_cristal && <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded ml-1">Cristal</span>}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </Modal>
+            <WarrantyDetailModal
+        isOpen={detailModalOpen}
+        onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }}
+        warranty={selectedWarranty}
+      />
 
       {/* Modal de Confirmación de Reimpresión */}
       <Modal

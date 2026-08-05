@@ -82,12 +82,6 @@ const AdminLayout = () => {
 
         {/* Footer del Sidebar */}
         <div className="p-4 border-t border-opticolor-gray-200 space-y-2">
-          <Link
-            to="/"
-            className="flex items-center gap-2 px-4 py-2 text-sm text-opticolor-gray-600 hover:text-opticolor-red transition-colors rounded-lg hover:bg-opticolor-gray-100"
-          >
-            ← Volver a Tienda
-          </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-opticolor-red hover:bg-red-50 transition-colors rounded-lg"
