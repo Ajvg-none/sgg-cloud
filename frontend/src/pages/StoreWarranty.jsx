@@ -43,7 +43,7 @@ const StoreWarranty = () => {
 
   // ============================================================
   // FUNCIÓN PARA GENERAR E IMPRIMIR LA ORDEN DE GARANTÍA (PDF)
-  // ✅ OPTIMIZADA: diseño compacto para caber en 1 sola página A4
+  // ✅ OPTIMIZADA: 1 página A4 + muestra el correlativo de revisión
   // ============================================================
   const generateAndPrintWarrantyOrder = (data, type, observations, storeName, accn) => {
     const printWindow = window.open('', '_blank');
@@ -56,6 +56,9 @@ const StoreWarranty = () => {
     const today = new Date().toLocaleDateString('es-ES', {
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
+
+    // ✅ Revisión de la garantía (cuántas veces se le ha hecho garantía a esta orden)
+    const revision = data.revision ?? 1;
 
     // Formatear items para la tabla
     const itemsHtml = (data.items || []).map(item => `
@@ -71,9 +74,9 @@ const StoreWarranty = () => {
       <html lang="es">
       <head>
         <meta charset="UTF-8">
-        <title>Orden de Garantía - ${data.orden_numero || data.codigo_completo}</title>
+        <title>Orden de Garantía - ${data.codigo_completo || data.orden_numero} (Rev. ${revision})</title>
         <style>
-          /* ✅ Márgenes de página reducidos para aprovechar la hoja */
+          /* Márgenes de página reducidos para aprovechar la hoja */
           @page { margin: 0.7cm; size: A4; }
           * { box-sizing: border-box; }
           body {
@@ -119,7 +122,7 @@ const StoreWarranty = () => {
 
           .frame-measures { display: flex; gap: 20px; margin-bottom: 8px; font-size: 12px; }
 
-          /* ✅ Sección de garantía: nunca se divide entre páginas */
+          /* Sección de garantía: nunca se divide entre páginas */
           .warranty-section {
             border: 2px solid #DC2626; padding: 10px; border-radius: 6px;
             margin-top: 8px; background: #fff5f5;
@@ -151,7 +154,7 @@ const StoreWarranty = () => {
       <body>
         <div class="header">
           <div>
-            <h2>OPTICOLOR #2 CA</h2>
+            <h2>OPTI-COLOR</h2>
             <p class="slogan">Calidad a su vista</p>
           </div>
           <div class="title-box">
@@ -172,6 +175,10 @@ const StoreWarranty = () => {
           <div class="info-item">
             <label>Número de Orden (OTG)</label>
             <span style="font-family: monospace; font-size: 14px;">${data.codigo_completo || data.orden_numero}</span>
+          </div>
+          <div class="info-item">
+            <label>Revisión de Garantía</label>
+            <span style="color: #DC2626;">Rev. ${revision}</span>
           </div>
           <div class="info-item">
             <label>Cliente</label>
@@ -323,23 +330,35 @@ const StoreWarranty = () => {
     setAlert(null);
 
     try {
-      await storeAPI.createWarranty({
+      // 1. Guardar en el backend
+      const response = await storeAPI.createWarranty({
         orderNumber: orderData.orden_numero,
         orderData: orderData,
         warrantyType,
         storeObservations: storeObservations.trim() || null,
       });
 
-      // Generar la Orden de Garantía (PDF) en una nueva pestaña
+      // 2. ✅ Capturar el número FINAL con correlativo y la revisión desde el backend
+      const created = response.data.warranty; // { id, orderNumber: "1099...627-2", revision: 2, ... }
+
+      // 3. ✅ Construir los datos de impresión con el número final y la revisión
+      const printData = {
+        ...orderData,
+        orden_numero: created.orderNumber,
+        codigo_completo: created.orderNumber,
+        revision: created.revision,
+      };
+
+      // 4. Generar la Orden de Garantía (PDF) en una nueva pestaña
       generateAndPrintWarrantyOrder(
-        orderData,
+        printData,
         warrantyType,
         storeObservations,
         storeInfo.name,
         storeInfo.accn
       );
 
-      setAlert({ type: 'success', message: 'Garantía guardada y orden generada.' });
+      setAlert({ type: 'success', message: `Garantía guardada y orden generada (Rev. ${created.revision}).` });
 
       setTimeout(() => {
         setOrderNumber('');
