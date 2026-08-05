@@ -1,20 +1,28 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+// Genera SIEMPRE la misma cantidad de slots (7 cuando hay más de 7 páginas)
+// para que el ancho del paginador no "salte" al cambiar de página.
+const buildPageNumbers = (page, totalPages) => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  if (page <= 4) {
+    return [1, 2, 3, 4, 5, '...', totalPages];
+  }
+  if (page >= totalPages - 3) {
+    return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, '...', page - 1, page, page + 1, '...', totalPages];
+};
+
 const Pagination = ({ page, totalPages, onChange, className = '' }) => {
   const pages = Math.max(1, totalPages);
+  const pageNumbers = buildPageNumbers(page, pages);
 
-  const pageNumbers = [];
-  for (let i = 1; i <= pages; i++) {
-    if (i === 1 || i === pages || Math.abs(i - page) <= 1) {
-      pageNumbers.push(i);
-    } else if (pageNumbers[pageNumbers.length - 1] !== '...') {
-      pageNumbers.push('...');
-    }
-  }
-
+  // min-w + h fijos: todos los slots (números, "…" y flechas) miden lo mismo
   const baseBtn =
-    'inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center min-w-[36px] h-9 px-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
     <nav className={`flex items-center gap-1 ${className}`} aria-label="Paginación">
@@ -28,7 +36,10 @@ const Pagination = ({ page, totalPages, onChange, className = '' }) => {
       </button>
       {pageNumbers.map((num, idx) =>
         num === '...' ? (
-          <span key={`dots-${idx}`} className="px-2 text-opticolor-gray-400">
+          <span
+            key={`dots-${idx}`}
+            className="inline-flex items-center justify-center min-w-[36px] h-9 text-opticolor-gray-400 select-none"
+          >
             …
           </span>
         ) : (
