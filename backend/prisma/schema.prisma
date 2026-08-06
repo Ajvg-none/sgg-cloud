@@ -61,20 +61,25 @@ model Store {
 }
 
 model Lab {
-  id           String     @id @default(cuid())
-  name         String
-  ipAgente     String     @map("ip_agente")
-  puertoAgente String     @map("puerto_agente")
-  rutaVcaRed   String     @map("ruta_vca_red")
-  apiKey       String     @unique
-  lastHeartbeat DateTime?  @map("last_heartbeat")
-  active       Boolean    @default(true)
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  id             String    @id @default(cuid())
+  name           String
+  agentIp        String    @map("ip_agente")
+  agentPort      String    @map("puerto_agente")
+  vcaNetworkPath String    @map("ruta_vca_red")
+  printerName    String    @default("Bixolon") @map("printer_name")
+  printEnabled   Boolean   @default(true)      @map("print_enabled")
+  vcaEnabled     Boolean   @default(true)      @map("vca_enabled")
+  pollInterval   Int       @default(5000)      @map("poll_interval")
+  apiKey         String    @unique
+  lastHeartbeat  DateTime? @map("last_heartbeat")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  stores       Store[]
-  warranties   Warranty[]
-  users        User[]     
+  stores     Store[]
+  users      User[]
+  warranties Warranty[]
+
   @@map("labs")
 }
 

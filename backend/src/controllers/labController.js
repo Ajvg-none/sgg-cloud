@@ -28,7 +28,7 @@ const reprintTicket = async (req, res) => {
       include: {
         lab: {
           // ✅ FIX: Incluir apiKey para autenticarse contra el agente con la clave propia del lab
-          select: { id: true, name: true, ipAgente: true, puertoAgente: true, apiKey: true },
+          select: { id: true, name: true, agentIp: true, agentPort: true, apiKey: true },
         },
         // ✅ FIX: Incluir datos de la tienda para imprimir el nombre de la sucursal
         store: {
@@ -39,7 +39,7 @@ const reprintTicket = async (req, res) => {
 
     if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
     if (warranty.status !== 'COMPLETED') return res.status(400).json({ error: `Estado: ${warranty.status}. Solo se reimprimen completadas.` });
-    if (!warranty.lab?.ipAgente || !warranty.lab?.puertoAgente) return res.status(400).json({ error: 'Lab sin agente configurado.' });
+    if (!warranty.lab?.agentIp || !warranty.lab?.agentPort) return res.status(400).json({ error: 'Lab sin agente configurado.' });
 
     // Asegurar que items sea un array
     const items = warranty.orderData?.items || [];
@@ -61,7 +61,7 @@ const reprintTicket = async (req, res) => {
       return res.status(500).json({ error: 'Error al generar buffer.', details: error.message });
     }
 
-    const agentUrl = `http://${warranty.lab.ipAgente}:${warranty.lab.puertoAgente}/print`;
+    const agentUrl = `http://${warranty.lab.agentIp}:${warranty.lab.agentPort}/print`;
     const bufferBase64 = ticketBuffer.toString('base64');
 
     try {
@@ -105,7 +105,7 @@ const processWarranty = async (req, res) => {
       where: { id: warrantyId },
       include: {
         // ✅ FIX: Incluir apiKey para autenticarse contra el agente con la clave propia del lab
-        lab: { select: { id: true, name: true, ipAgente: true, puertoAgente: true, rutaVcaRed: true, apiKey: true } },
+        lab: { select: { id: true, name: true, agentIp: true, agentPort: true, vcaNetworkPath: true, apiKey: true } },
         store: { select: { name: true, accn: true } },
       },
     });
@@ -122,7 +122,7 @@ const processWarranty = async (req, res) => {
     }
 
     const lab = warranty.lab;
-    if (!lab?.ipAgente || !lab?.puertoAgente) {
+    if (!lab?.agentIp || !lab?.agentPort) {
       return res.status(400).json({ error: 'Lab sin agente de impresión configurado.' });
     }
 
@@ -157,7 +157,7 @@ const processWarranty = async (req, res) => {
       return res.status(500).json({ error: 'Error al generar buffer de ticket.', details: err.message });
     }
 
-    const agentBaseUrl = `http://${lab.ipAgente}:${lab.puertoAgente}`;
+    const agentBaseUrl = `http://${lab.agentIp}:${lab.agentPort}`;
     const axiosConfig = {
       timeout: 15000,
       // ✅ FIX: Usar la apiKey propia del laboratorio (la misma que el agente tiene en config.json)
@@ -189,7 +189,7 @@ const processWarranty = async (req, res) => {
         orderData: warranty.orderData,
         accn: warranty.store?.accn || '000',
         tiendaNombre: warranty.store?.name || 'TIENDA',
-        rutaVcaRed: lab.rutaVcaRed,
+        rutaVcaRed: lab.vcaNetworkPath,
       }, axiosConfig);
     } catch (err) {
       const errorMsg = err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
@@ -226,7 +226,7 @@ const agentStatus = async (req, res) => {
   try {
     const lab = await prisma.lab.findUnique({
       where: { id: req.user.labId },
-      select: { id: true, ipAgente: true, puertoAgente: true, rutaVcaRed: true, lastHeartbeat: true },
+      select: { id: true, agentIp: true, agentPort: true, vcaNetworkPath: true, printerName: true, printEnabled: true, vcaEnabled: true, pollInterval: true, lastHeartbeat: true },
     });
 
     if (!lab) return res.status(404).json({ error: 'Laboratorio no encontrado.' });
@@ -241,9 +241,13 @@ const agentStatus = async (req, res) => {
       online,
       lastHeartbeat: lab.lastHeartbeat,
       secondsSinceLastBeat,
-      agentIp: lab.ipAgente,
-      agentPort: lab.puertoAgente,
-      vcaNetworkPath: lab.rutaVcaRed,
+      agentIp: lab.agentIp,
+      agentPort: lab.agentPort,
+      vcaNetworkPath: lab.vcaNetworkPath,
+      printerName: lab.printerName,
+      printEnabled: lab.printEnabled,
+      vcaEnabled: lab.vcaEnabled,
+      pollInterval: lab.pollInterval,
     });
   } catch (error) {
     logger.error(`[agentStatus] ${error.message}`);
@@ -259,10 +263,10 @@ const testPrint = async (req, res) => {
     const lab = await prisma.lab.findUnique({
       where: { id: req.user.labId },
       // ✅ FIX: Incluir apiKey para autenticarse contra el agente con la clave propia del lab
-      select: { ipAgente: true, puertoAgente: true, apiKey: true },
+      select: { agentIp: true, agentPort: true, apiKey: true },
     });
 
-    if (!lab?.ipAgente || !lab?.puertoAgente) return res.status(400).json({ error: 'Lab sin agente configurado.' });
+    if (!lab?.agentIp || !lab?.agentPort) return res.status(400).json({ error: 'Lab sin agente configurado.' });
 
     // Crear un objeto de prueba con items como array vacío
     const testOrder = {
@@ -279,7 +283,7 @@ const testPrint = async (req, res) => {
     };
 
     const ticketBuffer = await generateEscPosBuffer(testOrder, []);
-    const agentUrl = `http://${lab.ipAgente}:${lab.puertoAgente}/print`;
+    const agentUrl = `http://${lab.agentIp}:${lab.agentPort}/print`;
 
     await axios.post(agentUrl, { ticket: ticketBuffer.toString('base64'), warrantyId: 'test', orderNumber: 'TEST-0000' }, {
       timeout: 10000,

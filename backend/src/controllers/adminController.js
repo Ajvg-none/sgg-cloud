@@ -15,7 +15,7 @@ const prisma = new PrismaClient({ adapter });
 // ============================================================
 const createLab = async (req, res) => {
   try {
-    const { name, agentIp, agentPort, vcaNetworkPath } = req.body;
+    const { name, agentIp, agentPort, vcaNetworkPath, printerName, printEnabled, vcaEnabled, pollInterval } = req.body;
     if (!name || !agentIp || !agentPort || !vcaNetworkPath) {
       return res.status(400).json({
         error: 'Todos los campos son obligatorios: name, agentIp, agentPort, vcaNetworkPath.',
@@ -25,9 +25,13 @@ const createLab = async (req, res) => {
     const lab = await prisma.lab.create({
       data: {
         name,
-        ipAgente: agentIp,
-        puertoAgente: String(agentPort),
-        rutaVcaRed: vcaNetworkPath,
+        agentIp,
+        agentPort: String(agentPort),
+        vcaNetworkPath,
+        printerName: printerName || 'Bixolon',
+        printEnabled: printEnabled !== false,
+        vcaEnabled: vcaEnabled !== false,
+        pollInterval: parseInt(pollInterval) || 5000,
         apiKey,
       },
     });
@@ -37,9 +41,13 @@ const createLab = async (req, res) => {
       lab: {
         id: lab.id,
         name: lab.name,
-        agentIp: lab.ipAgente,
-        agentPort: lab.puertoAgente,
-        vcaNetworkPath: lab.rutaVcaRed,
+        agentIp: lab.agentIp,
+        agentPort: lab.agentPort,
+        vcaNetworkPath: lab.vcaNetworkPath,
+        printerName: lab.printerName,
+        printEnabled: lab.printEnabled,
+        vcaEnabled: lab.vcaEnabled,
+        pollInterval: lab.pollInterval,
         apiKey: lab.apiKey,
       },
     });
@@ -55,11 +63,15 @@ const getLabs = async (req, res) => {
       select: {
         id: true,
         name: true,
-        ipAgente: true,
-        puertoAgente: true,
-        rutaVcaRed: true,
+        agentIp: true,
+        agentPort: true,
+        vcaNetworkPath: true,
         apiKey: true,
         createdAt: true,
+        printerName: true,
+        printEnabled: true,
+        vcaEnabled: true,
+        pollInterval: true,
         _count: {
           select: { stores: true, warranties: true },
         },
@@ -70,9 +82,13 @@ const getLabs = async (req, res) => {
       labs: labs.map((lab) => ({
         id: lab.id,
         name: lab.name,
-        agentIp: lab.ipAgente,
-        agentPort: lab.puertoAgente,
-        vcaNetworkPath: lab.rutaVcaRed,
+        agentIp: lab.agentIp,
+        agentPort: lab.agentPort,
+        vcaNetworkPath: lab.vcaNetworkPath,
+        printerName: lab.printerName,
+        printEnabled: lab.printEnabled,
+        vcaEnabled: lab.vcaEnabled,
+        pollInterval: lab.pollInterval,
         apiKey: lab.apiKey,
         createdAt: lab.createdAt,
         _count: lab._count,
@@ -87,14 +103,18 @@ const getLabs = async (req, res) => {
 const updateLab = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, agentIp, agentPort, vcaNetworkPath } = req.body;
+    const { name, agentIp, agentPort, vcaNetworkPath, printerName, printEnabled, vcaEnabled, pollInterval } = req.body;
     const lab = await prisma.lab.update({
       where: { id },
       data: {
         ...(name && { name }),
-        ...(agentIp && { ipAgente: agentIp }),
-        ...(agentPort && { puertoAgente: String(agentPort) }),
-        ...(vcaNetworkPath && { rutaVcaRed: vcaNetworkPath }),
+        ...(agentIp && { agentIp }),
+        ...(agentPort && { agentPort: String(agentPort) }),
+        ...(vcaNetworkPath && { vcaNetworkPath }),
+        ...(printerName !== undefined && { printerName: printerName || 'Bixolon' }),
+        ...(printEnabled !== undefined && { printEnabled }),
+        ...(vcaEnabled !== undefined && { vcaEnabled }),
+        ...(pollInterval !== undefined && { pollInterval: parseInt(pollInterval) || 5000 }),
       },
     });
     logger.info(`✅ Laboratorio actualizado: ${lab.name}`, { labId: lab.id });
@@ -103,9 +123,13 @@ const updateLab = async (req, res) => {
       lab: {
         id: lab.id,
         name: lab.name,
-        agentIp: lab.ipAgente,
-        agentPort: lab.puertoAgente,
-        vcaNetworkPath: lab.rutaVcaRed,
+        agentIp: lab.agentIp,
+        agentPort: lab.agentPort,
+        vcaNetworkPath: lab.vcaNetworkPath,
+        printerName: lab.printerName,
+        printEnabled: lab.printEnabled,
+        vcaEnabled: lab.vcaEnabled,
+        pollInterval: lab.pollInterval,
         apiKey: lab.apiKey,
         active: lab.active,
       },
