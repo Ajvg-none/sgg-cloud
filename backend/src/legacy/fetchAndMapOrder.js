@@ -2,32 +2,20 @@
 const gesvisionApi = require('./gesvisionApi');
 const logger = require('../config/logger');
 
-const LENS_TYPE_MAP = {
-  'L': 'MONOFOCAL LEJOS',
-  'C': 'MONOFOCAL CERCA',
-  'B': 'BIFOCAL',
-  'P': 'PROGRESIVO',
-  'M': 'MULTIFOCAL',
-  'S': 'SINGLE VISION',
-  'O': 'OCUPACIONAL',
-  'T': 'TRIFOCAL',
-};
+const LENS_TYPE_MAP = { 'L': 'DE LEJOS', 'C': 'DE CERCA', 'B': 'BIFOCAL', 'P': 'PROGRESIVO' };
 
 const productCache = new Map();
 
+/**
+ * @param {Array<Object>} items - Ítems normalizados.
+ * @returns {string|null}
+ */
 function inferTipoLenteFromItems(items) {
   if (!items || items.length === 0) return null;
   const texto = items.map(i => (i.descripcion || '').toLowerCase()).join(' ');
-  if (texto.includes('progresivo') || texto.includes('progressive') ||
-      texto.includes('varilux') || texto.includes('balance') ||
-      texto.includes('pro ') || texto.includes('multifocal')) return 'PROGRESIVO';
-  if (texto.includes('bifocal') || texto.includes('bifocales')) return 'BIFOCAL';
-  if (texto.includes('trifocal')) return 'TRIFOCAL';
-  if (texto.includes('ocupacional') || texto.includes('office') ||
-      texto.includes('de office') || texto.includes('intermedia')) return 'OCUPACIONAL';
-  if (texto.includes('monofocal') || texto.includes('single vision') ||
-      texto.includes('single-vision') || texto.includes('de lejos') ||
-      texto.includes('de cerca')) return 'MONOFOCAL';
+  if (texto.includes('progresivo') || texto.includes('pro ') || texto.includes('balance')) return 'PROGRESIVO';
+  if (texto.includes('bifocal')) return 'BIFOCAL';
+  if (texto.includes('monofocal')) return 'MONOFOCAL';
   return null;
 }
 
@@ -125,17 +113,14 @@ async function fetchOrderItems(order) {
 // ============================================================
 // ✅ RESOLUCIÓN DEL ASESOR / RESPONSABLE DE LA VENTA (CORREGIDO)
 // ============================================================
-
 // ❌ Campos que NUNCA son asesores (aunque la regex los detecte)
 const EXCLUDED_KEYS = new Set([
   'optometryExamId', 'customerId', 'warehouseId', 'issuedInvoiceId',
   'issuedOrderId', 'receivedOrderId', 'frameId', 'companyId',
   'id', 'productId', 'lineItems'
 ]);
-
 // Regex estricta (sin 'user' ni 'optic/optom' para evitar falsos positivos)
 const ASESOR_REGEX = /sell|sales|vended|asesor|advisor|employ|agent|attend|sold|vendor|worker|staff|created_?by|updated_?by/i;
-
 // Campos prioritarios en orden de preferencia
 const PRIORITY_KEYS = ['employee', 'seller', 'salesperson', 'createdBy'];
 
@@ -174,7 +159,6 @@ async function fetchAsesorNameById(id) {
  */
 async function tryResolveAsesor(raw) {
   if (!raw) return null;
-
   // 1) Objeto embebido
   if (typeof raw === 'object') {
     return extractPersonName(raw);
@@ -198,12 +182,9 @@ async function resolveAsesorNombre(order, invoice, issuedOrder) {
     { label: 'FACTURA', doc: invoice },
     { label: 'PEDIDO', doc: issuedOrder },
   ];
-
   for (const { label, doc } of sources) {
     if (!doc || typeof doc !== 'object') continue;
-
     const keys = Object.keys(doc);
-
     // ✅ PASO 1: Buscar primero en campos prioritarios
     for (const priorityKey of PRIORITY_KEYS) {
       if (!keys.includes(priorityKey) || EXCLUDED_KEYS.has(priorityKey)) continue;
@@ -212,35 +193,29 @@ async function resolveAsesorNombre(order, invoice, issuedOrder) {
       const name = await tryResolveAsesor(raw);
       if (name) return name;
     }
-
     // ✅ PASO 2: Buscar otros candidatos por regex
     const candidateKey = keys.find(
       (k) => !EXCLUDED_KEYS.has(k) && !PRIORITY_KEYS.includes(k) && ASESOR_REGEX.test(k)
     );
     if (!candidateKey) continue;
-
     const raw = doc[candidateKey];
     logger.info(`🔍 Campo candidato en ${label}: ${candidateKey} = ${JSON.stringify(raw)}`);
     const name = await tryResolveAsesor(raw);
     if (name) return name;
-
     // ✅ Si llegamos aquí, el candidato falló → CONTINUAR con la siguiente fuente
   }
-
   return null;
 }
 
 async function fetchAndMapOrder(searchIdentifier) {
   logger.info(`🔄 Iniciando mapeo de orden con identificador: ${searchIdentifier}`);
   let order = null;
-
   try {
     logger.info(`Intentando buscar por Número de Orden: ${searchIdentifier}`);
     order = await gesvisionApi.getGlassesOrderByNumber(searchIdentifier);
   } catch (searchErr) {
     logger.warn(`⚠️ No encontrada por Número de Orden: ${searchIdentifier}. Intentando por ID interno...`);
   }
-
   if (!order) {
     try {
       order = await gesvisionApi.getGlassesOrder(searchIdentifier);
@@ -248,7 +223,6 @@ async function fetchAndMapOrder(searchIdentifier) {
       throw new Error(`No se pudo encontrar la orden con ID o Número: ${searchIdentifier}. Verifica que exista en GesVision.`);
     }
   }
-
   if (!order) throw new Error(`Orden ${searchIdentifier} no encontrada`);
 
   const { items, invoice, issuedOrder } = await fetchOrderItems(order);
