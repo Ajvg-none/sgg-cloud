@@ -56,7 +56,7 @@ const OrderNumber = ({ code }) => {
 
 const LabDashboard = () => {
   // Estado del sistema
-  const [agentState, setAgentState] = useState({ online: false, lastHeartbeat: null, secondsSinceLastBeat: null, agentIp: '', agentPort: '' });
+  const [agentState, setAgentState] = useState({ online: false, lastHeartbeat: null, secondsSinceLastBeat: null, agentIp: '', agentPort: '', printerName: '', printEnabled: true, vcaEnabled: true, pollInterval: 5000 });
   const [testPrintResult, setTestPrintResult] = useState(null);
   // Garantías
   const [warranties, setWarranties] = useState([]);
@@ -245,7 +245,7 @@ const LabDashboard = () => {
           <p className="text-xs text-opticolor-gray-400 mt-1">{agentState.agentIp}:{agentState.agentPort}</p>
         </Card>
         <Card className="border-l-4 border-l-blue-500">
-          <p className="text-sm text-opticolor-gray-500 mb-2">Impresora Bixolon</p>
+          <p className="text-sm text-opticolor-gray-500 mb-2">Impresora: {agentState.printerName || 'Bixolon'}</p>
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
             {testPrintResult === 'success' && (

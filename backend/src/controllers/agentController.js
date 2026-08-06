@@ -7,6 +7,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
+
 /**
 * GET /api/agent/pending
 * Devuelve las garantías PENDING del laboratorio autenticado.
@@ -188,8 +189,25 @@ return res.status(500).json({ error: 'Error al registrar heartbeat.' });
 }
 };
 
+const getAgentConfig = async (req, res) => {
+  try {
+    // req.lab ya viene de apiKeyAuth con los campos del modelo Lab
+    return res.status(200).json({
+      printerName: req.lab.printerName || 'Bixolon',
+      vcaNetworkPath: req.lab.vcaNetworkPath || '',
+      pollInterval: req.lab.pollInterval || 5000,
+      printEnabled: req.lab.printEnabled !== false,
+      vcaEnabled: req.lab.vcaEnabled !== false,
+    });
+  } catch (error) {
+    logger.error(`[getAgentConfig] Error: ${error.message}`);
+    return res.status(500).json({ error: 'Error al obtener configuración del agente.' });
+  }
+};
+
 module.exports = {
-getPending,
-completeWarranty,
-heartbeat,
+  getPending,
+  completeWarranty,
+  heartbeat,
+  getAgentConfig,
 };

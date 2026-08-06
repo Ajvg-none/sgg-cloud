@@ -2,13 +2,16 @@
 const express = require('express');
 const router = express.Router();
 const apiKeyAuth = require('../middleware/apiKeyAuth');
-const { getPending, completeWarranty, heartbeat } = require('../controllers/agentController');
+const { getPending, completeWarranty, heartbeat, getAgentConfig } = require('../controllers/agentController');
 
 // Todas las rutas del agente requieren autenticación por API Key
 router.use(apiKeyAuth);
 
 // GET /api/agent/pending
 router.get('/pending', getPending);
+
+// GET /api/agent/config — devuelve la configuración dinámica al agente
+router.get('/config', getAgentConfig);
 
 // POST /api/agent/complete
 router.post('/complete', completeWarranty);
