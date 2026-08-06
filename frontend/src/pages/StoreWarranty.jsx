@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { storeAPI, authAPI } from '../services/api';
 import { validateOpticalFields } from '../utils/validators';
+import useWarrantyFormStore from '../store/warrantyFormStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Card from '../components/ui/Card';
@@ -17,14 +18,27 @@ const WARRANTY_TYPES = [
 ];
 
 const StoreWarranty = () => {
-  const [orderNumber, setOrderNumber] = useState('');
-  const [orderData, setOrderData] = useState(null);
-  const [warrantyType, setWarrantyType] = useState('');
-  const [storeObservations, setStoreObservations] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [alert, setAlert] = useState(null);
+  // ✅ Estado GLOBAL: sobrevive a la navegación entre pestañas
+  const {
+    orderNumber,
+    orderData,
+    warrantyType,
+    storeObservations,
+    loading,
+    saving,
+    alert,
+    errors,
+    setOrderNumber,
+    setWarrantyType,
+    setStoreObservations,
+    setAlert,
+    setErrors,
+    handleFieldChange,
+    searchOrder,
+    setSaving,
+    resetForm,
+  } = useWarrantyFormStore();
+
   const [storeInfo, setStoreInfo] = useState({ name: '', accn: '' });
 
   // Cargar datos de la tienda (para el encabezado de la Orden de Garantía)
@@ -44,10 +58,10 @@ const StoreWarranty = () => {
   // ============================================================
   // FUNCIÓN PARA GENERAR E IMPRIMIR LA ORDEN DE GARANTÍA (PDF)
   // ✅ OPTIMIZADA: 1 página A4 + muestra el correlativo de revisión
+  // ✅ Incluye Asesor / Responsable
   // ============================================================
   const generateAndPrintWarrantyOrder = (data, type, observations, storeName, accn) => {
     const printWindow = window.open('', '_blank');
-
     if (!printWindow) {
       setAlert({ type: 'warning', message: 'Por favor, permite las ventanas emergentes para imprimir la orden.' });
       return;
@@ -57,10 +71,8 @@ const StoreWarranty = () => {
       year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
-    // ✅ Revisión de la garantía (cuántas veces se le ha hecho garantía a esta orden)
     const revision = data.revision ?? 1;
 
-    // Formatear items para la tabla
     const itemsHtml = (data.items || []).map(item => `
       <tr>
         <td style="border: 1px solid #ddd; padding: 4px 8px;">${item.descripcion || '-'}</td>
@@ -70,203 +82,182 @@ const StoreWarranty = () => {
     `).join('');
 
     const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="es">
-      <head>
-        <meta charset="UTF-8">
-        <title>Orden de Garantía - ${data.codigo_completo || data.orden_numero} (Rev. ${revision})</title>
-        <style>
-          /* Márgenes de página reducidos para aprovechar la hoja */
-          @page { margin: 0.7cm; size: A4; }
-          * { box-sizing: border-box; }
-          body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333; line-height: 1.25; margin: 0; padding: 8px; font-size: 12px;
-          }
-
-          /* Encabezado compacto */
-          .header {
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 2px solid #DC2626; padding-bottom: 6px; margin-bottom: 10px;
-            page-break-inside: avoid;
-          }
-          .header h2 { color: #DC2626; margin: 0; font-size: 18px; }
-          .header .slogan { margin: 0; font-size: 10px; }
-          .title-box { text-align: right; }
-          .title-box h1 { margin: 0; color: #DC2626; font-size: 20px; text-transform: uppercase; }
-          .title-box p { margin: 2px 0 0; font-weight: bold; font-size: 13px; }
-
-          /* Grid de información compacto */
-          .info-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px;
-            margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 6px;
-            page-break-inside: avoid;
-          }
-          .info-item label { display: block; font-size: 10px; color: #666; text-transform: uppercase; }
-          .info-item span { font-size: 13px; font-weight: bold; }
-
-          /* Títulos de sección */
-          h3.section-title {
-            margin: 8px 0 4px; font-size: 13px;
-            border-bottom: 2px solid #333; padding-bottom: 3px;
-            page-break-after: avoid;
-          }
-
-          /* Tablas compactas */
-          table { width: 100%; border-collapse: collapse; margin-bottom: 8px; page-break-inside: avoid; }
-          th { background-color: #DC2626; color: white; padding: 5px 8px; text-align: left; font-size: 11px; }
-          td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
-
-          .optical-table th { background-color: #333; text-align: center; }
-          .optical-table td { text-align: center; font-family: monospace; font-size: 12px; font-weight: bold; }
-
-          .frame-measures { display: flex; gap: 20px; margin-bottom: 8px; font-size: 12px; }
-
-          /* Sección de garantía: nunca se divide entre páginas */
-          .warranty-section {
-            border: 2px solid #DC2626; padding: 10px; border-radius: 6px;
-            margin-top: 8px; background: #fff5f5;
-            page-break-inside: avoid;
-          }
-          .warranty-section h3 {
-            margin: 0 0 6px; color: #DC2626; font-size: 13px;
-            border-bottom: 1px solid #DC2626; padding-bottom: 4px;
-          }
-          .warranty-section label { font-weight: bold; display: block; margin-bottom: 3px; font-size: 12px; }
-          .obs-box {
-            background: white; padding: 8px; border: 1px solid #ddd;
-            min-height: 32px; margin: 0 0 6px; font-size: 12px;
-          }
-
-          /* Pie de página compacto */
-          .footer {
-            margin-top: 10px; text-align: center; font-size: 10px; color: #888;
-            border-top: 1px solid #eee; padding-top: 6px;
-            page-break-inside: avoid;
-          }
-          .footer p { margin: 2px 0; }
-
-          @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div>
-            <h2>OPTI-COLOR</h2>
-            <p class="slogan">Calidad a su vista</p>
-          </div>
-          <div class="title-box">
-            <h1>OTG ORDEN</h1>
-            <p>ORDEN DE GARANTÍA</p>
-          </div>
-        </div>
-
-        <div class="info-grid">
-          <div class="info-item">
-            <label>Tienda / Sucursal</label>
-            <span>${storeName || 'Tienda'} (${accn || '---'})</span>
-          </div>
-          <div class="info-item">
-            <label>Fecha de Emisión</label>
-            <span>${today}</span>
-          </div>
-          <div class="info-item">
-            <label>Número de Orden (OTG)</label>
-            <span style="font-family: monospace; font-size: 14px;">${data.codigo_completo || data.orden_numero}</span>
-          </div>
-          <div class="info-item">
-            <label>Revisión de Garantía</label>
-            <span style="color: #DC2626;">Rev. ${revision}</span>
-          </div>
-          <div class="info-item">
-            <label>Cliente</label>
-            <span>${data.cliente_nombre || 'Paciente'}</span>
-          </div>
-        </div>
-
-        <h3 class="section-title">Datos Ópticos</h3>
-        <table class="optical-table">
-          <thead>
-            <tr>
-              <th>Ojo</th>
-              <th>Esfera</th>
-              <th>Cilindro</th>
-              <th>Eje</th>
-              <th>Adición</th>
-              <th>DP</th>
-              <th>Altura</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="font-weight:bold; background:#f0f0f0;">OD</td>
-              <td>${data.od_esfera ?? '-'}</td>
-              <td>${data.od_cilindro ?? '-'}</td>
-              <td>${data.od_eje ?? '-'}</td>
-              <td>${data.od_adicion ?? '-'}</td>
-              <td>${data.od_dp_centro ?? data.od_dp_cerca ?? '-'}</td>
-              <td>${data.altura_od ?? '-'}</td>
-            </tr>
-            <tr>
-              <td style="font-weight:bold; background:#f0f0f0;">OI</td>
-              <td>${data.oi_esfera ?? '-'}</td>
-              <td>${data.oi_cilindro ?? '-'}</td>
-              <td>${data.oi_eje ?? '-'}</td>
-              <td>${data.oi_adicion ?? '-'}</td>
-              <td>${data.oi_dp_centro ?? data.oi_dp_cerca ?? '-'}</td>
-              <td>${data.altura_oi ?? '-'}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h3 class="section-title">Medidas de Montura</h3>
-        <div class="frame-measures">
-          <div><strong>Horizontal:</strong> ${data.montura_horizontal ?? '-'}</div>
-          <div><strong>Vertical:</strong> ${data.montura_vertical ?? '-'}</div>
-          <div><strong>Puente:</strong> ${data.montura_puente ?? '-'}</div>
-          <div><strong>Diámetro Máx:</strong> ${data.montura_diametro_max ?? '-'}</div>
-        </div>
-
-        <h3 class="section-title">Ítems / Materiales</h3>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 60%;">Descripción</th>
-              <th style="width: 10%;">Cant.</th>
-              <th style="width: 30%;">Código</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml || '<tr><td colspan="3" style="text-align:center; padding:6px;">Sin ítems registrados</td></tr>'}
-          </tbody>
-        </table>
-
-        <div class="warranty-section">
-          <h3>DATOS DE LA GARANTÍA</h3>
-          <label>Tipo de Garantía:</label>
-          <p class="obs-box" style="min-height: auto; margin-bottom: 6px; text-transform: uppercase;">${type}</p>
-          <label>Observaciones:</label>
-          <p class="obs-box">${observations || 'Sin observaciones adicionales.'}</p>
-        </div>
-
-        <div class="footer">
-          <p>Documento generado automáticamente por el Sistema de Gestión de Garantías Opti-Color.</p>
-          <p>Fecha de impresión: ${new Date().toLocaleString()}</p>
-        </div>
-
-        <script>
-          // Auto-imprimir al cargar
-          window.onload = function() {
-            window.focus();
-            window.print();
-          }
-        </script>
-      </body>
-      </html>
-    `;
-
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Orden de Garantía - ${data.codigo_completo || data.orden_numero} (Rev. ${revision})</title>
+<style>
+  @page { margin: 0.7cm; size: A4; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #333; line-height: 1.25; margin: 0; padding: 8px; font-size: 12px;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid #DC2626; padding-bottom: 6px; margin-bottom: 10px;
+    page-break-inside: avoid;
+  }
+  .header h2 { color: #DC2626; margin: 0; font-size: 18px; }
+  .header .slogan { margin: 0; font-size: 10px; }
+  .title-box { text-align: right; }
+  .title-box h1 { margin: 0; color: #DC2626; font-size: 20px; text-transform: uppercase; }
+  .title-box p { margin: 2px 0 0; font-weight: bold; font-size: 13px; }
+  .info-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px;
+    margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 6px;
+    page-break-inside: avoid;
+  }
+  .info-item label { display: block; font-size: 10px; color: #666; text-transform: uppercase; }
+  .info-item span { font-size: 13px; font-weight: bold; }
+  h3.section-title {
+    margin: 8px 0 4px; font-size: 13px;
+    border-bottom: 2px solid #333; padding-bottom: 3px;
+    page-break-after: avoid;
+  }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; page-break-inside: avoid; }
+  th { background-color: #DC2626; color: white; padding: 5px 8px; text-align: left; font-size: 11px; }
+  td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
+  .optical-table th { background-color: #333; text-align: center; }
+  .optical-table td { text-align: center; font-family: monospace; font-size: 12px; font-weight: bold; }
+  .frame-measures { display: flex; gap: 20px; margin-bottom: 8px; font-size: 12px; }
+  .warranty-section {
+    border: 2px solid #DC2626; padding: 10px; border-radius: 6px;
+    margin-top: 8px; background: #fff5f5;
+    page-break-inside: avoid;
+  }
+  .warranty-section h3 {
+    margin: 0 0 6px; color: #DC2626; font-size: 13px;
+    border-bottom: 1px solid #DC2626; padding-bottom: 4px;
+  }
+  .warranty-section label { font-weight: bold; display: block; margin-bottom: 3px; font-size: 12px; }
+  .obs-box {
+    background: white; padding: 8px; border: 1px solid #ddd;
+    min-height: 32px; margin: 0 0 6px; font-size: 12px;
+  }
+  .footer {
+    margin-top: 10px; text-align: center; font-size: 10px; color: #888;
+    border-top: 1px solid #eee; padding-top: 6px;
+    page-break-inside: avoid;
+  }
+  .footer p { margin: 2px 0; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h2>OPTI-COLOR</h2>
+    <p class="slogan">Calidad a su vista</p>
+  </div>
+  <div class="title-box">
+    <h1>OTG ORDEN</h1>
+    <p>ORDEN DE GARANTÍA</p>
+  </div>
+</div>
+<div class="info-grid">
+  <div class="info-item">
+    <label>Tienda / Sucursal</label>
+    <span>${storeName || 'Tienda'} (${accn || '---'})</span>
+  </div>
+  <div class="info-item">
+    <label>Fecha de Emisión</label>
+    <span>${today}</span>
+  </div>
+  <div class="info-item">
+    <label>Número de Orden (OTG)</label>
+    <span style="font-family: monospace; font-size: 14px;">${data.codigo_completo || data.orden_numero}</span>
+  </div>
+  <div class="info-item">
+    <label>Revisión de Garantía</label>
+    <span style="color: #DC2626;">Rev. ${revision}</span>
+  </div>
+  <div class="info-item">
+    <label>Cliente</label>
+    <span>${data.cliente_nombre || 'Paciente'}</span>
+  </div>
+  <div class="info-item">
+    <label>Asesor / Responsable</label>
+    <span>${data.asesor_nombre || '-'}</span>
+  </div>
+</div>
+<h3 class="section-title">Datos Ópticos</h3>
+<table class="optical-table">
+  <thead>
+    <tr>
+      <th>Ojo</th>
+      <th>Esfera</th>
+      <th>Cilindro</th>
+      <th>Eje</th>
+      <th>Adición</th>
+      <th>DP</th>
+      <th>Altura</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="font-weight:bold; background:#f0f0f0;">OD</td>
+      <td>${data.od_esfera ?? '-'}</td>
+      <td>${data.od_cilindro ?? '-'}</td>
+      <td>${data.od_eje ?? '-'}</td>
+      <td>${data.od_adicion ?? '-'}</td>
+      <td>${data.od_dp_centro ?? data.od_dp_cerca ?? '-'}</td>
+      <td>${data.altura_od ?? '-'}</td>
+    </tr>
+    <tr>
+      <td style="font-weight:bold; background:#f0f0f0;">OI</td>
+      <td>${data.oi_esfera ?? '-'}</td>
+      <td>${data.oi_cilindro ?? '-'}</td>
+      <td>${data.oi_eje ?? '-'}</td>
+      <td>${data.oi_adicion ?? '-'}</td>
+      <td>${data.oi_dp_centro ?? data.oi_dp_cerca ?? '-'}</td>
+      <td>${data.altura_oi ?? '-'}</td>
+    </tr>
+  </tbody>
+</table>
+<h3 class="section-title">Medidas de Montura</h3>
+<div class="frame-measures">
+  <div><strong>Horizontal:</strong> ${data.montura_horizontal ?? '-'}</div>
+  <div><strong>Vertical:</strong> ${data.montura_vertical ?? '-'}</div>
+  <div><strong>Puente:</strong> ${data.montura_puente ?? '-'}</div>
+  <div><strong>Diámetro Máx:</strong> ${data.montura_diametro_max ?? '-'}</div>
+</div>
+<h3 class="section-title">Ítems / Materiales</h3>
+<table>
+  <thead>
+    <tr>
+      <th style="width: 60%;">Descripción</th>
+      <th style="width: 10%;">Cant.</th>
+      <th style="width: 30%;">Código</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${itemsHtml || '<tr><td colspan="3" style="text-align:center; padding:6px;">Sin ítems registrados</td></tr>'}
+  </tbody>
+</table>
+<div class="warranty-section">
+  <h3>DATOS DE LA GARANTÍA</h3>
+  <label>Tipo de Garantía:</label>
+  <p class="obs-box" style="min-height: auto; margin-bottom: 6px; text-transform: uppercase;">${type}</p>
+  <label>Observaciones:</label>
+  <p class="obs-box">${observations || 'Sin observaciones adicionales.'}</p>
+</div>
+<div class="footer">
+  <p>Documento generado automáticamente por el Sistema de Gestión de Garantías Opti-Color.</p>
+  <p>Fecha de impresión: ${new Date().toLocaleString()}</p>
+</div>
+<script>
+  window.onload = function() {
+    window.focus();
+    window.print();
+  }
+</script>
+</body>
+</html>
+`;
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
@@ -288,49 +279,21 @@ const StoreWarranty = () => {
     return true;
   };
 
-  const handleSearch = async () => {
-    if (!orderNumber.trim()) {
-      setAlert({ type: 'warning', message: 'Por favor ingresa un número de OTG' });
-      return;
-    }
-    setLoading(true);
-    setAlert(null);
-    setErrors({});
-    try {
-      const response = await storeAPI.getOrder(orderNumber);
-      setOrderData(response.data.order);
-      setAlert({ type: 'success', message: 'OTG encontrada. Selecciona un tipo de garantía para editar los campos.' });
-    } catch (error) {
-      setAlert({
-        type: 'error',
-        message: error.response?.data?.details || 'Error al buscar la OTG'
-      });
-      setOrderData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFieldChange = (field, value) => {
-    setOrderData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+  const handleSearch = () => {
+    searchOrder();
   };
 
   const handleSave = async () => {
     const validationErrors = validateOpticalFields(orderData);
     if (!warrantyType) validationErrors.warrantyType = 'Selecciona un tipo de garantía';
-
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       setAlert({ type: 'error', message: 'Por favor corrige los errores antes de guardar' });
       return;
     }
-
     setSaving(true);
     setAlert(null);
-
     try {
-      // 1. Guardar en el backend
       const response = await storeAPI.createWarranty({
         orderNumber: orderData.orden_numero,
         orderData: orderData,
@@ -338,10 +301,8 @@ const StoreWarranty = () => {
         storeObservations: storeObservations.trim() || null,
       });
 
-      // 2. ✅ Capturar el número FINAL con correlativo y la revisión desde el backend
-      const created = response.data.warranty; // { id, orderNumber: "1099...627-2", revision: 2, ... }
+      const created = response.data.warranty;
 
-      // 3. ✅ Construir los datos de impresión con el número final y la revisión
       const printData = {
         ...orderData,
         orden_numero: created.orderNumber,
@@ -349,7 +310,6 @@ const StoreWarranty = () => {
         revision: created.revision,
       };
 
-      // 4. Generar la Orden de Garantía (PDF) en una nueva pestaña
       generateAndPrintWarrantyOrder(
         printData,
         warrantyType,
@@ -361,11 +321,7 @@ const StoreWarranty = () => {
       setAlert({ type: 'success', message: `Garantía guardada y orden generada (Rev. ${created.revision}).` });
 
       setTimeout(() => {
-        setOrderNumber('');
-        setOrderData(null);
-        setWarrantyType('');
-        setStoreObservations('');
-        setAlert(null);
+        resetForm();
       }, 2500);
     } catch (error) {
       setAlert({
@@ -381,6 +337,7 @@ const StoreWarranty = () => {
     <div className="min-h-screen bg-opticolor-gray-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <StoreHeader />
+
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Nueva Garantía</h1>
           <p className="text-opticolor-gray-600">Busca una OTG de GesVision y completa los datos de la garantía</p>
@@ -429,9 +386,10 @@ const StoreWarranty = () => {
           <div className="space-y-6 animate-fade-in">
             {/* ============================================================
                 DATOS DEL CLIENTE (SOLO LECTURA)
+                ✅ Incluye Asesor / Responsable
             ============================================================ */}
             <Card title="Datos del Cliente">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input
                   label="Nombre del Cliente"
                   value={orderData.cliente_nombre || ''}
@@ -440,6 +398,12 @@ const StoreWarranty = () => {
                 <Input
                   label="Código Completo"
                   value={orderData.codigo_completo || ''}
+                  readOnly
+                />
+                <Input
+                  label="Asesor / Responsable"
+                  value={orderData.asesor_nombre || ''}
+                  placeholder="Sin datos del asesor"
                   readOnly
                 />
               </div>
@@ -453,10 +417,7 @@ const StoreWarranty = () => {
                 <Select
                   label="Tipo de Garantía *"
                   value={warrantyType}
-                  onChange={(e) => {
-                    setWarrantyType(e.target.value);
-                    if (errors.warrantyType) setErrors(prev => ({ ...prev, warrantyType: null }));
-                  }}
+                  onChange={(e) => setWarrantyType(e.target.value)}
                   disabled={saving}
                   error={errors.warrantyType}
                   placeholder="Seleccionar tipo..."

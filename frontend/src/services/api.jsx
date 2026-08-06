@@ -67,7 +67,7 @@ export const labAPI = {
 };
 
 // ============================================================
-// API DE ADMIN (NUEVO - FASE 9)
+// API DE ADMIN
 // ============================================================
 export const adminAPI = {
   // Laboratorios
@@ -84,6 +84,7 @@ export const adminAPI = {
   getUsers: () => api.get('/admin/users'),
   createUser: (data) => api.post('/admin/users', data),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`), // ✅ NUEVO
   resetUserPassword: (userId, newPassword) =>
     api.post(`/admin/users/${userId}/reset-password`, { newPassword }),
   // Dashboard de Garantías
