@@ -17,6 +17,7 @@ const {
   getUsers,
   createUser,
   updateUser,
+  deleteUser,
 } = require('../controllers/adminUserController');
 
 // 🔒 PROTECCIÓN GLOBAL: Solo ADMIN
@@ -45,6 +46,7 @@ router.put('/stores/:id', updateStore);
 router.get('/users', getUsers);
 router.post('/users', createUser);
 router.put('/users/:id', updateUser);
+router.delete('/users/:id', deleteUser); // ✅ NUEVO: eliminar usuario de la BD
 router.post('/users/:userId/reset-password', resetUserPassword);
 
 // ============================================================
