@@ -2,11 +2,15 @@
 const gesvisionApi = require('./gesvisionApi');
 const logger = require('../config/logger');
 
+// ✅ CAMBIO 1: Alineado con el sistema en producción.
+// Antes: 'L': 'MONOFOCAL LEJOS', 'C': 'MONOFOCAL CERCA' → ahora "DE LEJOS" / "DE CERCA"
 const LENS_TYPE_MAP = { 'L': 'DE LEJOS', 'C': 'DE CERCA', 'B': 'BIFOCAL', 'P': 'PROGRESIVO' };
 
 const productCache = new Map();
 
 /**
+ * ✅ CAMBIO 2: Intenta inferir el tipo de lente desde la descripción de los ítems.
+ * NUNCA devuelve "MONOFOCAL": lo convierte a DE LEJOS / DE CERCA.
  * @param {Array<Object>} items - Ítems normalizados.
  * @returns {string|null}
  */
@@ -15,7 +19,12 @@ function inferTipoLenteFromItems(items) {
   const texto = items.map(i => (i.descripcion || '').toLowerCase()).join(' ');
   if (texto.includes('progresivo') || texto.includes('pro ') || texto.includes('balance')) return 'PROGRESIVO';
   if (texto.includes('bifocal')) return 'BIFOCAL';
-  if (texto.includes('monofocal')) return 'MONOFOCAL';
+  // ✅ Monofocal → solo "DE LEJOS" / "DE CERCA", nunca "MONOFOCAL"
+  if (texto.includes('monofocal') || texto.includes('single vision') ||
+      texto.includes('de lejos') || texto.includes('de cerca')) {
+    if (texto.includes('cerca')) return 'DE CERCA';
+    return 'DE LEJOS'; // monofocal sin especificar → DE LEJOS (si prefieres otro valor, cámbialo aquí)
+  }
   return null;
 }
 
