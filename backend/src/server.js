@@ -154,7 +154,7 @@ app.use((err, req, res, next) => {
 // ============================================================
 // 12. INICIAR SERVIDOR
 // ============================================================
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Servidor corriendo en el puerto ${PORT} (${NODE_ENV})`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });
