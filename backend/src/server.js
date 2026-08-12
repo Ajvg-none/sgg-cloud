@@ -83,7 +83,7 @@ app.use((req, res, next) => {
 startOrphanCleanupCron();
 
 // 8. INICIAR EL SERVIDOR
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`🚀 Servidor corriendo en el puerto ${PORT}`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });
