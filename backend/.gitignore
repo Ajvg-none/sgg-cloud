@@ -1,4 +1,6 @@
 # Node dependencies
+.env
+.env.local
 node_modules/
 
 # Build outputs
