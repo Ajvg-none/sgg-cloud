@@ -93,10 +93,14 @@ const server = app.listen(PORT, () => {
 // ============================================================
 const shutdown = (signal) => {
   logger.info(`📴 ${signal} recibido. Iniciando cierre elegante...`);
-  server.close(() => {
-    logger.info('🔒 Servidor HTTP cerrado.');
+  if (server) {
+    server.close(() => {
+      logger.info('🔒 Servidor HTTP cerrado.');
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
+  }
   // Forzar salida si no logra cerrar en 10 segundos
   setTimeout(() => {
     logger.error('⚠️ Cierre forzado tras 10 segundos.');
