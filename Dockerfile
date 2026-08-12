@@ -7,17 +7,9 @@ RUN npm run build
 
 FROM node:22-slim
 WORKDIR /app
-
-# Copiar TODO el backend (incluyendo prisma/schema.prisma) ANTES de instalar
 COPY backend/ ./backend/
-
 WORKDIR /app/backend
-
-# Instalar deps y generar cliente Prisma explícitamente
 RUN npm ci --omit=dev && npx prisma generate
-
-# Copiar frontend construido a la ruta exacta que espera server.js
 COPY --from=frontend-builder /build/frontend/dist /app/frontend/dist
-
 EXPOSE 3000
 CMD ["node", "src/server.js"]
