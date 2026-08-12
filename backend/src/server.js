@@ -41,11 +41,10 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 app.set('trust proxy', 1);
 
-// Middleware global para capturar errores en rutas async
-app.use((err, req, res, next) => {
-  logger.error(`[Route Error] ${err.message}`, { stack: err.stack, path: req.path });
-  res.status(500).json({ error: 'Internal Server Error', message: err.message });
-});
+// ✅ MIDDLEWARES GLOBALES (esto es lo que faltaba)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 // 5. REGISTRAR RUTAS DE API
 app.use('/api/auth', authRoutes);
@@ -73,19 +72,25 @@ app.use((req, res, next) => {
   res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
+// ✅ MIDDLEWARE DE ERRORES (debe ir al final, después de todas las rutas)
+app.use((err, req, res, next) => {
+  logger.error(`[Route Error] ${err.message}`, { stack: err.stack, path: req.path });
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
+
 // ======================================================
 // 7. INICIAR CRON JOBS
 // ======================================================
 startOrphanCleanupCron();
 
-// 8. INICIAR EL SERVIDOR (✅ CORREGIDO: asignar a variable server)
+// 8. INICIAR EL SERVIDOR
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Servidor corriendo en el puerto ${PORT}`);
   logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
 });
 
 // ============================================================
-// 13. GRACEFUL SHUTDOWN (✅ CORREGIDO: verificar si server existe)
+// 13. GRACEFUL SHUTDOWN
 // ============================================================
 const shutdown = (signal) => {
   logger.info(`📴 ${signal} recibido. Iniciando cierre elegante...`);
