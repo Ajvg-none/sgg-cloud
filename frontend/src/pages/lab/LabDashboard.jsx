@@ -1,3 +1,4 @@
+// frontend/src/pages/lab/LabDashboard.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { labAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
@@ -13,7 +14,6 @@ import Pagination from '../../components/ui/Pagination';
 import WarrantyDetailModal from '../../components/ui/WarrantyDetailModal';
 import { Printer, CheckCircle2, XCircle, Search, RefreshCw, Eye } from 'lucide-react';
 import { connectQZ, printRawData, writeVCAFile, isQZActive } from '../../services/qzprintService';
-
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -61,17 +61,20 @@ const LabDashboard = () => {
   const [printConfig, setPrintConfig] = useState({ printerName: '', vcaNetworkPath: '', vcaEnabled: true });
   const [qzConnected, setQzConnected] = useState(false);
   const [testPrintResult, setTestPrintResult] = useState(null);
+
   // Garantías
   const [warranties, setWarranties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState(null);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
+
   // Filtros
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [stores, setStores] = useState([]);
   const [refreshInterval, setRefreshInterval] = useState(0);
+
   // Modales
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState(null);
@@ -148,6 +151,20 @@ const LabDashboard = () => {
     return () => clearTimeout(timer);
   }, [search, statusFilter, storeFilter]);
 
+  // ✅ Abre el modal de confirmación de procesamiento
+  const handleProcessClick = (warranty) => {
+    setWarrantyToProcess(warranty);
+    setProcessModalOpen(true);
+  };
+
+  // ✅ ÚNICA declaración de handleProcess (se eliminó la duplicada)
+  const handleProcess = (warrantyId, orderNumber) => {
+    const warranty = warranties.find((w) => w.id === warrantyId);
+    if (warranty) {
+      handleProcessClick(warranty);
+    }
+  };
+
   const handleReprintClick = (warranty) => {
     setWarrantyToReprint(warranty);
     setReprintModalOpen(true);
@@ -170,60 +187,49 @@ const LabDashboard = () => {
     }
   };
 
-const handleProcessConfirm = async () => {
-  if (!warrantyToProcess) return;
-  
-  setProcessModalOpen(false);
-  setProcessingId(warrantyToProcess.id);
-  setAlert(null);
+  const handleProcessConfirm = async () => {
+    if (!warrantyToProcess) return;
+    setProcessModalOpen(false);
+    setProcessingId(warrantyToProcess.id);
+    setAlert(null);
+    try {
+      // 1. Conectar con QZ Tray (esto abre el websocket local)
+      await connectQZ();
 
-  try {
-    // 1. Conectar con QZ Tray (esto abre el websocket local)
-    await connectQZ();
+      // 2. Pedir al backend que genere el ticket (NO imprime todavía)
+      const response = await labAPI.getTicketBuffer(warrantyToProcess.id);
+      const { ticketBase64, vcaContent, vcaPath, printerName } = response.data;
 
-    // 2. Pedir al backend que genere el ticket (NO imprime todavía)
-    const response = await labAPI.getTicketBuffer(warrantyToProcess.id);
-    const { ticketBase64, vcaContent, vcaPath, printerName } = response.data;
+      // 3. IMPRIMIR FÍSICAMENTE con QZ Tray
+      // Esto envía los bytes directamente a la impresora Bixolon
+      await printRawData(printerName, ticketBase64);
 
-    // 3. IMPRIMIR FÍSICAMENTE con QZ Tray
-    // Esto envía los bytes directamente a la impresora Bixolon
-    await printRawData(printerName, ticketBase64);
-
-    // 4. Generar archivo VCA (Opcional, si falla no detenemos todo)
-    if (vcaContent && vcaPath) {
-      try {
-        await writeVCAFile(vcaPath, vcaContent);
-      } catch (vcaErr) {
-        console.warn("Error escribiendo VCA:", vcaErr);
-        setAlert({ type: 'warning', message: 'Ticket impreso, pero falló la generación del archivo VCA en red.' });
+      // 4. Generar archivo VCA (Opcional, si falla no detenemos todo)
+      if (vcaContent && vcaPath) {
+        try {
+          await writeVCAFile(vcaPath, vcaContent);
+        } catch (vcaErr) {
+          console.warn("Error escribiendo VCA:", vcaErr);
+          setAlert({ type: 'warning', message: 'Ticket impreso, pero falló la generación del archivo VCA en red.' });
+        }
       }
-    }
 
-    // 5. Avisar al backend que ya terminamos (Marcar como COMPLETED)
-    await labAPI.completeWarranty(warrantyToProcess.id);
+      // 5. Avisar al backend que ya terminamos (Marcar como COMPLETED)
+      await labAPI.completeWarranty(warrantyToProcess.id);
+      setAlert({ type: 'success', message: `Orden ${warrantyToProcess.orderNumber} impresa y procesada correctamente.` });
 
-    setAlert({ type: 'success', message: `Orden ${warrantyToProcess.orderNumber} impresa y procesada correctamente.` });
-    
-    // Recargar datos
-    await loadWarranties(pagination.page);
-    setQzConnected(isQZActive());
-
-  } catch (err) {
-    console.error(err);
-    setAlert({ 
-      type: 'error', 
-      message: err.message || 'Error al procesar con QZ Tray. Verifica que QZ Tray esté abierto.' 
-    });
-  } finally {
-    setProcessingId(null);
-    setWarrantyToProcess(null);
-  }
-};
-
-  const handleProcess = async (warrantyId, orderNumber) => {
-    const warranty = warranties.find(w => w.id === warrantyId);
-    if (warranty) {
-      handleProcessClick(warranty);
+      // Recargar datos
+      await loadWarranties(pagination.page);
+      setQzConnected(isQZActive());
+    } catch (err) {
+      console.error(err);
+      setAlert({
+        type: 'error',
+        message: err.message || 'Error al procesar con QZ Tray. Verifica que QZ Tray esté abierto.'
+      });
+    } finally {
+      setProcessingId(null);
+      setWarrantyToProcess(null);
     }
   };
 
@@ -250,292 +256,293 @@ const handleProcessConfirm = async () => {
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Panel de Laboratorio</h1>
-        <p className="text-opticolor-gray-600">Estado del sistema y gestión de garantías</p>
-      </div>
-
-      {alert && (
-        <div className="mb-6">
-          <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Panel de Laboratorio</h1>
+          <p className="text-opticolor-gray-600">Estado del sistema y gestión de garantías</p>
         </div>
-      )}
 
-      {/* Sección 1: Estado del Sistema */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card className={`border-l-4 ${qzConnected ? 'border-l-green-500' : 'border-l-red-500'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-opticolor-gray-500">QZ Tray</p>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${qzConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {qzConnected ? 'CONECTADO' : 'DESCONECTADO'}
-            </span>
+        {alert && (
+          <div className="mb-6">
+            <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
           </div>
-          <p className="text-xs text-opticolor-gray-400">{qzConnected ? 'Listo para imprimir' : 'QZ Tray no detectado en este equipo'}</p>
-        </Card>
-        <Card className="border-l-4 border-l-blue-500">
-          <p className="text-sm text-opticolor-gray-500 mb-2">Impresora: {printConfig.printerName || 'Bixolon'}</p>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
-            {testPrintResult === 'success' && (
-              <span className="inline-flex items-center gap-1 text-green-600 text-sm">
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Ok
+        )}
+
+        {/* Sección 1: Estado del Sistema */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card className={`border-l-4 ${qzConnected ? 'border-l-green-500' : 'border-l-red-500'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-opticolor-gray-500">QZ Tray</p>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${qzConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                {qzConnected ? 'CONECTADO' : 'DESCONECTADO'}
               </span>
-            )}
-            {testPrintResult === 'error' && (
-              <span className="inline-flex items-center gap-1 text-red-600 text-sm">
-                <XCircle className="h-4 w-4" aria-hidden="true" /> Falló
-              </span>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Sección 2: Garantías */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-opticolor-gray-900">Garantías del Laboratorio</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-opticolor-gray-500">Auto-refresh:</span>
-            <Select
-              value={refreshInterval}
-              onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
-              options={REFRESH_OPTIONS}
-              className="py-1 text-xs"
-            />
-          </div>
-        </div>
-
-        {/* Toolbar: búsqueda, filtros, filas por página y actualizar */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-5">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Buscar por OTG…"
-              aria-label="Buscar por OTG"
-              className="pl-9 py-2 text-sm"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
-            <Select
-              value={storeFilter}
-              onChange={(e) => setStoreFilter(e.target.value)}
-              options={[{ value: '', label: 'Todas las tiendas' }, ...stores.map((s) => ({ value: s.id, label: s.name }))]}
-              aria-label="Tienda"
-              className="py-2 text-sm"
-            />
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              options={STATUS_OPTIONS}
-              aria-label="Estado"
-              className="py-2 text-sm"
-            />
-            <Select
-              value={pagination.limit}
-              onChange={(e) => handleLimitChange(parseInt(e.target.value))}
-              options={LIMIT_OPTIONS}
-              aria-label="Filas por página"
-              className="py-2 text-sm"
-            />
-            <Button variant="secondary" onClick={() => loadWarranties(pagination.page)} disabled={loading} className="px-3 py-2 text-sm">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-              Actualizar
-            </Button>
-          </div>
-        </div>
-
-        {/* Tabla */}
-        {loading ? (
-          <Spinner size="lg" className="py-12" />
-        ) : warranties.length === 0 ? (
-          <EmptyState
-            title="No hay garantías"
-            description="No se encontraron garantías con los filtros actuales"
-          />
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full table-fixed">
-                <colgroup>
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '10%' }} />
-                  <col style={{ width: '21%' }} />
-                </colgroup>
-                <thead>
-                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tienda</th>
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Cliente</th>
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tipo</th>
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha</th>
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
-                    <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
-                  {warranties.map((w) => (
-                    <tr key={w.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                      <td className="py-3.5 px-3 align-middle text-center overflow-hidden whitespace-nowrap text-ellipsis">
-                        <OrderNumber code={w.orderNumber} />
-                      </td>
-                      <td className="py-3.5 px-3 align-middle text-center text-sm font-medium text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
-                        {w.store?.name || '-'}
-                      </td>
-                      <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.orderData?.cliente_nombre || ''}>
-                        {w.orderData?.cliente_nombre || '-'}
-                      </td>
-                      <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.warrantyType || ''}>
-                        {w.warrantyType || '-'}
-                      </td>
-                      <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
-                        {formatDate(w.createdAt)}
-                      </td>
-                      <td className="py-3.5 px-3 align-middle text-center">
-                        <StatusBadge status={w.status} />
-                      </td>
-                      <td className="py-3.5 px-3 align-middle text-center">
-                        <div className="flex flex-wrap items-center justify-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}>
-                            <Eye className="h-4 w-4" aria-hidden="true" />
-                            Detalle
-                          </Button>
-                          {w.status === 'COMPLETED' && (
-                            <Button variant="secondary" size="sm" onClick={() => handleReprintClick(w)}>
-                              <Printer className="h-4 w-4" aria-hidden="true" />
-                              Ticket
-                            </Button>
-                          )}
-                          {(w.status === 'PENDING' || w.status === 'ERROR') && (
-                            <Button variant="primary" size="sm" onClick={() => handleProcess(w.id, w.orderNumber)} loading={processingId === w.id}>
-                              Procesar
-                            </Button>
-                          )}
-                          {w.status === 'PROCESSING' && (
-                            <Button variant="secondary" size="sm" disabled>
-                              Procesando...
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
+            <p className="text-xs text-opticolor-gray-400">{qzConnected ? 'Listo para imprimir' : 'QZ Tray no detectado en este equipo'}</p>
+          </Card>
 
-            {/* Paginación */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5">
-              <p className="text-sm text-opticolor-gray-600">
-                Mostrando <span className="font-semibold">{((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)}</span> de <span className="font-semibold">{pagination.total}</span> garantías
-              </p>
-              <Pagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                onChange={(page) => loadWarranties(page)}
+          <Card className="border-l-4 border-l-blue-500">
+            <p className="text-sm text-opticolor-gray-500 mb-2">Impresora: {printConfig.printerName || 'Bixolon'}</p>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
+              {testPrintResult === 'success' && (
+                <span className="inline-flex items-center gap-1 text-green-600 text-sm">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Ok
+                </span>
+              )}
+              {testPrintResult === 'error' && (
+                <span className="inline-flex items-center gap-1 text-red-600 text-sm">
+                  <XCircle className="h-4 w-4" aria-hidden="true" /> Falló
+                </span>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Sección 2: Garantías */}
+        <Card>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-opticolor-gray-900">Garantías del Laboratorio</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-opticolor-gray-500">Auto-refresh:</span>
+              <Select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
+                options={REFRESH_OPTIONS}
+                className="py-1 text-xs"
               />
             </div>
-          </>
-        )}
-      </Card>
+          </div>
 
-      {/* Modal Detalle */}
-            <WarrantyDetailModal
-        isOpen={detailModalOpen}
-        onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }}
-        warranty={selectedWarranty}
-      />
+          {/* Toolbar: búsqueda, filtros, filas por página y actualizar */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-5">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Buscar por OTG…"
+                aria-label="Buscar por OTG"
+                className="pl-9 py-2 text-sm"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 lg:ml-auto">
+              <Select
+                value={storeFilter}
+                onChange={(e) => setStoreFilter(e.target.value)}
+                options={[{ value: '', label: 'Todas las tiendas' }, ...stores.map((s) => ({ value: s.id, label: s.name }))]}
+                aria-label="Tienda"
+                className="py-2 text-sm"
+              />
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={STATUS_OPTIONS}
+                aria-label="Estado"
+                className="py-2 text-sm"
+              />
+              <Select
+                value={pagination.limit}
+                onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                options={LIMIT_OPTIONS}
+                aria-label="Filas por página"
+                className="py-2 text-sm"
+              />
+              <Button variant="secondary" onClick={() => loadWarranties(pagination.page)} disabled={loading} className="px-3 py-2 text-sm">
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+                Actualizar
+              </Button>
+            </div>
+          </div>
 
-      {/* Modal de Confirmación de Reimpresión */}
-      <Modal
-        isOpen={reprintModalOpen}
-        onClose={() => {
-          setReprintModalOpen(false);
-          setWarrantyToReprint(null);
-        }}
-        title="Confirmar Reimpresión"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              ¿Estás seguro de reimprimir el ticket de la orden{' '}
-              <span className="font-mono font-semibold">
-                #{warrantyToReprint?.orderNumber}
-              </span>
-              ?
-            </p>
-          </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setReprintModalOpen(false);
-                setWarrantyToReprint(null);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleReprintConfirm}
-            >
-              <Printer className="h-4 w-4" aria-hidden="true" />
-              Reimprimir Ticket
-            </Button>
-          </div>
-        </div>
-      </Modal>
+          {/* Tabla */}
+          {loading ? (
+            <Spinner size="lg" className="py-12" />
+          ) : warranties.length === 0 ? (
+            <EmptyState
+              title="No hay garantías"
+              description="No se encontraron garantías con los filtros actuales"
+            />
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '21%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tienda</th>
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Cliente</th>
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tipo</th>
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha</th>
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
+                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                    {warranties.map((w) => (
+                      <tr key={w.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
+                        <td className="py-3.5 px-3 align-middle text-center overflow-hidden whitespace-nowrap text-ellipsis">
+                          <OrderNumber code={w.orderNumber} />
+                        </td>
+                        <td className="py-3.5 px-3 align-middle text-center text-sm font-medium text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
+                          {w.store?.name || '-'}
+                        </td>
+                        <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.orderData?.cliente_nombre || ''}>
+                          {w.orderData?.cliente_nombre || '-'}
+                        </td>
+                        <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.warrantyType || ''}>
+                          {w.warrantyType || '-'}
+                        </td>
+                        <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
+                          {formatDate(w.createdAt)}
+                        </td>
+                        <td className="py-3.5 px-3 align-middle text-center">
+                          <StatusBadge status={w.status} />
+                        </td>
+                        <td className="py-3.5 px-3 align-middle text-center">
+                          <div className="flex flex-wrap items-center justify-center gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}>
+                              <Eye className="h-4 w-4" aria-hidden="true" />
+                              Detalle
+                            </Button>
+                            {w.status === 'COMPLETED' && (
+                              <Button variant="secondary" size="sm" onClick={() => handleReprintClick(w)}>
+                                <Printer className="h-4 w-4" aria-hidden="true" />
+                                Ticket
+                              </Button>
+                            )}
+                            {(w.status === 'PENDING' || w.status === 'ERROR') && (
+                              <Button variant="primary" size="sm" onClick={() => handleProcess(w.id, w.orderNumber)} loading={processingId === w.id}>
+                                Procesar
+                              </Button>
+                            )}
+                            {w.status === 'PROCESSING' && (
+                              <Button variant="secondary" size="sm" disabled>
+                                Procesando...
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-      {/* Modal de Confirmación de Procesamiento */}
-      <Modal
-        isOpen={processModalOpen}
-        onClose={() => {
-          setProcessModalOpen(false);
-          setWarrantyToProcess(null);
-        }}
-        title="Confirmar Procesamiento"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              ¿Procesar la orden{' '}
-              <span className="font-mono font-semibold">
-                #{warrantyToProcess?.orderNumber}
-              </span>
-              ?
-            </p>
-            <p className="text-xs text-blue-700 mt-2">
-              Se imprimirá el ticket y se generará el archivo VCA automáticamente.
-            </p>
+              {/* Paginación */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5">
+                <p className="text-sm text-opticolor-gray-600">
+                  Mostrando <span className="font-semibold">{((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)}</span> de <span className="font-semibold">{pagination.total}</span> garantías
+                </p>
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  onChange={(page) => loadWarranties(page)}
+                />
+              </div>
+            </>
+          )}
+        </Card>
+
+        {/* Modal Detalle */}
+        <WarrantyDetailModal
+          isOpen={detailModalOpen}
+          onClose={() => { setDetailModalOpen(false); setSelectedWarranty(null); }}
+          warranty={selectedWarranty}
+        />
+
+        {/* Modal de Confirmación de Reimpresión */}
+        <Modal
+          isOpen={reprintModalOpen}
+          onClose={() => {
+            setReprintModalOpen(false);
+            setWarrantyToReprint(null);
+          }}
+          title="Confirmar Reimpresión"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                ¿Estás seguro de reimprimir el ticket de la orden{' '}
+                <span className="font-mono font-semibold">
+                  #{warrantyToReprint?.orderNumber}
+                </span>
+                ?
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setReprintModalOpen(false);
+                  setWarrantyToReprint(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleReprintConfirm}
+              >
+                <Printer className="h-4 w-4" aria-hidden="true" />
+                Reimprimir Ticket
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setProcessModalOpen(false);
-                setWarrantyToProcess(null);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleProcessConfirm}
-            >
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              Procesar Orden
-            </Button>
+        </Modal>
+
+        {/* Modal de Confirmación de Procesamiento */}
+        <Modal
+          isOpen={processModalOpen}
+          onClose={() => {
+            setProcessModalOpen(false);
+            setWarrantyToProcess(null);
+          }}
+          title="Confirmar Procesamiento"
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                ¿Procesar la orden{' '}
+                <span className="font-mono font-semibold">
+                  #{warrantyToProcess?.orderNumber}
+                </span>
+                ?
+              </p>
+              <p className="text-xs text-blue-700 mt-2">
+                Se imprimirá el ticket y se generará el archivo VCA automáticamente.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setProcessModalOpen(false);
+                  setWarrantyToProcess(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleProcessConfirm}
+              >
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                Procesar Orden
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
       </div>
     </div>
   );
