@@ -12,6 +12,8 @@ const {
   createWarranty,
   getMyWarranties,
   getWarrantyDetail,
+  getTicketBuffer,
+  completeWarranty,
 } = require('../controllers/storeController');
 
 // 🔒 PROTECCIÓN GLOBAL: aplica a TODAS las rutas de este router
@@ -25,5 +27,11 @@ router.post('/warranties', createWarranty);
 // --- Rutas nuevas (Fase 5 - RF-03) ---
 router.get('/warranties', getMyWarranties);
 router.get('/warranties/:id', getWarrantyDetail);
+
+// --- ✅ NUEVO: Auto-impresión del ticket desde tienda ---
+// Genera el buffer ESC/POS + VCA para imprimir con QZ Tray
+router.get('/ticket-buffer/:warrantyId', getTicketBuffer);
+// Confirma que el ticket se imprimió y marca la garantía COMPLETED
+router.post('/warranties/:warrantyId/complete', completeWarranty);
 
 module.exports = router;

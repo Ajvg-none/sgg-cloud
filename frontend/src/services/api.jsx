@@ -46,12 +46,16 @@ export const authAPI = {
 
 // ============================================================
 // API DE TIENDA
+// ✅ ÚNICA declaración de storeAPI (se eliminó la duplicada)
 // ============================================================
 export const storeAPI = {
   getOrder: (orderNumber) => api.get(`/store/order/${orderNumber}`),
   createWarranty: (data) => api.post('/store/warranties', data),
   getMyWarranties: () => api.get('/store/warranties'),
   getWarrantyDetail: (id) => api.get(`/store/warranties/${id}`),
+  // ✅ NUEVO: auto-impresión del ticket desde tienda
+  getTicketBuffer: (warrantyId) => api.get(`/store/ticket-buffer/${warrantyId}`),
+  completeWarranty: (warrantyId) => api.post(`/store/warranties/${warrantyId}/complete`),
 };
 
 // ============================================================
@@ -84,7 +88,7 @@ export const adminAPI = {
   getUsers: () => api.get('/admin/users'),
   createUser: (data) => api.post('/admin/users', data),
   updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
-  deleteUser: (id) => api.delete(`/admin/users/${id}`), // ✅ NUEVO
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   resetUserPassword: (userId, newPassword) =>
     api.post(`/admin/users/${userId}/reset-password`, { newPassword }),
   // Dashboard de Garantías
