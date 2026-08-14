@@ -281,7 +281,7 @@ const LabDashboard = () => {
 
           <Card className="border-l-4 border-l-blue-500">
             <p className="text-sm text-opticolor-gray-500 mb-2">Impresora: {printConfig.printerName || 'Bixolon'}</p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
               {testPrintResult === 'success' && (
                 <span className="inline-flex items-center gap-1 text-green-600 text-sm">
