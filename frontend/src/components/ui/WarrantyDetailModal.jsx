@@ -98,9 +98,9 @@ const WarrantyDetailModal = ({ isOpen, onClose, warranty }) => {
           <Section icon={ShieldAlert} title="Datos de la Garantía">
             <Field label="Tipo de Garantía">{warranty.warrantyType || '-'}</Field>
             {warranty.storeObservations && (
-              <div className="mt-3 flex gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+              <div className="mt-3 flex gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 min-w-0">
                 <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" aria-hidden="true" />
-                <p className="text-sm italic text-yellow-800">{warranty.storeObservations}</p>
+                <p className="flex-1 min-w-0 w-full max-w-full whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm italic text-yellow-800">{warranty.storeObservations}</p>
               </div>
             )}
           </Section>

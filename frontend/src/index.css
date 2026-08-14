@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  /* Reserva el espacio del scrollbar siempre → sin layout shift al aparecer/desaparecer */
+  * {
+    scrollbar-gutter: stable;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
