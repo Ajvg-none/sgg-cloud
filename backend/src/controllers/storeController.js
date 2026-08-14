@@ -4,6 +4,8 @@ const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
 const syncService = require('../services/syncService');
 const logger = require('../config/logger');
+const { generateEscPosBuffer } = require('../legacy/printer');
+const { generateVCAContent } = require('../legacy/lensware');
 
 // Configurar Prisma con driver adapter (Prisma v7)
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -252,4 +254,105 @@ const getWarrantyDetail = async (req, res) => {
   }
 };
 
-module.exports = { getOrder, createWarranty, getMyWarranties,getWarrantyDetail,  };
+// ============================================================
+// ✅ NUEVO: IMPRESIÓN AUTOMÁTICA DESDE TIENDA
+// ============================================================
+/**
+ * GET /api/store/ticket-buffer/:warrantyId
+ * Genera el ticket ESC/POS (base64) + VCA para que la tienda imprima con QZ Tray.
+ */
+const getTicketBuffer = async (req, res) => {
+  try {
+    const { warrantyId } = req.params;
+    const storeId = req.user.storeId;
+    if (!storeId) return res.status(400).json({ error: 'Usuario sin tienda asignada.' });
+
+    const warranty = await prisma.warranty.findUnique({
+      where: { id: warrantyId },
+      include: {
+        lab: { select: { id: true, name: true, printerName: true, vcaNetworkPath: true, vcaEnabled: true } },
+        store: { select: { name: true, accn: true } },
+      },
+    });
+    if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
+    if (warranty.storeId !== storeId) {
+      return res.status(403).json({ error: 'Esta garantía no pertenece a tu tienda.' });
+    }
+
+    const items = warranty.orderData?.items || [];
+    const orderForPrint = {
+      ...warranty.orderData,
+      warrantyType: warranty.warrantyType,
+      storeObservations: warranty.storeObservations,
+      accn: warranty.store?.accn || '000',
+      tienda_nombre: warranty.store?.name || '',
+      tienda_id: warranty.storeId,
+      items,
+    };
+
+    const ticketBuffer = await generateEscPosBuffer(orderForPrint, items);
+
+    let vcaContent = null;
+    let vcaPath = null;
+    if (warranty.lab.vcaEnabled && warranty.lab.vcaNetworkPath) {
+      try {
+        vcaContent = await generateVCAContent(orderForPrint, items);
+        const filename = `Pedido_${warranty.orderNumber}_${warranty.storeId}.vca`;
+        vcaPath = `${warranty.lab.vcaNetworkPath}\\${filename}`;
+      } catch (vcaErr) {
+        logger.warn(`[store.getTicketBuffer] Error generando VCA: ${vcaErr.message}`);
+      }
+    }
+
+    return res.json({
+      success: true,
+      ticketBase64: ticketBuffer.toString('base64'),
+      vcaContent,
+      vcaPath,
+      printerName: warranty.lab.printerName || 'Bixolon',
+      warrantyId: warranty.id,
+    });
+  } catch (error) {
+    logger.error(`[store.getTicketBuffer] ${error.message}`);
+    return res.status(500).json({ error: 'Error interno al preparar impresión.' });
+  }
+};
+
+/**
+ * POST /api/store/warranties/:warrantyId/complete
+ * Si la tienda logró imprimir el ticket, marca la garantía como COMPLETED.
+ */
+const completeWarranty = async (req, res) => {
+  try {
+    const { warrantyId } = req.params;
+    const storeId = req.user.storeId;
+    if (!storeId) return res.status(400).json({ error: 'Usuario sin tienda asignada.' });
+
+    const warranty = await prisma.warranty.findUnique({
+      where: { id: warrantyId },
+      select: { id: true, storeId: true, status: true, orderNumber: true },
+    });
+    if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
+    if (warranty.storeId !== storeId) {
+      return res.status(403).json({ error: 'Esta garantía no pertenece a tu tienda.' });
+    }
+    if (warranty.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'La garantía ya está completada.' });
+    }
+
+    const updated = await prisma.warranty.update({
+      where: { id: warrantyId },
+      data: { status: 'COMPLETED', processedAt: new Date(), processingStartedAt: null, errorMessage: null },
+    });
+    logger.info(`[store.completeWarranty] Garantía procesada desde tienda: ${updated.orderNumber}`);
+    return res.json({
+      success: true,
+      warranty: { id: updated.id, orderNumber: updated.orderNumber, status: updated.status },
+    });
+  } catch (error) {
+    logger.error(`[store.completeWarranty] ${error.message}`);
+    return res.status(500).json({ error: 'Error al actualizar estado.' });
+  }
+};
+
+module.exports = { getOrder, createWarranty, getMyWarranties,getWarrantyDetail, getTicketBuffer, completeWarranty, };
