@@ -84,6 +84,7 @@ const WarrantyDetailModal = ({ isOpen, onClose, warranty }) => {
           <Section icon={Info} title="Información General">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Field label="Cliente">{od?.cliente_nombre || '-'}</Field>
+              {od?.asesor_nombre && <Field label="Asesor / Responsable">{od.asesor_nombre}</Field>}
               {warranty.store?.name && (
                 <Field label="Tienda">{warranty.store.name}{warranty.store.accn ? ` (${warranty.store.accn})` : ''}</Field>
               )}
