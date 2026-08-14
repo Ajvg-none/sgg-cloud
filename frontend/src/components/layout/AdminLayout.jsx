@@ -94,7 +94,9 @@ const AdminLayout = () => {
 
       {/* Contenido Principal */}
       <main className="flex-1 overflow-y-auto">
-        <Outlet />
+        <div key={location.pathname} className="h-full animate-slide-up">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
