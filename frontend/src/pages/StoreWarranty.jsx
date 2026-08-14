@@ -120,9 +120,9 @@ const StoreWarranty = () => {
 
     const itemsHtml = (data.items || []).map(item => `
       <tr>
-        <td style="border: 1px solid #ddd; padding: 4px 8px;">${item.descripcion || '-'}</td>
-        <td style="border: 1px solid #ddd; padding: 4px 8px; text-align: center;">${item.cantidad || 1}</td>
-        <td style="border: 1px solid #ddd; padding: 4px 8px; font-family: monospace;">${item.codigo_completo || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 2px 4px;">${item.descripcion || '-'}</td>
+        <td style="border: 1px solid #ddd; padding: 2px 4px; text-align: center;">${item.cantidad || 1}</td>
+        <td style="border: 1px solid #ddd; padding: 2px 4px; font-family: monospace;">${item.codigo_completo || '-'}</td>
       </tr>
     `).join('');
 
@@ -133,81 +133,88 @@ const StoreWarranty = () => {
 <meta charset="UTF-8">
 <title>Orden de Garantía - ${data.codigo_completo || data.orden_numero} (Rev. ${revision})</title>
 <style>
-  @page { margin: 0.7cm; size: A4; }
+  @page { size: A4; margin: 0.5cm; }
   * { box-sizing: border-box; }
   body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    color: #333; line-height: 1.25; margin: 0; padding: 8px; font-size: 12px;
+    color: #333; line-height: 1.3; margin: 0; padding: 0; font-size: 10px;
   }
+  .sheet { max-height: 14cm; }
   .header {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 2px solid #DC2626; padding-bottom: 6px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    border-bottom: 2px solid #DC2626; padding-bottom: 4px; margin-bottom: 6px;
     page-break-inside: avoid;
   }
-  .header .logo { height: 100px; width: auto; object-fit: contain; display: block; }
-  .header .slogan { margin: 3px 0 0; font-size: 10px; color: #666; }
-  .title-box { text-align: right; }
-  .title-box h1 { margin: 0; color: #DC2626; font-size: 20px; text-transform: uppercase; }
-  .title-box p { margin: 2px 0 0; font-weight: bold; font-size: 13px; }
-  .info-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px;
-    margin-bottom: 10px; background: #f9f9f9; padding: 10px; border-radius: 6px;
-    page-break-inside: avoid;
-  }
-  .info-item label { display: block; font-size: 10px; color: #666; text-transform: uppercase; }
-  .info-item span { font-size: 13px; font-weight: bold; }
-  .barcode-box { text-align: center; margin: 0 0 10px; page-break-inside: avoid; }
-  .barcode-box svg { height: 54px; fill: #000; }
+  .header .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .header .logo { height: 40px; width: auto; object-fit: contain; display: block; }
+  .title-box h1 { margin: 0; color: #DC2626; font-size: 16px; text-transform: uppercase; }
+  .title-box p { margin: 0; font-weight: bold; font-size: 10px; }
+  .barcode-box { text-align: right; min-width: 0; }
+  .barcode-box svg { height: 40px; fill: #000; display: block; margin-left: auto; }
   .barcode-box .barcode-text {
-    font-family: monospace; font-size: 12px; font-weight: bold;
-    letter-spacing: 3px; margin: 2px 0 0;
+    font-family: monospace; font-size: 10px; font-weight: bold;
+    letter-spacing: 2px; margin: 2px 0 0;
   }
+  .info-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px 12px;
+    margin-bottom: 6px; background: #f9f9f9; padding: 6px 8px; border-radius: 4px;
+    page-break-inside: avoid;
+  }
+  .info-item label { display: block; font-size: 8px; color: #666; text-transform: uppercase; }
+  .info-item span { font-size: 10px; font-weight: bold; }
   h3.section-title {
-    margin: 8px 0 4px; font-size: 13px;
-    border-bottom: 2px solid #333; padding-bottom: 3px;
+    margin: 5px 0 3px; font-size: 11px;
+    border-bottom: 2px solid #333; padding-bottom: 2px;
     page-break-after: avoid;
   }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 8px; page-break-inside: avoid; }
-  th { background-color: #DC2626; color: white; padding: 5px 8px; text-align: left; font-size: 11px; }
-  td { padding: 4px 8px; border-bottom: 1px solid #eee; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 5px; page-break-inside: avoid; }
+  th { background-color: #DC2626; color: white; padding: 2px 4px; text-align: left; font-size: 10px; }
+  td { padding: 2px 4px; border-bottom: 1px solid #eee; font-size: 10px; }
   .optical-table th { background-color: #333; text-align: center; }
-  .optical-table td { text-align: center; font-family: monospace; font-size: 12px; font-weight: bold; }
-  .frame-measures { display: flex; gap: 20px; margin-bottom: 8px; font-size: 12px; }
+  .optical-table td { text-align: center; font-family: monospace; font-size: 11px; font-weight: bold; }
+  .frame-measures { display: flex; gap: 14px; margin-bottom: 5px; font-size: 10px; }
+  .items-table thead, .items-table tbody tr { display: table; width: 100%; table-layout: fixed; }
+  .items-table tbody { display: block; max-height: 2.8cm; overflow: hidden; }
   .warranty-section {
-    border: 2px solid #DC2626; padding: 10px; border-radius: 6px;
-    margin-top: 8px; background: #fff5f5;
+    border: 2px solid #DC2626; padding: 8px; border-radius: 4px;
+    margin-top: 6px; background: #fff5f5;
     page-break-inside: avoid;
   }
   .warranty-section h3 {
-    margin: 0 0 6px; color: #DC2626; font-size: 13px;
-    border-bottom: 1px solid #DC2626; padding-bottom: 4px;
+    margin: 0 0 4px; color: #DC2626; font-size: 11px;
+    border-bottom: 1px solid #DC2626; padding-bottom: 2px;
   }
-  .warranty-section label { font-weight: bold; display: block; margin-bottom: 3px; font-size: 12px; }
+  .warranty-section label { font-weight: bold; display: block; margin-bottom: 2px; font-size: 10px; }
   .obs-box {
-    background: white; padding: 8px; border: 1px solid #ddd;
-    min-height: 32px; margin: 0 0 6px; font-size: 12px;
+    background: white; padding: 5px 8px; border: 1px solid #ddd;
+    min-height: 20px; margin: 0 0 4px; font-size: 10px;
   }
   .footer {
-    margin-top: 10px; text-align: center; font-size: 10px; color: #888;
-    border-top: 1px solid #eee; padding-top: 6px;
+    margin-top: 8px; text-align: center; font-size: 9px; color: #888;
+    border-top: 1px solid #eee; padding-top: 4px;
     page-break-inside: avoid;
   }
-  .footer p { margin: 2px 0; }
+  .footer p { margin: 1px 0; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
 <body>
+  <div class="sheet">
   <div class="header">
-    <div>
+    <div class="left">
       <img src="/logo-opti.jpg" alt="Opti-Color" class="logo" />
-      <p class="slogan">Calidad a su vista</p>
+      <div class="title-box">
+        <h1>OTG ORDEN</h1>
+        <p>ORDEN DE GARANTÍA</p>
+      </div>
     </div>
-    <div class="title-box">
-      <h1>OTG ORDEN</h1>
-      <p>ORDEN DE GARANTÍA</p>
-    </div>
+    ${barcodeSvg ? `
+    <div class="barcode-box">
+      ${barcodeSvg}
+      <p class="barcode-text">${barcodeValue}</p>
+    </div>` : ''}
   </div>
 
   <div class="info-grid">
@@ -221,7 +228,7 @@ const StoreWarranty = () => {
     </div>
     <div class="info-item">
       <label>Número de Orden (OTG)</label>
-      <span style="font-family: monospace; font-size: 14px;">${data.codigo_completo || data.orden_numero}</span>
+      <span style="font-family: monospace;">${data.codigo_completo || data.orden_numero}</span>
     </div>
     <div class="info-item">
       <label>Revisión de Garantía</label>
@@ -236,12 +243,6 @@ const StoreWarranty = () => {
       <span>${data.asesor_nombre || '-'}</span>
     </div>
   </div>
-
-  ${barcodeSvg ? `
-  <div class="barcode-box">
-    ${barcodeSvg}
-    <p class="barcode-text">${barcodeValue}</p>
-  </div>` : ''}
 
   <h3 class="section-title">Datos Ópticos</h3>
   <table class="optical-table">
@@ -281,7 +282,7 @@ const StoreWarranty = () => {
   </div>
 
   <h3 class="section-title">Ítems / Materiales</h3>
-  <table>
+  <table class="items-table">
     <thead>
       <tr>
         <th style="width: 60%;">Descripción</th>
@@ -290,14 +291,14 @@ const StoreWarranty = () => {
       </tr>
     </thead>
     <tbody>
-      ${itemsHtml || '<tr><td colspan="3" style="text-align:center; padding:6px;">Sin ítems registrados</td></tr>'}
+      ${itemsHtml || '<tr><td colspan="3" style="text-align:center;">Sin ítems registrados</td></tr>'}
     </tbody>
   </table>
 
   <div class="warranty-section">
     <h3>DATOS DE LA GARANTÍA</h3>
     <label>Tipo de Garantía:</label>
-    <p class="obs-box" style="min-height: auto; margin-bottom: 6px; text-transform: uppercase;">${type}</p>
+    <p class="obs-box" style="min-height: auto; text-transform: uppercase;">${type}</p>
     <label>Observaciones:</label>
     <p class="obs-box">${observations || 'Sin observaciones adicionales.'}</p>
   </div>
@@ -306,13 +307,20 @@ const StoreWarranty = () => {
     <p>Documento generado automáticamente por el Sistema de Gestión de Garantías Opti-Color.</p>
     <p>Fecha de impresión: ${new Date().toLocaleString()}</p>
   </div>
+  </div>
 
-  <script>
-    window.onload = function() {
-      window.focus();
-      window.print();
-    }
-  </script>
+<script>
+  window.onload = function() {
+    window.focus();
+    window.print();
+    // Fallback: si onafterprint no se dispara, cierra igual tras el diálogo
+    setTimeout(function() { window.close(); }, 1500);
+  };
+  // Cerrar la pestaña automáticamente después de imprimir o cancelar
+  window.onafterprint = function() {
+    window.close();
+  };
+</script>
 </body>
 </html>
 `;
@@ -456,7 +464,7 @@ const StoreWarranty = () => {
 
   return (
     <div className="min-h-screen bg-opticolor-gray-50 p-4 sm:p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto animate-slide-up">
         <StoreHeader />
 
         <div className="mb-8">
