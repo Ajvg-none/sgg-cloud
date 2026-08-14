@@ -2,7 +2,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
-const axios = require('axios');
 const logger = require('../config/logger');
 const { generateEscPosBuffer } = require('../legacy/printer');
 
@@ -11,86 +10,10 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 /**
- * POST /api/lab/print/:warrantyId
+ * GET /api/lab/ticket-buffer/:warrantyId
+ * Genera el ticket ESC/POS y devuelve el base64 + datos VCA para que el frontend imprima con QZ Tray.
  */
-const reprintTicket = async (req, res) => {
-  try {
-    const { warrantyId } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    if (!['LABORATORIO', 'ADMIN'].includes(userRole)) {
-      return res.status(403).json({ error: 'Solo Laboratorio o Administrador pueden reimprimir.' });
-    }
-
-    const warranty = await prisma.warranty.findUnique({
-      where: { id: warrantyId },
-      include: {
-        lab: {
-          // ✅ FIX: Incluir apiKey para autenticarse contra el agente con la clave propia del lab
-          select: { id: true, name: true, agentIp: true, agentPort: true, apiKey: true },
-        },
-        // ✅ FIX: Incluir datos de la tienda para imprimir el nombre de la sucursal
-        store: {
-          select: { name: true, accn: true },
-        },
-      },
-    });
-
-    if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
-    if (warranty.status !== 'COMPLETED') return res.status(400).json({ error: `Estado: ${warranty.status}. Solo se reimprimen completadas.` });
-    if (!warranty.lab?.agentIp || !warranty.lab?.agentPort) return res.status(400).json({ error: 'Lab sin agente configurado.' });
-
-    // Asegurar que items sea un array
-    const items = warranty.orderData?.items || [];
-
-    const orderForPrint = {
-      ...warranty.orderData,
-      warrantyType: warranty.warrantyType,
-      items: items,
-      // ✅ FIX: Pasar nombre de tienda y ACCN para que el ticket muestre la sucursal
-      tienda_nombre: warranty.store?.name || '',
-      accn: warranty.store?.accn || '000',
-    };
-
-    let ticketBuffer;
-    try {
-      ticketBuffer = await generateEscPosBuffer(orderForPrint, items);
-    } catch (error) {
-      logger.error(`Error generando buffer para reimpresión: ${error.message}`);
-      return res.status(500).json({ error: 'Error al generar buffer.', details: error.message });
-    }
-
-    const agentUrl = `http://${warranty.lab.agentIp}:${warranty.lab.agentPort}/print`;
-    const bufferBase64 = ticketBuffer.toString('base64');
-
-    try {
-      await axios.post(agentUrl, {
-        ticket: bufferBase64, warrantyId: warranty.id, orderNumber: warranty.orderNumber,
-      }, {
-        timeout: 10000,
-        // ✅ FIX: Usar la apiKey propia del laboratorio (la misma que el agente tiene en config.json)
-        headers: { 'Content-Type': 'application/json', 'X-API-Key': warranty.lab.apiKey },
-      });
-      return res.status(200).json({ message: 'Ticket enviado.', warranty: { id: warranty.id, orderNumber: warranty.orderNumber, lab: warranty.lab.name } });
-    } catch (error) {
-      if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') {
-        return res.status(503).json({ error: 'No se pudo conectar con el agente.' });
-      }
-      return res.status(500).json({ error: 'Error al enviar al agente.', details: error.message });
-    }
-  } catch (error) {
-    logger.error(`[reprintTicket] ${error.message}`);
-    return res.status(500).json({ error: 'Error interno.' });
-  }
-};
-
-/**
- * POST /api/lab/warranties/:warrantyId/process
- * Procesa una garantía: genera ticket → imprime, genera VCA → guarda, marca COMPLETED.
- * Unifica impresión y VCA en una sola acción desde el panel del laboratorio.
- */
-const processWarranty = async (req, res) => {
+const getTicketBuffer = async (req, res) => {
   try {
     const { warrantyId } = req.params;
     const userId = req.user.id;
@@ -98,177 +21,90 @@ const processWarranty = async (req, res) => {
     const userLabId = req.user.labId;
 
     if (!['LABORATORIO', 'ADMIN'].includes(userRole)) {
-      return res.status(403).json({ error: 'Solo Laboratorio o Administrador pueden procesar garantías.' });
+      return res.status(403).json({ error: 'No autorizado' });
     }
 
     const warranty = await prisma.warranty.findUnique({
       where: { id: warrantyId },
       include: {
-        // ✅ FIX: Incluir apiKey para autenticarse contra el agente con la clave propia del lab
-        lab: { select: { id: true, name: true, agentIp: true, agentPort: true, vcaNetworkPath: true, apiKey: true } },
+        lab: { select: { id: true, name: true, printerName: true, vcaNetworkPath: true, vcaEnabled: true } },
         store: { select: { name: true, accn: true } },
       },
     });
 
     if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
 
+    // Validación de pertenencia
     if (userRole === 'LABORATORIO' && warranty.labId !== userLabId) {
       return res.status(403).json({ error: 'Esta garantía no pertenece a tu laboratorio.' });
     }
 
-    const allowedStatuses = ['PENDING', 'PROCESSING', 'ERROR'];
-    if (!allowedStatuses.includes(warranty.status)) {
-      return res.status(400).json({ error: `Estado: ${warranty.status}. Solo se procesan garantías pendientes, en procesamiento o con error.` });
-    }
-
-    const lab = warranty.lab;
-    if (!lab?.agentIp || !lab?.agentPort) {
-      return res.status(400).json({ error: 'Lab sin agente de impresión configurado.' });
-    }
-
-    await prisma.warranty.update({
-      where: { id: warrantyId },
-      data: { status: 'PROCESSING', processingStartedAt: new Date(), errorMessage: null },
-    });
-
-    // *** CORRECCIÓN: Asegurar que items sea un array ***
+    // Preparar datos para impresión (misma lógica que ya tenías)
     const items = warranty.orderData?.items || [];
-
     const orderForPrint = {
       ...warranty.orderData,
       warrantyType: warranty.warrantyType,
       storeObservations: warranty.storeObservations,
       accn: warranty.store?.accn || '000',
       tienda_nombre: warranty.store?.name || '',
-      items: items, // <-- Aseguramos que items esté en el objeto para generateTicketText
+      items: items,
     };
 
-    logger.info(`[processWarranty] Iniciando procesamiento de garantía ${warranty.orderNumber} (${warrantyId})`);
-
+    // 1. Generar Buffer ESC/POS
     let ticketBuffer;
     try {
       ticketBuffer = await generateEscPosBuffer(orderForPrint, items);
     } catch (err) {
-      logger.error(`Error al generar buffer de ticket: ${err.message}`);
-      await prisma.warranty.update({
-        where: { id: warrantyId },
-        data: { status: 'ERROR', errorMessage: `Error al generar ticket: ${err.message}` },
-      });
-      return res.status(500).json({ error: 'Error al generar buffer de ticket.', details: err.message });
+      logger.error(`Error generando buffer: ${err.message}`);
+      return res.status(500).json({ error: 'Error al generar el ticket.' });
     }
 
-    const agentBaseUrl = `http://${lab.agentIp}:${lab.agentPort}`;
-    const axiosConfig = {
-      timeout: 15000,
-      // ✅ FIX: Usar la apiKey propia del laboratorio (la misma que el agente tiene en config.json)
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': lab.apiKey },
-    };
+    // 2. Generar contenido VCA (si aplica)
+    let vcaContent = null;
+    let vcaPath = null;
 
-    try {
-      await axios.post(`${agentBaseUrl}/print`, {
-        ticket: ticketBuffer.toString('base64'),
-        warrantyId: warranty.id,
-        orderNumber: warranty.orderNumber,
-      }, axiosConfig);
-    } catch (err) {
-      const errorMsg = err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
-        ? 'No se pudo conectar con el agente de impresión.'
-        : `Error al enviar ticket al agente: ${err.message}`;
-      logger.error(errorMsg);
-      await prisma.warranty.update({
-        where: { id: warrantyId },
-        data: { status: 'ERROR', errorMessage: errorMsg },
-      });
-      return res.status(503).json({ error: errorMsg });
+    if (warranty.lab.vcaEnabled && warranty.lab.vcaNetworkPath) {
+      try {
+        const { generateVCAContent } = require('../legacy/lensware');
+        vcaContent = await generateVCAContent(orderForPrint, items);
+        const filename = `Pedido_${warranty.orderNumber}_${warranty.storeId}.vca`;
+        vcaPath = `${warranty.lab.vcaNetworkPath}\\${filename}`;
+      } catch (vcaErr) {
+        logger.warn(`Error generando VCA preview: ${vcaErr.message}`);
+      }
     }
 
-    try {
-      await axios.post(`${agentBaseUrl}/api/vca`, {
-        warrantyId: warranty.id,
-        orderNumber: warranty.orderNumber,
-        orderData: warranty.orderData,
-        accn: warranty.store?.accn || '000',
-        tiendaNombre: warranty.store?.name || 'TIENDA',
-        rutaVcaRed: lab.vcaNetworkPath,
-      }, axiosConfig);
-    } catch (err) {
-      const errorMsg = err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT'
-        ? 'Ticket impreso pero no se pudo generar VCA: agente no responde.'
-        : `Ticket impreso pero error al generar VCA: ${err.message}`;
-      logger.error(errorMsg);
-      await prisma.warranty.update({
-        where: { id: warrantyId },
-        data: { status: 'ERROR', errorMessage: errorMsg },
-      });
-      return res.status(206).json({ warning: errorMsg, warranty: { id: warranty.id, orderNumber: warranty.orderNumber } });
-    }
+    logger.info(`[getTicketBuffer] Ticket generado para garantía ${warrantyId}`, { orderNumber: warranty.orderNumber });
 
-    await prisma.warranty.update({
-      where: { id: warrantyId },
-      data: { status: 'COMPLETED', processedAt: new Date(), processingStartedAt: null, errorMessage: null },
+    // 3. Devolver todo al frontend
+    return res.json({
+      success: true,
+      ticketBase64: ticketBuffer.toString('base64'),
+      vcaContent: vcaContent,
+      vcaPath: vcaPath,
+      printerName: warranty.lab.printerName || 'Bixolon', // Nombre exacto para QZ Tray
+      warrantyId: warranty.id
     });
 
-    logger.info(`[processWarranty] Garantía ${warranty.orderNumber} procesada exitosamente`);
-    return res.status(200).json({
-      message: 'Garantía procesada exitosamente.',
-      warranty: { id: warranty.id, orderNumber: warranty.orderNumber, status: 'COMPLETED', processedAt: new Date().toISOString() },
-    });
   } catch (error) {
-    logger.error(`[processWarranty] ${error.message}`);
-    return res.status(500).json({ error: 'Error interno al procesar la garantía.' });
+    logger.error(`[getTicketBuffer] ${error.message}`);
+    return res.status(500).json({ error: 'Error interno al preparar impresión.' });
   }
 };
 
 /**
- * GET /api/lab/agent-status
+ * GET /api/lab/test-ticket
+ * Genera un ticket de prueba (sin imprimir). El frontend lo imprime con QZ Tray.
  */
-const agentStatus = async (req, res) => {
+const getTestTicket = async (req, res) => {
   try {
     const lab = await prisma.lab.findUnique({
       where: { id: req.user.labId },
-      select: { id: true, agentIp: true, agentPort: true, vcaNetworkPath: true, printerName: true, printEnabled: true, vcaEnabled: true, pollInterval: true, lastHeartbeat: true },
+      select: { printerName: true },
     });
 
     if (!lab) return res.status(404).json({ error: 'Laboratorio no encontrado.' });
 
-    const now = new Date();
-    const secondsSinceLastBeat = lab.lastHeartbeat
-      ? Math.floor((now - new Date(lab.lastHeartbeat)) / 1000)
-      : null;
-    const online = secondsSinceLastBeat !== null && secondsSinceLastBeat < 120;
-
-    return res.status(200).json({
-      online,
-      lastHeartbeat: lab.lastHeartbeat,
-      secondsSinceLastBeat,
-      agentIp: lab.agentIp,
-      agentPort: lab.agentPort,
-      vcaNetworkPath: lab.vcaNetworkPath,
-      printerName: lab.printerName,
-      printEnabled: lab.printEnabled,
-      vcaEnabled: lab.vcaEnabled,
-      pollInterval: lab.pollInterval,
-    });
-  } catch (error) {
-    logger.error(`[agentStatus] ${error.message}`);
-    return res.status(500).json({ error: 'Error al obtener estado del agente.' });
-  }
-};
-
-/**
- * POST /api/lab/test-print
- */
-const testPrint = async (req, res) => {
-  try {
-    const lab = await prisma.lab.findUnique({
-      where: { id: req.user.labId },
-      // ✅ FIX: Incluir apiKey para autenticarse contra el agente con la clave propia del lab
-      select: { agentIp: true, agentPort: true, apiKey: true },
-    });
-
-    if (!lab?.agentIp || !lab?.agentPort) return res.status(400).json({ error: 'Lab sin agente configurado.' });
-
-    // Crear un objeto de prueba con items como array vacío
     const testOrder = {
       orden_numero: 'TEST-0000',
       cliente_nombre: 'PRUEBA DE IMPRESION',
@@ -279,23 +115,91 @@ const testPrint = async (req, res) => {
       oi_cilindro: '0.00',
       oi_eje: '0',
       observaciones: 'Ticket de prueba - SGG',
-      items: [], // <-- Aseguramos items
+      items: [],
     };
 
     const ticketBuffer = await generateEscPosBuffer(testOrder, []);
-    const agentUrl = `http://${lab.agentIp}:${lab.agentPort}/print`;
 
-    await axios.post(agentUrl, { ticket: ticketBuffer.toString('base64'), warrantyId: 'test', orderNumber: 'TEST-0000' }, {
-      timeout: 10000,
-      // ✅ FIX: Usar la apiKey propia del laboratorio (la misma que el agente tiene en config.json)
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': lab.apiKey },
+    return res.status(200).json({
+      ticketBase64: ticketBuffer.toString('base64'),
+      printerName: lab.printerName || 'Bixolon',
+    });
+  } catch (error) {
+    logger.error(`[getTestTicket] ${error.message}`);
+    return res.status(500).json({ error: 'Error al generar ticket de prueba.' });
+  }
+};
+
+/**
+ * GET /api/lab/print-config
+ * Configuración de impresión del laboratorio (sin agente).
+ */
+const getPrintConfig = async (req, res) => {
+  try {
+    const lab = await prisma.lab.findUnique({
+      where: { id: req.user.labId },
+      select: { printerName: true, vcaNetworkPath: true, vcaEnabled: true },
     });
 
-    return res.status(200).json({ message: 'Ticket de prueba enviado.' });
+    if (!lab) return res.status(404).json({ error: 'Laboratorio no encontrado.' });
+
+    return res.status(200).json(lab);
   } catch (error) {
-    logger.error(`[testPrint] ${error.message}`);
-    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT') return res.status(503).json({ error: 'No se pudo conectar con el agente.' });
-    return res.status(500).json({ error: 'Error en prueba de impresión.', details: error.message });
+    logger.error(`[getPrintConfig] ${error.message}`);
+    return res.status(500).json({ error: 'Error al obtener configuración de impresión.' });
+  }
+};
+
+/**
+ * POST /api/lab/warranties/:warrantyId/complete
+ * El frontend confirma que el ticket se imprimió con QZ Tray y marca la garantía como COMPLETED.
+ */
+const markAsCompleted = async (req, res) => {
+  const { warrantyId } = req.params;
+  const userRole = req.user.role;
+  const userLabId = req.user.labId;
+
+  try {
+    if (!['LABORATORIO', 'ADMIN'].includes(userRole)) {
+      return res.status(403).json({ error: 'No autorizado.' });
+    }
+
+    const warranty = await prisma.warranty.findUnique({
+      where: { id: warrantyId },
+      select: { id: true, labId: true, status: true, orderNumber: true },
+    });
+
+    if (!warranty) return res.status(404).json({ error: 'Garantía no encontrada.' });
+
+    if (userRole === 'LABORATORIO' && warranty.labId !== userLabId) {
+      return res.status(403).json({ error: 'Esta garantía no pertenece a tu laboratorio.' });
+    }
+
+    if (warranty.status === 'COMPLETED') {
+      return res.status(400).json({ error: 'La garantía ya está completada.' });
+    }
+
+    if (!['PENDING', 'PROCESSING', 'ERROR'].includes(warranty.status)) {
+      return res.status(400).json({ error: `Estado inválido: ${warranty.status}.` });
+    }
+
+    const updated = await prisma.warranty.update({
+      where: { id: warrantyId },
+      data: { status: 'COMPLETED', processedAt: new Date(), processingStartedAt: null, errorMessage: null },
+    });
+
+    logger.info(`[markAsCompleted] Garantía completada: ${warrantyId}`, {
+      labId: warranty.labId,
+      orderNumber: updated.orderNumber,
+    });
+
+    return res.json({
+      success: true,
+      warranty: { id: updated.id, orderNumber: updated.orderNumber, status: updated.status },
+    });
+  } catch (error) {
+    logger.error(`[markAsCompleted] ${error.message}`);
+    return res.status(500).json({ error: 'Error al actualizar estado.' });
   }
 };
 
@@ -358,10 +262,10 @@ const getMyStores = async (req, res) => {
 };
 
 module.exports = {
-  processWarranty,
-  reprintTicket,
-  agentStatus,
-  testPrint,
+  getTicketBuffer,
+  markAsCompleted,
+  getPrintConfig,
+  getTestTicket,
   getMyLabWarranties,
-  getMyStores
+  getMyStores,
 };

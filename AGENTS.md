@@ -9,7 +9,7 @@ Sistema de Garantías para ópticas. Monorepo sin tooling compartido: `backend/`
 | Backend | Express 5 + Prisma v7 + PostgreSQL | CommonJS (`require`), sin TypeScript |
 | Frontend | React 19 + Vite 8 + Tailwind 3 | ESM, sin TypeScript, Zustand, React Router v7 |
 | ERP externo | GesVision REST API | `app.gesvision.com`, credenciales en `.env` |
-| Agente de impresión | Polling sobre `/api/agent/*` | Autenticación por API Key, legado en `legacy/` |
+| Impresión | QZ Tray (cliente local del lab) + `qz-tray` npm en frontend | RAW ESC/POS vía WebSocket local; certificados/permisos configurados en QZ Tray |
 | Logs | Winston + daily rotate | `backend/logs/` |
 
 ## Comandos
@@ -55,12 +55,11 @@ El proyecto tiene Prisma skills instaladas (`backend/skills-lock.json`).
 backend/src/
   server.js          — entrypoint, registra rutas y cron
   config/            — database.js (pool pg), logger.js (winston), gesvision.js
-  routes/            — auth, store, agent, lab, admin
+  routes/            — auth, store, lab, admin
   controllers/       — lógica de cada ruta
   middleware/
     auth.js          — JWT (Bearer token, adjunta req.user)
     role.js          — requireRole(['ADMIN','TIENDA',...])
-    apiKeyAuth.js    — X-API-Key header, adjunta req.lab
   services/
     syncService.js   — consulta GesVision y guarda en OrderCache
   legacy/            — CÓDIGO LEGADO: NO REESCRIBIR
@@ -79,15 +78,16 @@ backend/src/
 | `ADMIN` | `/api/admin/*` | JWT + `requireRole(['ADMIN'])` | `/admin` |
 | `TIENDA` | `/api/store/*` | JWT + `requireRole(['TIENDA'])` | `/store` |
 | `LABORATORIO` | `/api/lab/*` | JWT + `requireRole(['LABORATORIO','ADMIN'])` | `/lab` |
-| Agente (impresión) | `/api/agent/*` | `X-API-Key` header → `apiKeyAuth` | Sin UI |
 
-### Flujo de garantía
+### Flujo de garantía (impresión con QZ Tray)
 
 1. Tienda consulta orden en GesVision (`GET /api/store/order/:n`)
 2. Tienda crea garantía (`POST /api/store/warranties`) → status `PENDING`
-3. Agente de lab consulta pendientes (`GET /api/agent/pending`) cada X segundos
-4. Agente procesa e imprime ticket → `POST /api/agent/complete` → status `COMPLETED`
+3. Lab abre el dashboard y pulsa "Procesar" sobre una garantía PENDING
+4. Frontend: `connectQZ()` → `GET /api/lab/ticket-buffer/:id` (backend genera buffer ESC/POS base64 + datos VCA) → `printRawData(printerName, base64)` imprime con QZ Tray → `writeVCAFile()` (opcional) → `POST /api/lab/warranties/:id/complete` → status `COMPLETED`
 5. Cron limpia garantías atascadas en PROCESSING >5min → vuelta a `PENDING`
+
+> **Nota:** el antiguo agente de impresión (polling `/api/agent/*`, X-API-Key) fue **retirado**. El backend ya no imprime ni envía tickets a agentes; solo genera el buffer y el frontend lo imprime vía QZ Tray.
 
 ### Convenciones del proyecto
 

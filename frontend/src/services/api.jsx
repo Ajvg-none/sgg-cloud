@@ -59,10 +59,10 @@ export const storeAPI = {
 // ============================================================
 export const labAPI = {
   getWarranties: (params) => api.get('/lab/warranties', { params }),
-  processWarranty: (warrantyId) => api.post(`/lab/warranties/${warrantyId}/process`),
-  agentStatus: () => api.get('/lab/agent-status'),
-  testPrint: () => api.post('/lab/test-print'),
-  reprintTicket: (warrantyId) => api.post(`/lab/print/${warrantyId}`),
+  getTicketBuffer: (warrantyId) => api.get(`/lab/ticket-buffer/${warrantyId}`),
+  completeWarranty: (warrantyId) => api.post(`/lab/warranties/${warrantyId}/complete`),
+  testTicket: () => api.get('/lab/test-ticket'),
+  printConfig: () => api.get('/lab/print-config'),
   getMyStores: () => api.get('/lab/stores'),
 };
 

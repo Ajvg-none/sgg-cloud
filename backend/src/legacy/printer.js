@@ -1,13 +1,6 @@
-const fs = require('fs').promises;
-const path = require('path');
-const axios = require('axios');
 const escpos = require('escpos');
 const logger = require('../config/logger');
 
-const AGENT_API_KEY = process.env.AGENT_API_KEY;
-const DEFAULT_AGENT_URL = process.env.AGENT_URL;
-const TICKET_FORMAT = process.env.TICKET_FORMAT || 'bin';
-const FALLBACK_FOLDER = process.env.TICKET_OUTPUT_FOLDER || path.join(process.cwd(), 'tickets');
 const LINE_WIDTH = 39;
 
 // ============================================================
@@ -244,126 +237,9 @@ async function generateEscPosBuffer(order, items) {
 }
 
 // ============================================================
-// ENVÍO AL AGENTE
+// EXPORTACIONES
 // ============================================================
-function buildAgentUrl(order) {
-  if (order.ip_ticketera && order.puerto_ticketera) {
-    return `http://${order.ip_ticketera}:${order.puerto_ticketera}`;
-  }
-  if (DEFAULT_AGENT_URL) {
-    logger.warn(`Laboratorio sin IP configurada, usando AGENT_URL del .env: ${DEFAULT_AGENT_URL}`);
-    return DEFAULT_AGENT_URL;
-  }
-  return null;
-}
-
-async function sendTicketToAgent(order, items, agentUrl) {
-  if (!agentUrl) throw new Error('URL del agente no definida para este laboratorio');
-  if (!AGENT_API_KEY) throw new Error('AGENT_API_KEY no definido en .env');
-  
-  logger.info(`Generando ticket para orden ${order.id}...`);
-  
-  let ticketBuffer;
-  if (TICKET_FORMAT === 'bin') {
-    ticketBuffer = await generateEscPosBuffer(order, items);
-  } else {
-    const text = generateTicketText(order, items);
-    ticketBuffer = Buffer.from(text, 'utf8');
-  }
-  
-  logger.info(`Buffer generado (${ticketBuffer.length} bytes). Enviando al agente ${agentUrl}...`);
-  
-  const payload = {
-    orderId: order.id,
-    ticket: ticketBuffer.toString('base64'),
-    format: TICKET_FORMAT
-  };
-  
-  try {
-    const response = await axios.post(`${agentUrl}/api/print`, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': AGENT_API_KEY
-      },
-      timeout: 15000
-    });
-    logger.info(`Ticket enviado al agente (${agentUrl}) para orden ${order.id}. Job ID: ${response.data.jobId}`);
-    return { method: 'agent', result: response.data };
-  } catch (err) {
-    logger.error(`Error enviando ticket al agente ${agentUrl}: ${err.message}`);
-    throw new Error(`Error de comunicación con agente: ${err.message}`);
-  }
-}
-
-async function saveTicketToFolder(order, items, folder) {
-  const targetFolder = folder || FALLBACK_FOLDER;
-  await fs.mkdir(targetFolder, { recursive: true });
-  
-  const ext = TICKET_FORMAT === 'bin' ? 'bin' : 'txt';
-  const filename = `Pedido_${order.orden_numero}_${order.tienda_id}.${ext}`;
-  const filepath = path.join(targetFolder, filename);
-  
-  try {
-    await fs.access(filepath);
-    logger.info(`✨ Archivo de ticket ya existe (idempotencia): ${filepath}`);
-    return { method: 'file', filepath, alreadyExisted: true };
-  } catch (accessErr) {
-    // Si no existe, procedemos a escribirlo
-  }
-  
-  let buffer;
-  if (TICKET_FORMAT === 'bin') {
-    buffer = await generateEscPosBuffer(order, items);
-  } else {
-    const text = generateTicketText(order, items);
-    buffer = Buffer.from(text, 'utf8');
-  }
-  
-  await fs.writeFile(filepath, buffer);
-  logger.info(`Ticket guardado en ${filepath} (${buffer.length} bytes)`);
-  return { method: 'file', filepath };
-}
-
-async function saveTicketToFile(order, items, folder = null, carpeta_lensware = null) {
-  const agentUrl = buildAgentUrl(order);
-  let ticketResult;
-  
-  if (agentUrl && AGENT_API_KEY) {
-    ticketResult = await sendTicketToAgent(order, items, agentUrl);
-  } else {
-    throw new Error('Error de comunicación con agente: Agente de impresión no configurado para este laboratorio.');
-  }
-  
-  return { ticket: ticketResult };
-}
-
-async function testAgentConnection(ip, puerto) {
-  const url = `http://${ip}:${puerto}`;
-  try {
-    const response = await axios.get(`${url}/api/status`, {
-      headers: { 'X-API-Key': AGENT_API_KEY },
-      timeout: 5000
-    });
-    return {
-      success: true,
-      url,
-      status: response.status,
-      data: response.data
-    };
-  } catch (err) {
-    return {
-      success: false,
-      url,
-      error: err.message,
-      code: err.code || 'UNKNOWN'
-    };
-  }
-}
-
 module.exports = {
-  saveTicketToFile,
   generateTicketText,
   generateEscPosBuffer,
-  testAgentConnection,
-  buildAgentUrl,
 };

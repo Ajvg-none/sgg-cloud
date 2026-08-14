@@ -15,23 +15,22 @@ const prisma = new PrismaClient({ adapter });
 // ============================================================
 const createLab = async (req, res) => {
   try {
-    const { name, agentIp, agentPort, vcaNetworkPath, printerName, printEnabled, vcaEnabled, pollInterval } = req.body;
-    if (!name || !agentIp || !agentPort || !vcaNetworkPath) {
+    const { name, agentIp, agentPort, vcaNetworkPath, printerName, printEnabled, vcaEnabled } = req.body;
+    if (!name || !vcaNetworkPath) {
       return res.status(400).json({
-        error: 'Todos los campos son obligatorios: name, agentIp, agentPort, vcaNetworkPath.',
+        error: 'Campos obligatorios: name y vcaNetworkPath.',
       });
     }
     const apiKey = crypto.randomBytes(32).toString('hex');
     const lab = await prisma.lab.create({
       data: {
         name,
-        agentIp,
-        agentPort: String(agentPort),
+        agentIp: agentIp || '',
+        agentPort: String(agentPort || '3001'),
         vcaNetworkPath,
         printerName: printerName || 'Bixolon',
         printEnabled: printEnabled !== false,
         vcaEnabled: vcaEnabled !== false,
-        pollInterval: parseInt(pollInterval) || 5000,
         apiKey,
       },
     });
