@@ -9,7 +9,7 @@ import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
-import { Pencil, Trash2, KeyRound, Search, RefreshCw } from 'lucide-react';
+import { Pencil, Trash2, Search, RefreshCw } from 'lucide-react';
 
 const LIMIT_OPTIONS = [
   { value: 5, label: '5 filas' },
@@ -25,7 +25,7 @@ const AdminLabs = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLab, setEditingLab] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', agentIp: '', agentPort: '', vcaNetworkPath: '', printerName: '', printEnabled: true, vcaEnabled: true, pollInterval: 5000 });
+  const [form, setForm] = useState({ name: '', vcaNetworkPath: '', printerName: '', printEnabled: true, vcaEnabled: true });
   const [formErrors, setFormErrors] = useState({});
   const [generatedKey, setGeneratedKey] = useState(null);
   const [search, setSearch] = useState('');
@@ -48,7 +48,7 @@ const AdminLabs = () => {
 
   const openCreate = () => {
     setEditingLab(null);
-    setForm({ name: '', agentIp: '', agentPort: '', vcaNetworkPath: '', printerName: '', printEnabled: true, vcaEnabled: true, pollInterval: 5000 });
+    setForm({ name: '', vcaNetworkPath: '', printerName: '', printEnabled: true, vcaEnabled: true });
     setFormErrors({});
     setGeneratedKey(null);
     setModalOpen(true);
@@ -56,7 +56,7 @@ const AdminLabs = () => {
 
   const openEdit = (lab) => {
     setEditingLab(lab);
-    setForm({ name: lab.name, agentIp: lab.agentIp, agentPort: lab.agentPort, vcaNetworkPath: lab.vcaNetworkPath, printerName: lab.printerName || '', printEnabled: lab.printEnabled !== false, vcaEnabled: lab.vcaEnabled !== false, pollInterval: lab.pollInterval || 5000 });
+    setForm({ name: lab.name, vcaNetworkPath: lab.vcaNetworkPath, printerName: lab.printerName || '', printEnabled: lab.printEnabled !== false, vcaEnabled: lab.vcaEnabled !== false });
     setFormErrors({});
     setGeneratedKey(null);
     setModalOpen(true);
@@ -65,9 +65,6 @@ const AdminLabs = () => {
   const validateForm = () => {
     const errors = {};
     if (!form.name.trim()) errors.name = 'El nombre es obligatorio';
-    if (!form.agentIp.trim()) errors.agentIp = 'La IP del agente es obligatoria';
-    if (!form.agentPort || isNaN(parseInt(form.agentPort)) || parseInt(form.agentPort) < 1 || parseInt(form.agentPort) > 65535)
-      errors.agentPort = 'Puerto inválido (1-65535)';
     if (!form.vcaNetworkPath.trim()) errors.vcaNetworkPath = 'La ruta VCA es obligatoria';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -102,18 +99,6 @@ const AdminLabs = () => {
       loadLabs();
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al eliminar' });
-    }
-  };
-
-  const handleRegenerateKey = async (lab) => {
-    if (!window.confirm(`¿Regenerar API Key para "${lab.name}"? El agente actual dejará de funcionar hasta que se actualice.`)) return;
-    try {
-      const res = await adminAPI.regenerateLabApiKey(lab.id);
-      setGeneratedKey(res.data.apiKey);
-      setAlert({ type: 'success', message: 'API Key regenerada. Copia la nueva clave ahora.' });
-      loadLabs();
-    } catch (e) {
-      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al regenerar' });
     }
   };
 
@@ -217,27 +202,21 @@ const AdminLabs = () => {
             <div className="overflow-x-auto">
               <table className="w-full table-fixed">
                 <colgroup>
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '11%' }} />
-                  <col style={{ width: '6%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '22%' }} />
                   <col style={{ width: '9%' }} />
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '6%' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '12%' }} />
                   <col style={{ width: '15%' }} />
                 </colgroup>
                 <thead>
                   <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Nombre</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">IP Agente</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Puerto</th>
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tickera</th>
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Ruta VCA</th>
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tiendas</th>
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Garantías</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Poll</th>
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Impresión</th>
                     <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
                   </tr>
@@ -246,8 +225,6 @@ const AdminLabs = () => {
                   {pagedLabs.map((lab) => (
                     <tr key={lab.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
                       <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{lab.name}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 tabular-nums">{lab.agentIp}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 tabular-nums">{lab.agentPort}</td>
                       <td className="py-3.5 px-4 align-middle text-center">
                         <span className="inline-flex items-center rounded-md border border-opticolor-gray-200 bg-opticolor-gray-100 px-2 py-0.5 text-xs font-medium text-opticolor-gray-600">
                           {lab.printerName || 'Bixolon'}
@@ -256,7 +233,6 @@ const AdminLabs = () => {
                       <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={lab.vcaNetworkPath}>{lab.vcaNetworkPath}</td>
                       <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.stores || 0}</td>
                       <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.warranties || 0}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-600 tabular-nums">{(lab.pollInterval || 5000) / 1000}s</td>
                       <td className="py-3.5 px-4 align-middle text-center">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${lab.printEnabled !== false ? 'bg-green-100 text-green-800' : 'bg-opticolor-gray-100 text-opticolor-gray-500'}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${lab.printEnabled !== false ? 'bg-green-500' : 'bg-opticolor-gray-400'}`} aria-hidden="true" />
@@ -272,14 +248,6 @@ const AdminLabs = () => {
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>Editar</span>
-                          </button>
-                          <button
-                            onClick={() => handleRegenerateKey(lab)}
-                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
-                            title="Regenerar API Key"
-                          >
-                            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-                            <span>Nueva Key</span>
                           </button>
                           <button
                             onClick={() => handleDelete(lab)}
@@ -310,25 +278,12 @@ const AdminLabs = () => {
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editingLab ? 'Editar Laboratorio' : 'Nuevo Laboratorio'} size="md">
         <div className="space-y-4">
           <Input label="Nombre" value={form.name} onChange={(e) => handleChange('name', e.target.value)} error={formErrors.name} placeholder="Ej: Laboratorio Central" />
-          <Input label="IP del Agente" value={form.agentIp} onChange={(e) => handleChange('agentIp', e.target.value)} error={formErrors.agentIp} placeholder="Ej: 192.168.1.100" />
-          <Input label="Puerto del Agente" value={form.agentPort} onChange={(e) => handleChange('agentPort', e.target.value)} error={formErrors.agentPort} placeholder="Ej: 3001" />
           <Input label="Ruta VCA de Red" value={form.vcaNetworkPath} onChange={(e) => handleChange('vcaNetworkPath', e.target.value)} error={formErrors.vcaNetworkPath} placeholder="Ej: \\192.168.1.100\Lensware\VCA" />
 
-          {/* Configuración del Agente */}
+          {/* Configuración de Impresión */}
           <div className="pt-4 border-t border-opticolor-gray-200 space-y-4">
-            <h4 className="text-sm font-semibold text-opticolor-gray-700">Configuración del Agente</h4>
-            <Input label="Nombre de la Tickera" value={form.printerName} onChange={(e) => handleChange('printerName', e.target.value)} placeholder="Ej: Bixolon" />
-            <Select
-              label="Intervalo de Polling"
-              value={form.pollInterval}
-              onChange={(e) => handleChange('pollInterval', parseInt(e.target.value))}
-              options={[
-                { value: 3000, label: '3 seg' },
-                { value: 5000, label: '5 seg' },
-                { value: 10000, label: '10 seg' },
-                { value: 30000, label: '30 seg' },
-              ]}
-            />
+            <h4 className="text-sm font-semibold text-opticolor-gray-700">Configuración de Impresión</h4>
+            <Input label="Nombre de la Impresora" value={form.printerName} onChange={(e) => handleChange('printerName', e.target.value)} placeholder="Ej: Bixolon" />
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-sm font-medium text-opticolor-gray-700 cursor-pointer">
                 <input

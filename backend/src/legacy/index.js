@@ -56,12 +56,6 @@ module.exports = {
   // --- Printer (tickets ESC/POS) ---
   // Función pura para generar el texto del ticket
   generateTicketText: printer.generateTicketText,
-  // Función pura para generar el buffer ESC/POS
+  // Función pura para generar el buffer ESC/POS (lo imprime el frontend con QZ Tray)
   generateEscPosBuffer: printer.generateEscPosBuffer,
-  // Funciones auxiliares para envío a agente (se usarán en reimpresiones)
-  sendTicketToAgent: printer.sendTicketToAgent,
-  buildAgentUrl: printer.buildAgentUrl,
-  testAgentConnection: printer.testAgentConnection,
-  // Fallback a archivo (no se usará en la nube, pero se mantiene por si acaso)
-  saveTicketToFile: printer.saveTicketToFile
 };

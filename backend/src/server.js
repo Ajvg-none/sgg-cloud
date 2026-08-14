@@ -27,7 +27,6 @@ const logger = require('./config/logger');
 // Rutas
 const authRoutes = require('./routes/authRoutes');
 const storeRoutes = require('./routes/storeRoutes');
-const agentRoutes = require('./routes/agentRoutes');
 const labRoutes = require('./routes/labRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
@@ -49,7 +48,6 @@ app.use(cors());
 // 5. REGISTRAR RUTAS DE API
 app.use('/api/auth', authRoutes);
 app.use('/api/store', storeRoutes);
-app.use('/api/agent', agentRoutes);
 app.use('/api/lab', labRoutes);
 app.use('/api/admin', adminRoutes);
 

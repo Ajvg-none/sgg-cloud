@@ -12,6 +12,8 @@ import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
 import WarrantyDetailModal from '../../components/ui/WarrantyDetailModal';
 import { Printer, CheckCircle2, XCircle, Search, RefreshCw, Eye } from 'lucide-react';
+import { connectQZ, printRawData, writeVCAFile, isQZActive } from '../../services/qzprintService';
+
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -56,7 +58,8 @@ const OrderNumber = ({ code }) => {
 
 const LabDashboard = () => {
   // Estado del sistema
-  const [agentState, setAgentState] = useState({ online: false, lastHeartbeat: null, secondsSinceLastBeat: null, agentIp: '', agentPort: '', printerName: '', printEnabled: true, vcaEnabled: true, pollInterval: 5000 });
+  const [printConfig, setPrintConfig] = useState({ printerName: '', vcaNetworkPath: '', vcaEnabled: true });
+  const [qzConnected, setQzConnected] = useState(false);
   const [testPrintResult, setTestPrintResult] = useState(null);
   // Garantías
   const [warranties, setWarranties] = useState([]);
@@ -80,7 +83,8 @@ const LabDashboard = () => {
 
   useEffect(() => {
     loadMeta();
-    loadAgentStatus();
+    loadPrintConfig();
+    setQzConnected(isQZActive());
     loadWarranties(1);
   }, []);
 
@@ -91,13 +95,11 @@ const LabDashboard = () => {
     } catch (e) { /* silencioso */ }
   };
 
-  const loadAgentStatus = async () => {
+  const loadPrintConfig = async () => {
     try {
-      const res = await labAPI.agentStatus();
-      setAgentState(res.data);
-    } catch (e) {
-      setAgentState((prev) => ({ ...prev, online: false }));
-    }
+      const res = await labAPI.printConfig();
+      setPrintConfig(res.data);
+    } catch (e) { /* silencioso */ }
   };
 
   const loadWarranties = useCallback(async (page = 1, limitOverride) => {
@@ -121,7 +123,8 @@ const LabDashboard = () => {
   useEffect(() => {
     if (refreshInterval === 0) return;
     const id = setInterval(() => {
-      loadAgentStatus();
+      loadPrintConfig();
+      setQzConnected(isQZActive());
       loadWarranties(pagination.page);
     }, refreshInterval * 1000);
     return () => clearInterval(id);
@@ -152,43 +155,70 @@ const LabDashboard = () => {
 
   const handleReprintConfirm = async () => {
     if (!warrantyToReprint) return;
+    setReprintModalOpen(false);
     try {
-      await labAPI.reprintTicket(warrantyToReprint.id);
-      setAlert({ type: 'success', message: `Ticket de orden ${warrantyToReprint.orderNumber} enviado a impresión.` });
-      setReprintModalOpen(false);
+      await connectQZ();
+      const response = await labAPI.getTicketBuffer(warrantyToReprint.id);
+      const { ticketBase64, printerName } = response.data;
+      await printRawData(printerName, ticketBase64);
+      setAlert({ type: 'success', message: `Ticket de orden ${warrantyToReprint.orderNumber} reimpreso.` });
       setWarrantyToReprint(null);
     } catch (e) {
-      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al reimprimir' });
+      console.error(e);
+      setAlert({ type: 'error', message: e.response?.data?.error || e.message || 'Error al reimprimir' });
+      setWarrantyToReprint(null);
     }
   };
 
-  // Abrir modal de procesamiento
-  const handleProcessClick = (warranty) => {
-    setWarrantyToProcess(warranty);
-    setProcessModalOpen(true);
-  };
+const handleProcessConfirm = async () => {
+  if (!warrantyToProcess) return;
+  
+  setProcessModalOpen(false);
+  setProcessingId(warrantyToProcess.id);
+  setAlert(null);
 
-  // Confirmar procesamiento
-  const handleProcessConfirm = async () => {
-    if (!warrantyToProcess) return;
-    setProcessModalOpen(false);
-    setProcessingId(warrantyToProcess.id);
-    try {
-      const res = await labAPI.processWarranty(warrantyToProcess.id);
-      if (res.data.warning) {
-        setAlert({ type: 'warning', message: res.data.warning });
-      } else {
-        setAlert({ type: 'success', message: `Orden ${warrantyToProcess.orderNumber} procesada exitosamente.` });
+  try {
+    // 1. Conectar con QZ Tray (esto abre el websocket local)
+    await connectQZ();
+
+    // 2. Pedir al backend que genere el ticket (NO imprime todavía)
+    const response = await labAPI.getTicketBuffer(warrantyToProcess.id);
+    const { ticketBase64, vcaContent, vcaPath, printerName } = response.data;
+
+    // 3. IMPRIMIR FÍSICAMENTE con QZ Tray
+    // Esto envía los bytes directamente a la impresora Bixolon
+    await printRawData(printerName, ticketBase64);
+
+    // 4. Generar archivo VCA (Opcional, si falla no detenemos todo)
+    if (vcaContent && vcaPath) {
+      try {
+        await writeVCAFile(vcaPath, vcaContent);
+      } catch (vcaErr) {
+        console.warn("Error escribiendo VCA:", vcaErr);
+        setAlert({ type: 'warning', message: 'Ticket impreso, pero falló la generación del archivo VCA en red.' });
       }
-      await loadWarranties(pagination.page);
-      await loadAgentStatus();
-    } catch (e) {
-      setAlert({ type: 'error', message: e.response?.data?.error || 'Error al procesar la garantía' });
-    } finally {
-      setProcessingId(null);
-      setWarrantyToProcess(null);
     }
-  };
+
+    // 5. Avisar al backend que ya terminamos (Marcar como COMPLETED)
+    await labAPI.completeWarranty(warrantyToProcess.id);
+
+    setAlert({ type: 'success', message: `Orden ${warrantyToProcess.orderNumber} impresa y procesada correctamente.` });
+    
+    // Recargar datos
+    await loadWarranties(pagination.page);
+    setQzConnected(isQZActive());
+
+  } catch (err) {
+    console.error(err);
+    setAlert({ 
+      type: 'error', 
+      message: err.message || 'Error al procesar con QZ Tray. Verifica que QZ Tray esté abierto.' 
+    });
+  } finally {
+    setProcessingId(null);
+    setWarrantyToProcess(null);
+  }
+};
 
   const handleProcess = async (warrantyId, orderNumber) => {
     const warranty = warranties.find(w => w.id === warrantyId);
@@ -200,9 +230,14 @@ const LabDashboard = () => {
   const handleTestPrint = async () => {
     setTestPrintResult(null);
     try {
-      await labAPI.testPrint();
+      await connectQZ();
+      const response = await labAPI.testTicket();
+      const { ticketBase64, printerName } = response.data;
+      await printRawData(printerName, ticketBase64);
       setTestPrintResult('success');
+      setQzConnected(true);
     } catch (e) {
+      console.error(e);
       setTestPrintResult('error');
     }
   };
@@ -210,12 +245,6 @@ const LabDashboard = () => {
   const formatDate = (d) => {
     if (!d) return '-';
     return new Date(d).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatSeconds = (secs) => {
-    if (secs === null || secs === undefined) return 'Nunca';
-    if (secs < 60) return `${secs}s`;
-    return `${Math.floor(secs / 60)}m ${secs % 60}s`;
   };
 
   return (
@@ -234,18 +263,17 @@ const LabDashboard = () => {
 
       {/* Sección 1: Estado del Sistema */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card className={`border-l-4 ${agentState.online ? 'border-l-green-500' : 'border-l-red-500'}`}>
+        <Card className={`border-l-4 ${qzConnected ? 'border-l-green-500' : 'border-l-red-500'}`}>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-opticolor-gray-500">Agente</p>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${agentState.online ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {agentState.online ? 'ONLINE' : 'OFFLINE'}
+            <p className="text-sm text-opticolor-gray-500">QZ Tray</p>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${qzConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {qzConnected ? 'CONECTADO' : 'DESCONECTADO'}
             </span>
           </div>
-          <p className="text-xs text-opticolor-gray-400">Última vez: {formatSeconds(agentState.secondsSinceLastBeat)}</p>
-          <p className="text-xs text-opticolor-gray-400 mt-1">{agentState.agentIp}:{agentState.agentPort}</p>
+          <p className="text-xs text-opticolor-gray-400">{qzConnected ? 'Listo para imprimir' : 'QZ Tray no detectado en este equipo'}</p>
         </Card>
         <Card className="border-l-4 border-l-blue-500">
-          <p className="text-sm text-opticolor-gray-500 mb-2">Impresora: {agentState.printerName || 'Bixolon'}</p>
+          <p className="text-sm text-opticolor-gray-500 mb-2">Impresora: {printConfig.printerName || 'Bixolon'}</p>
           <div className="flex items-center gap-2">
             <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
             {testPrintResult === 'success' && (

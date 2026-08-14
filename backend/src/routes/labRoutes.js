@@ -4,10 +4,10 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const requireRole = require('../middleware/role');
 const {
-  processWarranty,
-  reprintTicket,
-  agentStatus,
-  testPrint,
+  getTicketBuffer,
+  markAsCompleted,
+  getPrintConfig,
+  getTestTicket,
   getMyLabWarranties,
   getMyStores,
 } = require('../controllers/labController');
@@ -16,17 +16,17 @@ const {
 router.use(authenticateToken);
 router.use(requireRole(['LABORATORIO', 'ADMIN']));
 
-// Procesar garantia (imprimir ticket + generar VCA + marcar COMPLETED)
-router.post('/warranties/:warrantyId/process', processWarranty);
+// Buffer ESC/POS del ticket para impresion via QZ Tray (frontend)
+router.get('/ticket-buffer/:warrantyId', getTicketBuffer);
 
-// Reimpresion
-router.post('/print/:warrantyId', reprintTicket);
+// Ticket de prueba (lo imprime el frontend con QZ Tray)
+router.get('/test-ticket', getTestTicket);
 
-// Estado del agente
-router.get('/agent-status', agentStatus);
+// Configuracion de impresion del laboratorio
+router.get('/print-config', getPrintConfig);
 
-// Prueba de impresion
-router.post('/test-print', testPrint);
+// Confirmar que el ticket ya se imprimio (QZ Tray) y marcar COMPLETED
+router.post('/warranties/:warrantyId/complete', markAsCompleted);
 
 // Garantias del laboratorio
 router.get('/warranties', getMyLabWarranties);
