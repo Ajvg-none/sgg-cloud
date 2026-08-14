@@ -199,41 +199,46 @@ const AdminUsers = () => {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
+                <colgroup>
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '28%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '23%' }} />
+                </colgroup>
                 <thead>
-                  <tr className="border-b-2 border-opticolor-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Usuario</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Rol</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Asociado a</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Estado</th>
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-opticolor-gray-700">Acciones</th>
+                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Usuario</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Rol</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Asociado a</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
                   {users.map((user) => (
-                    <tr key={user.id} className="border-b border-opticolor-gray-100 hover:bg-opticolor-gray-50 transition-colors">
-                      <td className="py-4 px-4 font-medium text-opticolor-gray-800">{user.username}</td>
-                      <td className="py-4 px-4">
+                    <tr key={user.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
+                      <td className="py-3.5 px-4 align-middle text-center text-sm font-medium text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{user.username}</td>
+                      <td className="py-3.5 px-4 align-middle text-center">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${ROLE_COLORS[user.role] || 'bg-gray-100 text-gray-700'}`}>
                           {ROLE_LABELS[user.role] || user.role}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-sm text-opticolor-gray-700">
+                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : ''}>
                         {user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : '-'}
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3.5 px-4 align-middle text-center">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${user.active ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-600 border-gray-300'}`}>
                           {user.active ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="grid grid-cols-3 gap-2 items-center">
+                      <td className="py-3.5 px-2 align-middle text-center">
+                        <div className="flex items-center justify-center gap-1">
                           {/* Botón Editar */}
                           <button
                             onClick={() => openEdit(user)}
-                            className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium
-                              bg-blue-50 text-blue-700 border border-blue-200 rounded-md
-                              hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
                             title="Editar usuario"
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -242,28 +247,22 @@ const AdminUsers = () => {
                           {/* Botón Reset */}
                           <button
                             onClick={() => openResetPassword(user)}
-                            className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium
-                              text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100
-                              rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
+                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
                             title="Resetear contraseña"
                           >
                             <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
                             <span>Reset</span>
                           </button>
-                          {/* ✅ Botón Eliminar (abre modal de confirmación) */}
-                          {user.role !== 'ADMIN' ? (
+                          {/* Botón Eliminar (abre modal de confirmación) */}
+                          {user.role !== 'ADMIN' && (
                             <button
                               onClick={() => openDeleteModal(user)}
-                              className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-1.5 text-xs font-medium
-                                text-red-600 hover:text-red-700 hover:bg-red-50
-                                rounded-md transition-colors border border-transparent hover:border-red-200"
+                              className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
                               title="Eliminar usuario"
                             >
                               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                               <span>Eliminar</span>
                             </button>
-                          ) : (
-                            <div className="w-full"></div>
                           )}
                         </div>
                       </td>
