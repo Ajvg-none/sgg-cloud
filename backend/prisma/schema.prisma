@@ -29,33 +29,33 @@ enum Status {
 
 model User {
   id        String   @id @default(cuid())
-  username  String   @unique  
-  password  String   // hashed with bcrypt
+  username  String   @unique
+  password  String
   role      Role
   storeId   String?  @map("store_id")
   labId     String?  @map("lab_id")
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  
+
   store Store? @relation(fields: [storeId], references: [id], onDelete: SetNull)
   lab   Lab?   @relation(fields: [labId], references: [id], onDelete: SetNull)
-  
+
   @@map("users")
 }
 
 model Store {
-  id          String     @id @default(cuid())
-  name        String
-  accn        String     @unique
-  labId       String     @map("lab_id")
-  active      Boolean    @default(true)
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id        String   @id @default(cuid())
+  name      String
+  accn      String   @unique
+  labId     String   @map("lab_id")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  lab         Lab        @relation(fields: [labId], references: [id])
-  users       User[]
-  warranties  Warranty[]
+  lab        Lab        @relation(fields: [labId], references: [id])
+  users      User[]
+  warranties Warranty[]
 
   @@map("stores")
 }
@@ -67,9 +67,9 @@ model Lab {
   agentPort      String    @map("puerto_agente")
   vcaNetworkPath String    @map("ruta_vca_red")
   printerName    String    @default("Bixolon") @map("printer_name")
-  printEnabled   Boolean   @default(true)      @map("print_enabled")
-  vcaEnabled     Boolean   @default(true)      @map("vca_enabled")
-  pollInterval   Int       @default(5000)      @map("poll_interval")
+  printEnabled   Boolean   @default(true) @map("print_enabled")
+  vcaEnabled     Boolean   @default(true) @map("vca_enabled")
+  pollInterval   Int       @default(5000) @map("poll_interval")
   apiKey         String    @unique
   lastHeartbeat  DateTime? @map("last_heartbeat")
   active         Boolean   @default(true)
@@ -94,25 +94,30 @@ model OrderCache {
 }
 
 model Warranty {
-  id                   String    @id @default(cuid())
-  storeId              String    @map("store_id")
-  labId                String    @map("lab_id")
-  orderNumber          String    @map("order_number")
-  revision             Int       @default(1) @map("revision") 
-  orderData            Json      @map("order_data")
-  status               Status    @default(PENDING)
-  processingStartedAt  DateTime? @map("processing_started_at")
-  processedAt          DateTime? @map("processed_at")
-  errorMessage         String?   @map("error_message")
-  warrantyType         String?   @map("warranty_type")
-  storeObservations    String?   @map("store_observations") @db.VarChar(300)
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(cuid())
+  storeId             String    @map("store_id")
+  labId               String    @map("lab_id")
+  orderNumber         String    @map("order_number")
+  revision            Int       @default(1) @map("revision")
+  orderData           Json      @map("order_data")
+  status              Status    @default(PENDING)
+  processingStartedAt DateTime? @map("processing_started_at")
+  processedAt         DateTime? @map("processed_at")
+  errorMessage        String?   @map("error_message")
+  warrantyType        String?   @map("warranty_type")
+  storeObservations   String?   @map("store_observations") @db.VarChar(300)
+
+  // Nuevo campo para controlar cuándo el agente local guardó el VCA
+  vcaDeliveredAt DateTime? @map("vca_delivered_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   store Store @relation(fields: [storeId], references: [id])
   lab   Lab   @relation(fields: [labId], references: [id])
 
-  @@unique([orderNumber, revision]) 
+  @@unique([orderNumber, revision])
+  @@index([labId, vcaDeliveredAt])
   @@map("warranties")
 }
 

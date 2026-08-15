@@ -6,11 +6,13 @@ require('dotenv').config();
 // ============================================================
 const requiredVars = ['DATABASE_URL', 'JWT_SECRET'];
 const recommendedVars = ['GESVISION_URL', 'GESVISION_USER', 'GESVISION_PASS', 'FRONTEND_URL'];
+
 const missing = requiredVars.filter((v) => !process.env[v]);
 if (missing.length > 0) {
   console.error(`❌ Faltan variables de entorno críticas: ${missing.join(', ')}`);
   process.exit(1);
 }
+
 const missingRecommended = recommendedVars.filter((v) => !process.env[v]);
 if (missingRecommended.length > 0) {
   console.warn(`⚠️ Variables recomendadas no configuradas: ${missingRecommended.join(', ')}`);
@@ -29,6 +31,9 @@ const authRoutes = require('./routes/authRoutes');
 const storeRoutes = require('./routes/storeRoutes');
 const labRoutes = require('./routes/labRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+
+// ✅ NUEVO (PASO 6): Rutas del agente local de VCA
+const agentRoutes = require('./routes/agentRoutes');
 
 // Cron Jobs
 const { startOrphanCleanupCron } = require('./cron/orphanCleanup');
@@ -50,6 +55,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/lab', labRoutes);
 app.use('/api/admin', adminRoutes);
+
+// ✅ NUEVO (PASO 6): Rutas del agente local de VCA
+// (Se autentican con la API key del laboratorio, no con JWT)
+app.use('/api/agent', agentRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
