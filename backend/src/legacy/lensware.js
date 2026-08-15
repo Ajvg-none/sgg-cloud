@@ -1,3 +1,4 @@
+// backend/src/legacy/lensware.js
 const tiendaCache = {};
 const fs = require('fs').promises;
 const path = require('path');
@@ -6,7 +7,13 @@ const logger = require('../config/logger');
 // ⚠️ IMPORTACIÓN TEMPORAL: Se eliminará en Fase 3 al migrar a Prisma
 const { Tienda } = require('./legacyDependencies');
 
-const BASE_VCA_FOLDER = process.env.LENSWARE_BASE_FOLDER || path.join(process.cwd(), 'vca_files');
+const BASE_VCA_FOLDER =
+  process.env.LENSWARE_BASE_FOLDER || path.join(process.cwd(), 'vca_files');
+
+// ✅ Constante segura para salto de línea Windows (CR + LF).
+// Se define con String.fromCharCode para evitar secuencias de escape
+// que se rompen al copiar y pegar el código.
+const CRLF = String.fromCharCode(13, 10);
 
 /**
  * Normaliza valores numéricos al formato fijo requerido por VCA.
@@ -16,8 +23,11 @@ const BASE_VCA_FOLDER = process.env.LENSWARE_BASE_FOLDER || path.join(process.cw
  */
 function formatVCAValue(value, decimals = 2) {
   if (value === null || value === undefined) return '0.00';
+
   const num = parseFloat(value);
+
   if (isNaN(num)) return '0.00';
+
   return num.toFixed(decimals);
 }
 
@@ -28,99 +38,129 @@ function formatVCAValue(value, decimals = 2) {
  */
 function cleanArticleCode(code) {
   if (!code) return '000000';
+
   return String(code).trim().replace(/\s+/g, '');
 }
 
 /**
  * Construye el contenido VCA usando datos de la orden, ACCN activo y line items.
+ * ✅ PASO 2: usa el ACCN real de la tienda si el backend lo pasa en `order.accn`.
  * @param {Object} order - Orden interna normalizada.
  * @param {Array<Object>} items - Ítems asociados.
  * @returns {Promise<string>} Contenido del archivo VCA.
  */
 async function generateVCAContent(order, items) {
   const DO = 'B';
-  
   const tiendaId = order.tienda_id;
+
   let ACCN;
-  if (tiendaCache[tiendaId]) {
+
+  // ✅ Prioridad 1: ACCN real pasado por el backend (tienda).
+  if (order.accn) {
+    const accnRaw = String(order.accn).trim();
+
+    if (/^\d{1,3}$/.test(accnRaw)) {
+      ACCN = accnRaw.padStart(3, '0');
+    } else {
+      ACCN = accnRaw;
+    }
+  }
+  // Prioridad 2: caché por tienda.
+  else if (tiendaCache[tiendaId]) {
     ACCN = tiendaCache[tiendaId];
-  } else {
+  }
+  // Prioridad 3: fallback legacy.
+  else {
     // El ACCN se cachea por tienda para evitar repetir una consulta en cada archivo VCA.
-    ACCN = await Tienda.getAccnByTiendaId(tiendaId) || '000';
+    ACCN = (await Tienda.getAccnByTiendaId(tiendaId)) || '000';
     tiendaCache[tiendaId] = ACCN;
   }
-  if (ACCN === '000') {
-    logger.warn(`⚠️ Tienda ${tiendaId} sin código ACCN en BD`);
+
+  if (!ACCN || ACCN === '000') {
+    logger.warn(`⚠️ Tienda ${tiendaId} sin código ACCN válido para VCA`);
   }
-  
+
   const _COMMENT = order.codigo_completo || order.orden_numero || '';
-  
-  const CLIENT = order.tienda_nombre ? `${ACCN} ${order.tienda_nombre}` : 'PACIENTE';
+  const CLIENT = order.tienda_nombre
+    ? `${ACCN} ${order.tienda_nombre}`
+    : 'PACIENTE';
 
   let FRAM = 'PENDIENTE';
   let LNAM_OD = 'PENDIENTE';
   let LNAM_OI = 'PENDIENTE';
-  
+
   if (items && items.length > 0) {
     for (const item of items) {
       const codigo = cleanArticleCode(item.codigo_articulo);
+
       if (!codigo || codigo === '000000') continue;
-      
+
       const primeraLetra = codigo.charAt(0).toUpperCase();
-      
+
       if (primeraLetra === 'M' && FRAM === 'PENDIENTE') {
         FRAM = codigo;
         logger.info(`🕶️ Montura detectada: ${codigo}`);
-      }
-      
-      else if (['A', 'B', 'H', 'C'].includes(primeraLetra) && LNAM_OD === 'PENDIENTE') {
+      } else if (
+        ['A', 'B', 'H', 'C'].includes(primeraLetra) &&
+        LNAM_OD === 'PENDIENTE'
+      ) {
         LNAM_OD = codigo;
         LNAM_OI = codigo;
         logger.info(`🔬 Cristal detectado: ${codigo} (tipo: ${primeraLetra})`);
       }
     }
-    
+
     if (FRAM === 'PENDIENTE') {
       // Fallback por descripción porque algunos catálogos no traen un prefijo estable.
-      const monturaItem = items.find(item => {
+      const monturaItem = items.find((item) => {
         const desc = (item.descripcion || '').toLowerCase();
-        return desc.includes('montura') || desc.includes('armazon') || desc.includes('armazón');
+        return (
+          desc.includes('montura') ||
+          desc.includes('armazon') ||
+          desc.includes('armazón')
+        );
       });
+
       if (monturaItem && monturaItem.codigo_articulo) {
         FRAM = cleanArticleCode(monturaItem.codigo_articulo);
       }
     }
-    
+
     if (LNAM_OD === 'PENDIENTE') {
-      const cristalItem = items.find(item => {
+      const cristalItem = items.find((item) => {
         const desc = (item.descripcion || '').toLowerCase();
-        return (desc.includes('cristal') || desc.includes('lente') ||
-                desc.includes('progresivo') || desc.includes('bifocal') ||
-                desc.includes('varilux') || desc.includes('essilor') ||
-                desc.includes('hi-in') || desc.includes('hi in') ||
-                desc.includes('balance') || desc.includes('pro ')) &&
-               !desc.includes('montura') && !desc.includes('armazon');
+        return (
+          (desc.includes('cristal') ||
+            desc.includes('lente') ||
+            desc.includes('progresivo') ||
+            desc.includes('bifocal') ||
+            desc.includes('varilux') ||
+            desc.includes('essilor') ||
+            desc.includes('hi-in') ||
+            desc.includes('hi in') ||
+            desc.includes('balance') ||
+            desc.includes('pro ')) &&
+          !desc.includes('montura') &&
+          !desc.includes('armazon')
+        );
       });
+
       if (cristalItem && cristalItem.codigo_articulo) {
         LNAM_OD = cleanArticleCode(cristalItem.codigo_articulo);
         LNAM_OI = LNAM_OD;
       }
     }
   }
-  
-  const LNAM = `${LNAM_OD};${LNAM_OI}`;
 
+  const LNAM = `${LNAM_OD};${LNAM_OI}`;
   const SPH = `${formatVCAValue(order.od_esfera)};${formatVCAValue(order.oi_esfera)}`;
   const CYL = `${formatVCAValue(order.od_cilindro)};${formatVCAValue(order.oi_cilindro)}`;
   const AX = `${formatVCAValue(order.od_eje, 0)};${formatVCAValue(order.oi_eje, 0)}`;
   const ADD = `${formatVCAValue(order.od_adicion)};${formatVCAValue(order.oi_adicion)}`;
-  
   const NPD = `${formatVCAValue(order.od_dp_centro)};${formatVCAValue(order.oi_dp_centro)}`;
   const IPD = `${formatVCAValue(order.od_dp_cerca)};${formatVCAValue(order.oi_dp_cerca)}`;
-  
   const DBL = formatVCAValue(order.montura_puente);
   const SEGHT = `${formatVCAValue(order.altura_od)};${formatVCAValue(order.altura_oi)}`;
-  
   const _RECTYPE = 'E';
 
   const lines = [
@@ -138,10 +178,11 @@ async function generateVCAContent(order, items) {
     `DBL=${DBL}`,
     `SEGHT=${SEGHT}`,
     `FRAM=${FRAM}`,
-    `_RECTYPE=${_RECTYPE}`
+    `_RECTYPE=${_RECTYPE}`,
   ];
-  
-  return lines.join('\r\n');
+
+  // ✅ Usa la constante CRLF en lugar de secuencias de escape.
+  return lines.join(CRLF);
 }
 
 /**
@@ -153,12 +194,14 @@ async function generateVCAContent(order, items) {
  */
 async function saveVCAFile(order, items, carpetaRelativa = null) {
   const targetFolder = carpetaRelativa
-    ? (path.isAbsolute(carpetaRelativa) ? carpetaRelativa : path.join(BASE_VCA_FOLDER, carpetaRelativa))
+    ? path.isAbsolute(carpetaRelativa)
+      ? carpetaRelativa
+      : path.join(BASE_VCA_FOLDER, carpetaRelativa)
     : BASE_VCA_FOLDER;
-  
+
   try {
     await fs.mkdir(targetFolder, { recursive: true });
-    
+
     // Nombre de archivo determinista con nomenclatura personalizada
     const filename = `Pedido_${order.orden_numero}_${order.tienda_id}.vca`;
     const filepath = path.join(targetFolder, filename);
@@ -166,29 +209,32 @@ async function saveVCAFile(order, items, carpetaRelativa = null) {
     // Verificar si el archivo ya existe
     try {
       await fs.access(filepath);
+
       logger.info(`✨ Archivo VCA ya existe (idempotencia): ${filepath}`);
+
       return {
         success: true,
         filepath,
         filename,
         folder: targetFolder,
-        alreadyExisted: true
+        alreadyExisted: true,
       };
     } catch (accessErr) {
       // Si no existe, procedemos a escribirlo
     }
 
     const vcaContent = await generateVCAContent(order, items);
+
     await fs.writeFile(filepath, vcaContent, 'utf8');
-    
+
     logger.info(`✅ Archivo VCA generado: ${filepath}`);
-    logger.debug(`Contenido VCA:\n${vcaContent}`);
-    
+    logger.debug('Contenido VCA:' + CRLF + vcaContent);
+
     return {
       success: true,
       filepath,
       filename,
-      folder: targetFolder
+      folder: targetFolder,
     };
   } catch (err) {
     logger.error(`❌ Error generando archivo VCA: ${err.message}`);
@@ -206,13 +252,17 @@ async function saveVCAFile(order, items, carpetaRelativa = null) {
 async function generateAndSaveVCA(order, items, carpeta_lensware = null) {
   logger.info(`🔍 Generando archivo VCA para orden ${order.orden_numero}`);
   logger.info(`📦 Items recibidos: ${items ? items.length : 0}`);
-  
+
   try {
     const result = await saveVCAFile(order, items, carpeta_lensware);
+
     logger.info(`✅ VCA generado exitosamente para orden ${order.id}`);
+
     return result;
   } catch (err) {
-    logger.error(`❌ Error en generateAndSaveVCA para orden ${order.id}: ${err.message}`);
+    logger.error(
+      `❌ Error en generateAndSaveVCA para orden ${order.id}: ${err.message}`
+    );
     throw err;
   }
 }
@@ -225,23 +275,28 @@ async function generateAndSaveVCA(order, items, carpeta_lensware = null) {
  */
 function validateCodePrefix(code, expectedPrefix) {
   if (!code) return false;
+
   return code.startsWith(expectedPrefix);
 }
 
 /**
  * Convierte el contenido VCA a un objeto simple para pruebas y diagnósticos.
+ * ✅ Usa la constante CRLF en lugar de secuencias de escape.
  * @param {string} vcaContent - Texto del archivo VCA.
  * @returns {Object}
  */
 function parseVCAContent(vcaContent) {
-  const lines = vcaContent.split('\r\n');
+  const lines = vcaContent.split(CRLF);
   const data = {};
-  lines.forEach(line => {
+
+  lines.forEach((line) => {
     const [key, value] = line.split('=');
+
     if (key && value) {
       data[key.trim()] = value.trim();
     }
   });
+
   return data;
 }
 
@@ -251,5 +306,5 @@ module.exports = {
   saveVCAFile,
   cleanArticleCode,
   validateCodePrefix,
-  parseVCAContent
+  parseVCAContent,
 };
