@@ -106,10 +106,10 @@ model Warranty {
   errorMessage        String?   @map("error_message")
   warrantyType        String?   @map("warranty_type")
   storeObservations   String?   @map("store_observations") @db.VarChar(300)
-
   // Nuevo campo para controlar cuándo el agente local guardó el VCA
   vcaDeliveredAt DateTime? @map("vca_delivered_at")
-
+  // ✅ NUEVO: Ojos afectados por el error: 'OD' | 'OI' | 'BOTH' (null para Error de Medida)
+  affectedEyes   String?   @map("affected_eyes")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

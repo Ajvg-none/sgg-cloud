@@ -10,7 +10,7 @@ import Alert from '../components/ui/Alert';
 import Select from '../components/ui/Select';
 import StoreHeader from '../components/layout/StoreHeader';
 import { Search, Save } from 'lucide-react';
-// ✅ NUEVO: servicio QZ Tray para la auto-impresión del ticket desde tienda
+// 🖨️ NUEVO: servicio QZ Tray para la auto-impresión del ticket desde tienda
 import { connectQZ, printRawData, writeVCAFile } from '../services/qzprintService';
 
 const WARRANTY_TYPES = [
@@ -20,20 +20,20 @@ const WARRANTY_TYPES = [
 ];
 
 // ============================================================
-// ✅ GENERADOR DE CÓDIGO DE BARRAS CODE39 (SVG inline)
+// 🖨️ GENERADOR DE CÓDIGO DE BARRAS CODE39 (SVG inline)
 // Misma simbología CODE39 que usa el ticket de la impresora.
 // Sin dependencias externas: funciona offline.
 // ============================================================
 const CODE39_PATTERNS = {
   '0': '101001101101', '1': '110100101011', '2': '101100101011', '3': '110110010101',
   '4': '101001101011', '5': '110100110101', '6': '101100110101', '7': '101001011011',
-  '8': '110100101101', '9': '101100101101', 'A': '110101001011', 'B': '101101001011',
+  '8': '110100101101', '9': '101100101011', 'A': '110101001011', 'B': '101101001011',
   'C': '110110100101', 'D': '101011001011', 'E': '110101100101', 'F': '101101100101',
   'G': '101010011011', 'H': '110101001101', 'I': '101101001101', 'J': '101011001101',
   'K': '110101010011', 'L': '101101010011', 'M': '110110101001', 'N': '101011010011',
   'O': '110101101001', 'P': '101101101001', 'Q': '101010110011', 'R': '110101011001',
   'S': '101101011001', 'T': '101011011001', 'U': '110010101011', 'V': '100110101011',
-  'W': '110011010101', 'X': '100101101011', 'Y': '110010110101', 'Z': '100110110101',
+  'W': '110011010101', 'X': '100101101011', 'Y': '110011010101', 'Z': '100110110101',
   '-': '100101011011', '.': '110010101101', ' ': '100110101101', '*': '100101101101',
   '$': '100100100101', '/': '100100101001', '+': '100101001001', '%': '101001001001',
 };
@@ -60,12 +60,13 @@ const generateCode39Svg = (value, { moduleWidth = 2, height = 60 } = {}) => {
 };
 
 const StoreWarranty = () => {
-  // ✅ Estado GLOBAL: sobrevive a la navegación entre pestañas
+  // 🌐 Estado GLOBAL: sobrevive a la navegación entre pestañas
   const {
     orderNumber,
     orderData,
     warrantyType,
     storeObservations,
+    affectedEyes,        // ✅ NUEVO: ['OD'] / ['OI'] / ['OD','OI']
     loading,
     saving,
     alert,
@@ -73,6 +74,7 @@ const StoreWarranty = () => {
     setOrderNumber,
     setWarrantyType,
     setStoreObservations,
+    toggleAffectedEye,   // ✅ NUEVO: marca/desmarca un ojo
     setAlert,
     setErrors,
     handleFieldChange,
@@ -97,33 +99,73 @@ const StoreWarranty = () => {
     loadStoreInfo();
   }, []);
 
+  // ✅ NUEVO: ¿El tipo actual es Error de RX / Transcripción?
+  const isRXType = warrantyType === 'Error de Transcripcion' || warrantyType === 'Error de RX';
+
+  // ✅ NUEVO: etiqueta legible de ojos afectados (para el sello del A4)
+  const affectedEyesLabel = isRXType
+    ? (affectedEyes.length === 2
+      ? 'Ambos ojos'
+      : affectedEyes.includes('OD')
+        ? 'Ojo Derecho (OD)'
+        : affectedEyes.includes('OI')
+          ? 'Ojo Izquierdo (OI)'
+          : '')
+    : '';
+
   // ============================================================
   // FUNCIÓN PARA GENERAR E IMPRIMIR LA ORDEN DE GARANTÍA (PDF A4)
-  // ✅ 1 página A4 + correlativo de revisión + Asesor/Responsable
-  // ✅ Código de barras CODE39 + Logo Opti-Color
+  // ✅ NUEVO: recibe affectedLabel (sello) y eyes (filas a mostrar)
   // ============================================================
-  const generateAndPrintWarrantyOrder = (data, type, observations, storeName, accn) => {
+  const generateAndPrintWarrantyOrder = (data, type, observations, storeName, accn, affectedLabel, eyes) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       setAlert({ type: 'warning', message: 'Por favor, permite las ventanas emergentes para imprimir la orden.' });
       return;
     }
-
     const revision = data.revision ?? 1;
 
-    // ✅ código de barras del número de orden (CODE39, mismo valor que el ticket)
+    // ✅ NUEVO: qué ojos mostrar en la tabla RX (null/undefined = ambos)
+    const showOD = !eyes || eyes.includes('OD');
+    const showOI = !eyes || eyes.includes('OI');
+    let rxRows = '';
+    if (showOD) {
+      rxRows += `
+<tr>
+<td>OD</td>
+<td>${data.od_esfera ?? '-'}</td>
+<td>${data.od_cilindro ?? '-'}</td>
+<td>${data.od_eje ?? '-'}</td>
+<td>${data.od_adicion ?? '-'}</td>
+<td>${data.od_dp_centro ?? data.od_dp_cerca ?? '-'}</td>
+<td>${data.altura_od ?? '-'}</td>
+</tr>`;
+    }
+    if (showOI) {
+      rxRows += `
+<tr>
+<td>OI</td>
+<td>${data.oi_esfera ?? '-'}</td>
+<td>${data.oi_cilindro ?? '-'}</td>
+<td>${data.oi_eje ?? '-'}</td>
+<td>${data.oi_adicion ?? '-'}</td>
+<td>${data.oi_dp_centro ?? data.oi_dp_cerca ?? '-'}</td>
+<td>${data.altura_oi ?? '-'}</td>
+</tr>`;
+    }
+
+    // 🖨️ código de barras del número de orden (CODE39, mismo valor que el ticket)
     const barcodeValue = data.codigo_completo || data.orden_numero || '';
     const barcodeSvg = barcodeValue ? generateCode39Svg(barcodeValue) : '';
+    const itemsHtml = (data.items || []).map(item => `
+<tr>
+<td class="item-desc">${item.descripcion || '-'}</td>
+<td class="item-qty">${item.cantidad || 1}</td>
+<td class="item-code">${item.codigo_completo || '-'}</td>
+</tr>
+`).join('');
 
-const itemsHtml = (data.items || []).map(item => `
-  <tr>
-  <td class="item-desc">${item.descripcion || '-'}</td>
-  <td class="item-qty">${item.cantidad || 1}</td>
-  <td class="item-code">${item.codigo_completo || '-'}</td>
-  </tr>
-  `).join('');
-
-const htmlContent = `
+    const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -138,7 +180,6 @@ const htmlContent = `
     font-size: 13px; line-height: 1.3;
   }
   .sheet-box { border: 2px solid #000; page-break-inside: avoid; }
-
   /* ===== FILA 1: LOGO | CÓDIGO+OTG | DATOS ===== */
   .row1 { display: grid; grid-template-columns: 0.8fr 1.4fr 1.4fr; }
   .row1 .cell { border-right: 2px solid #000; padding: 8px 10px; display: flex; flex-direction: column; justify-content: center; }
@@ -149,7 +190,6 @@ const htmlContent = `
   .meta div { margin-bottom: 3px; }
   .meta .label { font-size: 11px; font-weight: bold; text-transform: uppercase; }
   .meta .value { font-size: 13px; font-weight: bold; }
-
   /* ===== FILA 2: RX | ÍTEMS ===== */
   .row2 { display: grid; grid-template-columns: 1.2fr 1fr; border-top: 2px solid #000; }
   .row2 .cell { border-right: 2px solid #000; padding: 8px 10px; }
@@ -163,14 +203,12 @@ const htmlContent = `
   .items .item-desc { text-align: left; }
   .items .item-qty { text-align: center; width: 12%; }
   .items .item-code { font-family: monospace; text-align: left; width: 32%; }
-
   /* ===== FILA 3: OBSERVACIONES | TIPO ===== */
   .bottom-row { width: 100%; table-layout: fixed; border-collapse: collapse; border-top: 2px solid #000; }
   .bottom-row td { border-right: 2px solid #000; padding: 8px 10px; vertical-align: top; }
   .bottom-row td:last-child { border-right: none; vertical-align: middle; }
   .obs { font-size: 13px; min-height: 36px; overflow-wrap: anywhere; word-wrap: break-word; white-space: normal; }
   .warranty-type { font-size: 16px; font-weight: bold; text-transform: uppercase; text-align: center; min-height: 36px; }
-
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
@@ -178,7 +216,6 @@ const htmlContent = `
 </head>
 <body>
 <div class="sheet-box">
-
   <div class="row1">
     <div class="cell">
       <img src="/logo-opti.jpg" alt="Opti-Color" class="logo" />
@@ -192,9 +229,9 @@ const htmlContent = `
       <div><span class="label">Revisión:</span> <span class="value">Rev. ${revision}</span></div>
       <div><span class="label">Asesor:</span> <span class="value">${data.asesor_nombre || '-'}</span></div>
       <div><span class="label">Cliente:</span> <span class="value">${data.cliente_nombre || 'Paciente'}</span></div>
+      ${affectedLabel ? `<div><span class="label">Ojos afectados:</span> <span class="value">${affectedLabel}</span></div>` : ''}
     </div>
   </div>
-
   <div class="row2">
     <div class="cell">
       <div class="section-title">Prescripción Óptica (RX)</div>
@@ -203,24 +240,7 @@ const htmlContent = `
           <tr><th>Ojo</th><th>Esf.</th><th>Cil.</th><th>Eje</th><th>Add</th><th>DP</th><th>Alt.</th></tr>
         </thead>
         <tbody>
-          <tr>
-            <td>OD</td>
-            <td>${data.od_esfera ?? '-'}</td>
-            <td>${data.od_cilindro ?? '-'}</td>
-            <td>${data.od_eje ?? '-'}</td>
-            <td>${data.od_adicion ?? '-'}</td>
-            <td>${data.od_dp_centro ?? data.od_dp_cerca ?? '-'}</td>
-            <td>${data.altura_od ?? '-'}</td>
-          </tr>
-          <tr>
-            <td>OI</td>
-            <td>${data.oi_esfera ?? '-'}</td>
-            <td>${data.oi_cilindro ?? '-'}</td>
-            <td>${data.oi_eje ?? '-'}</td>
-            <td>${data.oi_adicion ?? '-'}</td>
-            <td>${data.oi_dp_centro ?? data.oi_dp_cerca ?? '-'}</td>
-            <td>${data.altura_oi ?? '-'}</td>
-          </tr>
+          ${rxRows}
         </tbody>
       </table>
       <div class="section-title" style="margin-top: 8px;">Medidas de la Montura</div>
@@ -250,7 +270,6 @@ const htmlContent = `
       </table>
     </div>
   </div>
-
   <table class="bottom-row">
     <colgroup>
       <col style="width: 75%;" />
@@ -269,27 +288,22 @@ const htmlContent = `
       </tr>
     </tbody>
   </table>
-
 </div>
 <script>
-window.onload = function() {
-  window.focus();
-  window.print();
-}
+  window.onload = function() {
+    window.focus();
+    window.print();
+  }
 </script>
 </body>
 </html>
 `;
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-      };
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   // ============================================================
-  // ✅ NUEVO: AUTO-IMPRESIÓN DEL TICKET AL GUARDAR
-  // Intenta imprimir el ticket en la tickera (vía QZ Tray) y dejar
-  // la garantía como COMPLETED. Si no hay conexión con QZ Tray o
-  // falla la impresora, devuelve { ok:false } y la garantía queda
-  // PENDING para que el laboratorio la procese manualmente.
+  // 🖨️ NUEVO: AUTO-IMPRESIÓN DEL TICKET AL GUARDAR
   // ============================================================
   const tryAutoPrintTicket = async (warrantyId) => {
     // 1. Conectar con QZ Tray en ESTE equipo
@@ -298,15 +312,12 @@ window.onload = function() {
     } catch {
       return { ok: false, reason: 'QZ Tray no está activo en este equipo' };
     }
-
     try {
       // 2. Pedir al backend el ticket + VCA
       const res = await storeAPI.getTicketBuffer(warrantyId);
       const { ticketBase64, vcaContent, vcaPath, printerName } = res.data;
-
       // 3. Imprimir físicamente en la tickera
       await printRawData(printerName, ticketBase64);
-
       // 4. Escribir el archivo VCA (best-effort, no bloquea el flujo)
       if (vcaContent && vcaPath) {
         try {
@@ -315,10 +326,8 @@ window.onload = function() {
           console.warn('No se pudo escribir el VCA:', vcaErr);
         }
       }
-
       // 5. Marcar COMPLETED para que el lab no tenga que procesarla
       await storeAPI.completeWarranty(warrantyId);
-
       return { ok: true };
     } catch (e) {
       console.error('[tryAutoPrintTicket]', e);
@@ -328,6 +337,7 @@ window.onload = function() {
 
   // ============================================================
   // CONTROL DE CAMPOS BLOQUEADOS SEGÚN TIPO DE GARANTÍA
+  // ✅ NUEVO: en RX/Transcripción respeta los ojos seleccionados
   // ============================================================
   const isFieldDisabled = (fieldName) => {
     if (!warrantyType) return true;
@@ -339,7 +349,13 @@ window.onload = function() {
       ];
       return !allowedFields.includes(fieldName);
     }
-    if (warrantyType === 'Error de Transcripcion' || warrantyType === 'Error de RX') return false;
+    if (isRXType) {
+      const isODField = fieldName.startsWith('od_') || fieldName === 'altura_od';
+      const isOIField = fieldName.startsWith('oi_') || fieldName === 'altura_oi';
+      if (isODField) return !affectedEyes.includes('OD');
+      if (isOIField) return !affectedEyes.includes('OI');
+      return false; // montura sigue editable
+    }
     return true;
   };
 
@@ -348,29 +364,38 @@ window.onload = function() {
   };
 
   // ============================================================
-  // GUARDAR GARANTÍA + PDF A4 + ✅ AUTO-IMPRESIÓN DEL TICKET
+  // GUARDAR GARANTÍA + PDF A4 + 🖨️ AUTO-IMPRESIÓN DEL TICKET
   // ============================================================
   const handleSave = async () => {
     const validationErrors = validateOpticalFields(orderData);
     if (!warrantyType) validationErrors.warrantyType = 'Selecciona un tipo de garantía';
+    // ✅ NUEVO: para RX/Transcripción debe haber al menos un ojo marcado
+    if (isRXType && affectedEyes.length === 0) {
+      validationErrors.affectedEyes = 'Selecciona al menos un ojo afectado';
+    }
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       setAlert({ type: 'error', message: 'Por favor corrige los errores antes de guardar' });
       return;
     }
-
     setSaving(true);
     setAlert(null);
     try {
+      // ✅ NUEVO: valor normalizado para el backend ('OD' | 'OI' | 'BOTH' | null)
+      const affectedEyesValue = isRXType
+        ? (affectedEyes.length === 2 ? 'BOTH' : affectedEyes[0])
+        : null;
+
       const response = await storeAPI.createWarranty({
         orderNumber: orderData.orden_numero,
         orderData: orderData,
         warrantyType,
         storeObservations: storeObservations.trim() || null,
+        affectedEyes: affectedEyesValue,
       });
       const created = response.data.warranty;
 
-      // 1) Orden de garantía en PDF A4 (como ya funcionaba)
+      // 1) Orden de garantía en PDF A4 (con sello y solo el ojo afectado)
       const printData = {
         ...orderData,
         orden_numero: created.orderNumber,
@@ -382,12 +407,13 @@ window.onload = function() {
         warrantyType,
         storeObservations,
         storeInfo.name,
-        storeInfo.accn
+        storeInfo.accn,
+        affectedEyesLabel,
+        isRXType ? affectedEyes : null
       );
 
-      // 2) ✅ NUEVO: intentar imprimir el ticket y auto-procesar
+      // 2) 🖨️ NUEVO: intentar imprimir el ticket y auto-procesar
       const auto = await tryAutoPrintTicket(created.id);
-
       if (auto.ok) {
         setAlert({
           type: 'success',
@@ -401,7 +427,6 @@ window.onload = function() {
             `(${auto.reason}). El laboratorio la procesará manualmente.`,
         });
       }
-
       setTimeout(() => {
         resetForm();
       }, 4000);
@@ -422,18 +447,15 @@ window.onload = function() {
     <div className="min-h-screen bg-opticolor-gray-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto animate-slide-up">
         <StoreHeader />
-
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-opticolor-gray-900 mb-2">Nueva Garantía</h1>
           <p className="text-opticolor-gray-600">Busca una OTG de GesVision y completa los datos de la garantía</p>
         </div>
-
         {alert && (
           <div className="mb-6">
             <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
           </div>
         )}
-
         {/* ============================================================
             BUSCAR OTG
         ============================================================ */}
@@ -498,15 +520,59 @@ window.onload = function() {
             ============================================================ */}
             <Card title="Datos de la Garantía">
               <div className="space-y-4">
-                <Select
-                  label="Tipo de Garantía *"
-                  value={warrantyType}
-                  onChange={(e) => setWarrantyType(e.target.value)}
-                  disabled={saving}
-                  error={errors.warrantyType}
-                  placeholder="Seleccionar tipo..."
-                  options={WARRANTY_TYPES.map((type) => ({ value: type, label: type }))}
-                />
+                {/* ✅ NUEVO: fila de 2 columnas → Tipo | Ojos Afectados */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Tipo de Garantía *"
+                    value={warrantyType}
+                    onChange={(e) => setWarrantyType(e.target.value)}
+                    disabled={saving}
+                    error={errors.warrantyType}
+                    placeholder="Seleccionar tipo..."
+                    options={WARRANTY_TYPES.map((type) => ({ value: type, label: type }))}
+                  />
+                  <div>
+                    <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">
+                      Ojos Afectados *
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleAffectedEye('OD')}
+                        disabled={saving || !isRXType}
+                        aria-pressed={affectedEyes.includes('OD')}
+                        className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:bg-opticolor-gray-50 disabled:border-opticolor-gray-200 disabled:text-opticolor-gray-400 ${
+                          affectedEyes.includes('OD') && isRXType
+                            ? 'bg-opticolor-red border-opticolor-red text-white shadow-md'
+                            : 'bg-white border-opticolor-gray-200 text-opticolor-gray-600 hover:border-opticolor-gray-300'
+                        }`}
+                      >
+                        Ojo Derecho (OD)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleAffectedEye('OI')}
+                        disabled={saving || !isRXType}
+                        aria-pressed={affectedEyes.includes('OI')}
+                        className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:bg-opticolor-gray-50 disabled:border-opticolor-gray-200 disabled:text-opticolor-gray-400 ${
+                          affectedEyes.includes('OI') && isRXType
+                            ? 'bg-opticolor-red border-opticolor-red text-white shadow-md'
+                            : 'bg-white border-opticolor-gray-200 text-opticolor-gray-600 hover:border-opticolor-gray-300'
+                        }`}
+                      >
+                        Ojo Izquierdo (OI)
+                      </button>
+                    </div>
+                    <p className="text-xs text-opticolor-gray-400 mt-1">
+                      {isRXType
+                        ? 'Marca el ojo o los ojos con error. El ojo no marcado queda bloqueado.'
+                        : 'Solo aplica para Error de RX / Transcripción.'}
+                    </p>
+                    {errors.affectedEyes && (
+                      <p className="text-sm text-opticolor-red-light animate-fade-in">{errors.affectedEyes}</p>
+                    )}
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">
                     Observaciones

@@ -32,6 +32,13 @@ const formatDate = (d) => {
   });
 };
 
+// ✅ NUEVO: etiquetas legibles para los ojos afectados
+const AFFECTED_EYES_LABELS = {
+  OD: 'Ojo Derecho (OD)',
+  OI: 'Ojo Izquierdo (OI)',
+  BOTH: 'Ambos ojos',
+};
+
 const Section = ({ icon: Icon, title, children }) => (
   <section className="overflow-hidden rounded-xl border border-opticolor-gray-200 bg-white">
     <header className="flex items-center gap-2 border-b border-opticolor-gray-200 bg-opticolor-gray-50 px-4 py-2.5">
@@ -64,6 +71,11 @@ const RxValue = ({ value, suffix = '' }) => (
 
 const WarrantyDetailModal = ({ isOpen, onClose, warranty }) => {
   const od = warranty?.orderData || null;
+  // ✅ NUEVO: ¿el tipo de garantía usa ojos afectados?
+  const isRXType =
+    warranty?.warrantyType === 'Error de RX' ||
+    warranty?.warrantyType === 'Error de Transcripcion';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Detalle de Garantía" size="lg">
       {warranty && (
@@ -96,7 +108,17 @@ const WarrantyDetailModal = ({ isOpen, onClose, warranty }) => {
 
           {/* Datos de la garantía */}
           <Section icon={ShieldAlert} title="Datos de la Garantía">
-            <Field label="Tipo de Garantía">{warranty.warrantyType || '-'}</Field>
+            {/* ✅ NUEVO: grid con Tipo + Ojos Afectados */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Tipo de Garantía">{warranty.warrantyType || '-'}</Field>
+              {isRXType && (
+                <Field label="Ojos Afectados">
+                  <span className="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-opticolor-red">
+                    {AFFECTED_EYES_LABELS[warranty.affectedEyes] || 'No especificado'}
+                  </span>
+                </Field>
+              )}
+            </div>
             {warranty.storeObservations && (
               <div className="mt-3 flex gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 min-w-0">
                 <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" aria-hidden="true" />
