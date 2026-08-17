@@ -200,50 +200,50 @@ const AdminLabs = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed">
+              <table className="tbl-min table-fixed">
                 <colgroup>
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '16%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '21%' }} />
                   <col style={{ width: '9%' }} />
+                  <col style={{ width: '11%' }} />
                   <col style={{ width: '12%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '20%' }} />
                 </colgroup>
                 <thead>
-                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Nombre</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tickera</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Ruta VCA</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tiendas</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Garantías</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Impresión</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                  <tr className="border-b border-opticolor-gray-200">
+                    <th>Nombre</th>
+                    <th>Tickera</th>
+                    <th>Ruta VCA</th>
+                    <th>Tiendas</th>
+                    <th>Garantías</th>
+                    <th>Impresión</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                <tbody>
                   {pagedLabs.map((lab) => (
-                    <tr key={lab.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{lab.name}</td>
-                      <td className="py-3.5 px-4 align-middle text-center">
+                    <tr key={lab.id}>
+                      <td className="text-sm font-semibold text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{lab.name}</td>
+                      <td>
                         <span className="inline-flex items-center rounded-md border border-opticolor-gray-200 bg-opticolor-gray-100 px-2 py-0.5 text-xs font-medium text-opticolor-gray-600">
                           {lab.printerName || 'Bixolon'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={lab.vcaNetworkPath}>{lab.vcaNetworkPath}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.stores || 0}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.warranties || 0}</td>
-                      <td className="py-3.5 px-4 align-middle text-center">
+                      <td className="text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={lab.vcaNetworkPath}>{lab.vcaNetworkPath}</td>
+                      <td className="text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.stores || 0}</td>
+                      <td className="text-sm font-semibold text-opticolor-gray-700 tabular-nums">{lab._count?.warranties || 0}</td>
+                      <td>
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${lab.printEnabled !== false ? 'bg-green-100 text-green-800' : 'bg-opticolor-gray-100 text-opticolor-gray-500'}`}>
                           <span className={`h-1.5 w-1.5 rounded-full ${lab.printEnabled !== false ? 'bg-green-500' : 'bg-opticolor-gray-400'}`} aria-hidden="true" />
                           {lab.printEnabled !== false ? 'ON' : 'OFF'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-2 align-middle text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td>
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openEdit(lab)}
-                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            className="btn-ghost btn-ghost-neutral"
                             title="Editar laboratorio"
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -251,7 +251,7 @@ const AdminLabs = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(lab)}
-                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                            className="btn-ghost btn-ghost-danger"
                             title="Eliminar laboratorio"
                           >
                             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />

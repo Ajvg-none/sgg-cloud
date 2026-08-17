@@ -252,7 +252,7 @@ const AdminDashboard = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
+                <table className="tbl-min table-fixed">
                   <colgroup>
                     <col style={{ width: '15%' }} />
                     <col style={{ width: '15%' }} />
@@ -263,30 +263,30 @@ const AdminDashboard = () => {
                     <col style={{ width: '11%' }} />
                   </colgroup>
                   <thead>
-                    <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tienda</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Laboratorio</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tipo</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                    <tr className="border-b border-opticolor-gray-200">
+                      <th># OTG</th>
+                      <th>Tienda</th>
+                      <th>Laboratorio</th>
+                      <th>Tipo</th>
+                      <th className="is-center">Estado</th>
+                      <th>Fecha</th>
+                      <th className="is-center">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                  <tbody>
                     {warranties.map((w) => (
-                      <tr key={w.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                        <td className="py-3.5 px-4 align-middle text-center font-mono text-sm text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{w.orderNumber}</td>
-                        <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={w.store?.name || ''}>{w.store?.name || '-'}</td>
-                        <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={w.lab?.name || ''}>{w.lab?.name || '-'}</td>
-                        <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis max-w-[120px]" title={w.warrantyType || ''}>{w.warrantyType || '-'}</td>
-                        <td className="py-3.5 px-4 align-middle text-center"><StatusBadge status={w.status} /></td>
-                        <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">{formatDate(w.createdAt)}</td>
-                        <td className="py-3.5 px-2 align-middle text-center">
-                          <div className="flex items-center justify-center gap-1">
+                      <tr key={w.id}>
+                        <td className="font-mono text-sm text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{w.orderNumber}</td>
+                        <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={w.store?.name || ''}>{w.store?.name || '-'}</td>
+                        <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={w.lab?.name || ''}>{w.lab?.name || '-'}</td>
+                        <td className="text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis max-w-[120px]" title={w.warrantyType || ''}>{w.warrantyType || '-'}</td>
+                        <td className="is-center"><StatusBadge status={w.status} /></td>
+                        <td className="text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">{formatDate(w.createdAt)}</td>
+                        <td className="is-center">
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}
-                              className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                              className="btn-ghost btn-ghost-neutral"
                               title="Ver detalle"
                             >
                               Ver Detalle

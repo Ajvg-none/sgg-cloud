@@ -178,48 +178,50 @@ const StoreHistory = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
+                <table className="tbl-min table-fixed">
                   <colgroup>
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '19%' }} />
+                    <col style={{ width: '24%' }} />
                     <col style={{ width: '20%' }} />
                     <col style={{ width: '15%' }} />
-                    <col style={{ width: '20%' }} />
+                    <col style={{ width: '22%' }} />
                   </colgroup>
                   <thead>
-                    <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Cliente</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha de Registro</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
-                      <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                    <tr className="border-b border-opticolor-gray-200">
+                      <th># OTG</th>
+                      <th>Cliente</th>
+                      <th>Fecha de Registro</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                  <tbody>
                     {pagedWarranties.map((warranty) => (
-                      <tr key={warranty.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                        <td className="py-3.5 px-4 align-middle text-center overflow-hidden whitespace-nowrap text-ellipsis">
+                      <tr key={warranty.id}>
+                        <td className="overflow-hidden whitespace-nowrap text-ellipsis">
                           <OrderNumber code={warranty.orderNumber} />
                         </td>
-                        <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={warranty.orderData?.cliente_nombre || ''}>
+                        <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={warranty.orderData?.cliente_nombre || ''}>
                           {warranty.orderData?.cliente_nombre || '-'}
                         </td>
-                        <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
+                        <td className="text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
                           {formatDate(warranty.createdAt)}
                         </td>
-                        <td className="py-3.5 px-4 align-middle text-center">
+                        <td>
                           <StatusBadge status={warranty.status} />
                         </td>
-                        <td className="py-3.5 px-4 align-middle text-center">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleViewDetail(warranty.id)}
-                            loading={detailLoading && selectedWarranty?.id === warranty.id}
-                          >
-                            <Eye className="h-4 w-4" aria-hidden="true" />
-                            Detalle
-                          </Button>
+                        <td>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleViewDetail(warranty.id)}
+                              disabled={detailLoading && selectedWarranty?.id === warranty.id}
+                              className="btn-ghost btn-ghost-neutral"
+                              title="Ver detalle"
+                            >
+                              <Eye className="h-4 w-4" aria-hidden="true" />
+                              Detalle
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
