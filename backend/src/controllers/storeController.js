@@ -18,21 +18,18 @@ const prisma = new PrismaClient({ adapter });
 const getOrder = async (req, res) => {
   try {
     const { orderNumber } = req.params;
-
     if (!orderNumber) {
       return res.status(400).json({ error: 'El número de orden es obligatorio.' });
     }
-
-    logger.info(`📦 Tienda ${req.user.storeId} solicitando orden ${orderNumber}`);
+    logger.info(`🏪 Tienda ${req.user.storeId} solicitando orden ${orderNumber}`);
     const orderData = await syncService.syncOrder(orderNumber);
-
     return res.status(200).json({
       message: 'Orden sincronizada exitosamente.',
       order: orderData
     });
   } catch (error) {
     logger.error(`❌ Error en getOrder: ${error.message}`);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Error al sincronizar la orden.',
       details: error.message
     });
@@ -46,7 +43,8 @@ const getOrder = async (req, res) => {
  */
 const createWarranty = async (req, res) => {
   try {
-    const { orderNumber, orderData, warrantyType, storeObservations } = req.body;
+    // ✅ CAMBIO 1/4: ahora también recibimos affectedEyes desde el frontend
+    const { orderNumber, orderData, warrantyType, storeObservations, affectedEyes } = req.body;
     const storeId = req.user.storeId;
 
     // 1. Validar datos básicos del body
@@ -60,12 +58,20 @@ const createWarranty = async (req, res) => {
       return res.status(400).json({ error: 'Las observaciones no pueden exceder 300 caracteres.' });
     }
 
+    // ✅ CAMBIO 2/4: normalizar ojos afectados ('OD' | 'OI' | 'BOTH')
+    // Solo aplica para Error de RX / Transcripción. Para Error de Medida se guarda null.
+    // Si el frontend aún no envía el campo, se guarda 'BOTH' por defecto (nada se rompe).
+    const RX_TYPES = ['Error de RX', 'Error de Transcripcion'];
+    let affectedEyesValue = null;
+    if (RX_TYPES.includes(warrantyType)) {
+      affectedEyesValue = ['OD', 'OI', 'BOTH'].includes(affectedEyes) ? affectedEyes : 'BOTH';
+    }
+
     // 2. Obtener la tienda para validar ACCN y obtener labId
     const store = await prisma.store.findUnique({
       where: { id: storeId },
       select: { id: true, labId: true, accn: true, name: true }
     });
-
     if (!store) {
       return res.status(404).json({ error: 'Tienda no encontrada.' });
     }
@@ -82,8 +88,7 @@ const createWarranty = async (req, res) => {
     const MAX_RETRIES = 3;
     let attempts = 0;
     let createdWarranty = null;
-
-    // ✅ FIX DEFINITIVO: La base es codigo_completo (que tiene el número LARGO de GesVision)
+    // 🔧 FIX DEFINITIVO: La base es codigo_completo (que tiene el número LARGO de GesVision)
     const baseOrderNumber = String(orderData.codigo_completo || orderData.orden_numero || orderNumber).split('-')[0];
 
     while (attempts < MAX_RETRIES) {
@@ -112,11 +117,11 @@ const createWarranty = async (req, res) => {
           const newRevision = maxRevision + 1;
           const newOrderNumber = `${baseOrderNumber}-${newRevision}`; // ej: "113200000336-1"
 
-          // d) ✅ FIX: Inyectar el número COMPLETO + sufijo en AMBOS campos
+          // d) 🔧 FIX: Inyectar el número COMPLETO + sufijo en AMBOS campos
           const updatedOrderData = {
             ...orderData,
             orden_numero: newOrderNumber,
-            codigo_completo: newOrderNumber // ← Sobreescribe para que los renderizadores lo lean completo
+            codigo_completo: newOrderNumber // 🔧 Sobreescribe para que los renderizadores lo lean completo
           };
 
           // e) Crear la garantía
@@ -129,24 +134,22 @@ const createWarranty = async (req, res) => {
               orderData: updatedOrderData,
               warrantyType,
               storeObservations: storeObservations || null,
+              // ✅ CAMBIO 3/4: guardar los ojos afectados en la BD
+              affectedEyes: affectedEyesValue,
               status: 'PENDING'
             }
           });
         });
-        
         // Si la transacción fue exitosa, salimos del bucle
-        break; 
-
+        break;
       } catch (error) {
         // Si hay conflicto de unicidad (dos usuarios crearon al mismo tiempo), reintentar
         if (error.code === 'P2002') {
           attempts++;
           logger.warn(`[createWarranty] Conflicto de concurrencia en orden ${baseOrderNumber}, reintento ${attempts}/${MAX_RETRIES}`);
-          
           if (attempts >= MAX_RETRIES) {
             throw new Error('Conflicto de concurrencia al crear la garantía después de múltiples intentos.');
           }
-          
           // Pausa exponencial pequeña antes de reintentar
           await new Promise(resolve => setTimeout(resolve, 100 * attempts));
         } else {
@@ -164,16 +167,16 @@ const createWarranty = async (req, res) => {
         orderNumber: createdWarranty.orderNumber,
         revision: createdWarranty.revision,
         status: createdWarranty.status,
+        // ✅ CAMBIO 4/4: devolver los ojos afectados en la respuesta
+        affectedEyes: createdWarranty.affectedEyes,
         createdAt: createdWarranty.createdAt
       }
     });
-
   } catch (error) {
     logger.error(`❌ Error en createWarranty: ${error.message}`);
     return res.status(500).json({ error: 'Error interno del servidor al crear la garantía.' });
   }
 };
-
 
 // ============================================================
 // FASE 5: LISTADO HISTÓRICO PARA TIENDAS (RF-03)
@@ -187,13 +190,11 @@ const createWarranty = async (req, res) => {
 const getMyWarranties = async (req, res) => {
   try {
     const storeId = req.user.storeId || req.user.store?.id;
-
     if (!storeId) {
       return res.status(400).json({
         error: 'No se pudo identificar la tienda del usuario autenticado.'
       });
     }
-
     const warranties = await prisma.warranty.findMany({
       where: { storeId },
       select: {
@@ -205,7 +206,6 @@ const getMyWarranties = async (req, res) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-
     return res.status(200).json({ warranties });
   } catch (error) {
     logger.error(`[getMyWarranties] Error: ${error.message}`, {
@@ -224,26 +224,22 @@ const getWarrantyDetail = async (req, res) => {
   try {
     const storeId = req.user.storeId || req.user.store?.id;
     const { id } = req.params;
-
     if (!storeId) {
       return res.status(400).json({
         error: 'No se pudo identificar la tienda del usuario autenticado.'
       });
     }
-
     const warranty = await prisma.warranty.findFirst({
       where: {
         id,
-        storeId, // ← Filtro forzado por backend (RF-03.3)
+        storeId, // 🔒 Filtro forzado por backend (RF-03.3)
       },
     });
-
     if (!warranty) {
       return res.status(404).json({
         error: 'Garantía no encontrada o no pertenece a tu tienda.',
       });
     }
-
     return res.status(200).json({ warranty });
   } catch (error) {
     logger.error(`[getWarrantyDetail] Error: ${error.message}`, {
@@ -255,8 +251,9 @@ const getWarrantyDetail = async (req, res) => {
 };
 
 // ============================================================
-// ✅ NUEVO: IMPRESIÓN AUTOMÁTICA DESDE TIENDA
+// ️ NUEVO: IMPRESIÓN AUTOMÁTICA DESDE TIENDA
 // ============================================================
+
 /**
  * GET /api/store/ticket-buffer/:warrantyId
  * Genera el ticket ESC/POS (base64) + VCA para que la tienda imprima con QZ Tray.
@@ -284,6 +281,7 @@ const getTicketBuffer = async (req, res) => {
       ...warranty.orderData,
       warrantyType: warranty.warrantyType,
       storeObservations: warranty.storeObservations,
+      affectedEyes: warranty.affectedEyes,
       accn: warranty.store?.accn || '000',
       tienda_nombre: warranty.store?.name || '',
       tienda_id: warranty.storeId,
@@ -355,4 +353,11 @@ const completeWarranty = async (req, res) => {
   }
 };
 
-module.exports = { getOrder, createWarranty, getMyWarranties,getWarrantyDetail, getTicketBuffer, completeWarranty, };
+module.exports = {
+  getOrder,
+  createWarranty,
+  getMyWarranties,
+  getWarrantyDetail,
+  getTicketBuffer,
+  completeWarranty,
+};

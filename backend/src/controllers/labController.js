@@ -42,9 +42,9 @@ const getTicketBuffer = async (req, res) => {
     // Preparar datos para impresión (misma lógica que ya tenías)
     const items = warranty.orderData?.items || [];
     const orderForPrint = {
-      ...warranty.orderData,
-      warrantyType: warranty.warrantyType,
+       warrantyType: warranty.warrantyType,
       storeObservations: warranty.storeObservations,
+      affectedEyes: warranty.affectedEyes,
       accn: warranty.store?.accn || '000',
       tienda_nombre: warranty.store?.name || '',
       items: items,
