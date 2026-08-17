@@ -1,7 +1,7 @@
 // frontend/src/pages/StoreWarranty.jsx
 import React, { useState, useEffect } from 'react';
 import { storeAPI, authAPI } from '../services/api';
-import { validateOpticalFields } from '../utils/validators';
+import { validateOpticalFields, validateAffectedEyes } from '../utils/validators';
 import useWarrantyFormStore from '../store/warrantyFormStore';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -74,7 +74,7 @@ const StoreWarranty = () => {
     setOrderNumber,
     setWarrantyType,
     setStoreObservations,
-    toggleAffectedEye,   // ✅ NUEVO: marca/desmarca un ojo
+    setAffectedEyes,       // ✅ selección única de ojo (OD | OI | BOTH)
     setAlert,
     setErrors,
     handleFieldChange,
@@ -101,6 +101,10 @@ const StoreWarranty = () => {
 
   // ✅ NUEVO: ¿El tipo actual es Error de RX / Transcripción?
   const isRXType = warrantyType === 'Error de Transcripcion' || warrantyType === 'Error de RX';
+
+  // ✅ Visibilidad de las cards RX: RX → según selección; Medida → ambas visibles; sin tipo → ocultas
+  const odOpen = isRXType ? affectedEyes.includes('OD') : !!warrantyType;
+  const oiOpen = isRXType ? affectedEyes.includes('OI') : !!warrantyType;
 
   // ✅ NUEVO: etiqueta legible de ojos afectados (para el sello del A4)
   const affectedEyesLabel = isRXType
@@ -367,12 +371,11 @@ const StoreWarranty = () => {
   // GUARDAR GARANTÍA + PDF A4 + 🖨️ AUTO-IMPRESIÓN DEL TICKET
   // ============================================================
   const handleSave = async () => {
-    const validationErrors = validateOpticalFields(orderData);
+    const validationErrors = {
+      ...validateOpticalFields(orderData),
+      ...validateAffectedEyes(warrantyType, affectedEyes),
+    };
     if (!warrantyType) validationErrors.warrantyType = 'Selecciona un tipo de garantía';
-    // ✅ NUEVO: para RX/Transcripción debe haber al menos un ojo marcado
-    if (isRXType && affectedEyes.length === 0) {
-      validationErrors.affectedEyes = 'Selecciona al menos un ojo afectado';
-    }
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       setAlert({ type: 'error', message: 'Por favor corrige los errores antes de guardar' });
@@ -520,56 +523,57 @@ const StoreWarranty = () => {
             ============================================================ */}
             <Card title="Datos de la Garantía">
               <div className="space-y-4">
-                {/* ✅ NUEVO: fila de 2 columnas → Tipo | Ojos Afectados */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Select
-                    label="Tipo de Garantía *"
-                    value={warrantyType}
-                    onChange={(e) => setWarrantyType(e.target.value)}
-                    disabled={saving}
-                    error={errors.warrantyType}
-                    placeholder="Seleccionar tipo..."
-                    options={WARRANTY_TYPES.map((type) => ({ value: type, label: type }))}
-                  />
-                  <div>
-                    <label className="block text-sm font-medium text-opticolor-gray-700 mb-1">
-                      Ojos Afectados *
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
+                <Select
+                  label="Tipo de Garantía *"
+                  value={warrantyType}
+                  onChange={(e) => setWarrantyType(e.target.value)}
+                  disabled={saving}
+                  error={errors.warrantyType}
+                  placeholder="Seleccionar tipo..."
+                  options={WARRANTY_TYPES.map((type) => ({ value: type, label: type }))}
+                />
+
+                {/* ✅ NUEVO: selector único de ojos (solo RX/Transcripción), centrado */}
+                <div className={`reveal ${isRXType ? 'open' : ''}`}>
+                  <div className="reveal-inner">
+                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                      <Button
                         type="button"
-                        onClick={() => toggleAffectedEye('OD')}
-                        disabled={saving || !isRXType}
-                        aria-pressed={affectedEyes.includes('OD')}
-                        className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:bg-opticolor-gray-50 disabled:border-opticolor-gray-200 disabled:text-opticolor-gray-400 ${
-                          affectedEyes.includes('OD') && isRXType
-                            ? 'bg-opticolor-red border-opticolor-red text-white shadow-md'
-                            : 'bg-white border-opticolor-gray-200 text-opticolor-gray-600 hover:border-opticolor-gray-300'
-                        }`}
+                        onClick={() => setAffectedEyes('OD')}
+                        disabled={saving}
+                        variant={affectedEyes.includes('OD') ? 'primary' : 'secondary'}
+                        size="sm"
                       >
                         Ojo Derecho (OD)
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
-                        onClick={() => toggleAffectedEye('OI')}
-                        disabled={saving || !isRXType}
-                        aria-pressed={affectedEyes.includes('OI')}
-                        className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:bg-opticolor-gray-50 disabled:border-opticolor-gray-200 disabled:text-opticolor-gray-400 ${
-                          affectedEyes.includes('OI') && isRXType
-                            ? 'bg-opticolor-red border-opticolor-red text-white shadow-md'
-                            : 'bg-white border-opticolor-gray-200 text-opticolor-gray-600 hover:border-opticolor-gray-300'
-                        }`}
+                        onClick={() => setAffectedEyes('OI')}
+                        disabled={saving}
+                        variant={affectedEyes.includes('OI') ? 'primary' : 'secondary'}
+                        size="sm"
                       >
                         Ojo Izquierdo (OI)
-                      </button>
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setAffectedEyes('BOTH')}
+                        disabled={saving}
+                        variant={affectedEyes.length === 2 ? 'primary' : 'secondary'}
+                        size="sm"
+                      >
+                        Ambos ojos
+                      </Button>
                     </div>
-                    <p className="text-xs text-opticolor-gray-400 mt-1">
-                      {isRXType
-                        ? 'Marca el ojo o los ojos con error. El ojo no marcado queda bloqueado.'
-                        : 'Solo aplica para Error de RX / Transcripción.'}
-                    </p>
+                    {isRXType && affectedEyes.length === 0 && (
+                      <p className="text-center text-xs text-opticolor-gray-400 mt-2">
+                        Selecciona el ojo u ojos afectados para editar su receta
+                      </p>
+                    )}
                     {errors.affectedEyes && (
-                      <p className="text-sm text-opticolor-red-light animate-fade-in">{errors.affectedEyes}</p>
+                      <p className="text-center text-sm text-opticolor-red-light animate-fade-in mt-1">
+                        {errors.affectedEyes}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -596,6 +600,8 @@ const StoreWarranty = () => {
             {/* ============================================================
                 OJO DERECHO (OD)
             ============================================================ */}
+            <div className={`collapse ${odOpen ? 'open' : ''}`}>
+              <div className="collapse-inner">
             <Card title="Ojo Derecho (OD)">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -664,10 +670,14 @@ const StoreWarranty = () => {
                 />
               </div>
             </Card>
+              </div>
+            </div>
 
             {/* ============================================================
                 OJO IZQUIERDO (OI)
             ============================================================ */}
+            <div className={`collapse ${oiOpen ? 'open' : ''}`}>
+              <div className="collapse-inner">
             <Card title="Ojo Izquierdo (OI)">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
@@ -736,6 +746,8 @@ const StoreWarranty = () => {
                 />
               </div>
             </Card>
+              </div>
+            </div>
 
             {/* ============================================================
                 MEDIDAS DE MONTURA

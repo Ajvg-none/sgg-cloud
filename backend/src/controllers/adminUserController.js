@@ -14,21 +14,41 @@ const prisma = new PrismaClient({ adapter });
 */
 const getUsers = async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        role: true,
-        active: true,
-        storeId: true,
-        labId: true,
-        createdAt: true,
-        store: { select: { id: true, name: true, accn: true } },
-        lab: { select: { id: true, name: true } },
+    const { search, page = 1, limit = 20 } = req.query;
+    const where = {};
+    if (search) where.username = { contains: search, mode: 'insensitive' };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const [total, users] = await Promise.all([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          username: true,
+          role: true,
+          active: true,
+          storeId: true,
+          labId: true,
+          createdAt: true,
+          store: { select: { id: true, name: true, accn: true } },
+          lab: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: parseInt(limit),
+      }),
+    ]);
+
+    return res.status(200).json({
+      users,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit)),
       },
-      orderBy: { createdAt: 'desc' },
     });
-    return res.status(200).json({ users });
   } catch (error) {
     logger.error(`[getUsers] Error: ${error.message}`);
     return res.status(500).json({ error: 'Error al obtener los usuarios.' });

@@ -24,3 +24,12 @@ export const validateOpticalFields = (data) => {
 
   return errors;
 };
+
+// Para tipos RX / Transcripción se requiere elegir al menos un ojo afectado.
+export const validateAffectedEyes = (warrantyType, affectedEyes) => {
+  const isRXType = warrantyType === 'Error de Transcripcion' || warrantyType === 'Error de RX';
+  if (isRXType && affectedEyes.length === 0) {
+    return { affectedEyes: 'Selecciona al menos un ojo afectado' };
+  }
+  return {};
+};

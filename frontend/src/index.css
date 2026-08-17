@@ -69,6 +69,27 @@
   .badge-pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium border; }
   .badge-pill-active   { @apply border-green-300 bg-green-50 text-green-700; }
   .badge-pill-inactive { @apply border-red-300 bg-red-50 text-red-600; }
+
+  /* ===== Colapso/expansión animada (grid-rows + opacidad) ===== */
+  .collapse {
+    display: grid; grid-template-columns: 1fr; grid-template-rows: 0fr; opacity: 0; visibility: hidden;
+    pointer-events: none; margin-top: 0 !important;
+    transition: grid-template-rows .3s ease, opacity .3s ease, visibility .3s;
+  }
+  .collapse.open {
+    grid-template-rows: 1fr; opacity: 1; visibility: visible; pointer-events: auto;
+    margin-top: 1.5rem !important;
+  }
+  .collapse > .collapse-inner { overflow: hidden; min-height: 0; width: 100%; }
+
+  /* ===== Revelado de grupos (mismo patrón) ===== */
+  .reveal {
+    display: grid; grid-template-columns: 1fr; grid-template-rows: 0fr; opacity: 0; transform: scale(.97);
+    pointer-events: none;
+    transition: grid-template-rows .25s ease, opacity .25s ease, transform .25s ease;
+  }
+  .reveal.open { grid-template-rows: 1fr; opacity: 1; transform: none; pointer-events: auto; }
+  .reveal > .reveal-inner { overflow: hidden; min-height: 0; }
 }
 
 @layer utilities {

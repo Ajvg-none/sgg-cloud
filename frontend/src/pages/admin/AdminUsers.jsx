@@ -1,5 +1,5 @@
 // frontend/src/pages/admin/AdminUsers.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { adminAPI } from '../../services/api';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -9,10 +9,17 @@ import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import EmptyState from '../../components/ui/EmptyState';
 import Select from '../../components/ui/Select';
-import { Pencil, KeyRound, Trash2 } from 'lucide-react';
+import Pagination from '../../components/ui/Pagination';
+import { Pencil, KeyRound, Trash2, Search, RefreshCw } from 'lucide-react';
+
+const LIMIT_OPTIONS = [
+  { value: 5, label: '5 filas' },
+  { value: 10, label: '10 filas' },
+  { value: 20, label: '20 filas' },
+  { value: 50, label: '50 filas' },
+];
 
 const ROLE_LABELS = { ADMIN: 'Administrador', TIENDA: 'Tienda', LABORATORIO: 'Laboratorio' };
-
 const ROLE_COLORS = {
   ADMIN: 'bg-purple-100 text-purple-800 border-purple-300',
   TIENDA: 'bg-blue-100 text-blue-800 border-blue-300',
@@ -23,6 +30,10 @@ const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState(null);
+  // ✅ Búsqueda + paginación server-side
+  const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(10);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -33,17 +44,11 @@ const AdminUsers = () => {
   const [resetUsername, setResetUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
-  // ✅ NUEVO: Modal de confirmación de eliminación (reemplaza window.confirm)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [stores, setStores] = useState([]);
   const [labs, setLabs] = useState([]);
-
-  useEffect(() => {
-    loadMeta();
-    loadUsers();
-  }, []);
 
   const loadMeta = async () => {
     try {
@@ -56,16 +61,46 @@ const AdminUsers = () => {
     } catch (e) { /* silencioso */ }
   };
 
-  const loadUsers = async () => {
+  // ✅ Carga server-side con búsqueda + paginación
+  const loadUsers = useCallback(async (page = 1, limitOverride) => {
     setLoading(true);
     try {
-      const res = await adminAPI.getUsers();
+      const res = await adminAPI.getUsers({
+        search: search.trim() || undefined,
+        page,
+        limit: limitOverride ?? limit,
+      });
       setUsers(res.data.users || []);
+      setPagination(res.data.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 });
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al cargar usuarios' });
     } finally {
       setLoading(false);
     }
+  }, [search, limit]);
+
+  // Carga inicial
+  useEffect(() => {
+    loadMeta();
+    loadUsers(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ Debounce de búsqueda (400ms) → vuelve a la página 1
+  const isFirstSearchRun = useRef(true);
+  useEffect(() => {
+    if (isFirstSearchRun.current) {
+      isFirstSearchRun.current = false;
+      return;
+    }
+    const timer = setTimeout(() => loadUsers(1), 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  const handleLimitChange = (newLimit) => {
+    setLimit(newLimit);
+    loadUsers(1, newLimit);
   };
 
   const openCreate = () => {
@@ -107,7 +142,7 @@ const AdminUsers = () => {
         setAlert({ type: 'success', message: 'Usuario creado exitosamente' });
       }
       setModalOpen(false);
-      loadUsers();
+      loadUsers(pagination.page); // conserva la página actual
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al guardar' });
     } finally {
@@ -139,7 +174,6 @@ const AdminUsers = () => {
     }
   };
 
-  // ✅ NUEVO: Abrir modal de confirmación (reemplaza window.confirm)
   const openDeleteModal = (user) => {
     setUserToDelete(user);
     setDeleteModalOpen(true);
@@ -150,7 +184,6 @@ const AdminUsers = () => {
     setUserToDelete(null);
   };
 
-  // ✅ NUEVO: Confirmar eliminación desde el modal
   const handleDeleteConfirm = async () => {
     if (!userToDelete) return;
     setDeleting(true);
@@ -158,7 +191,7 @@ const AdminUsers = () => {
       await adminAPI.deleteUser(userToDelete.id);
       setAlert({ type: 'success', message: `Usuario "${userToDelete.username}" eliminado exitosamente.` });
       closeDeleteModal();
-      loadUsers();
+      loadUsers(pagination.page); // conserva la página actual
     } catch (e) {
       setAlert({ type: 'error', message: e.response?.data?.error || 'Error al eliminar el usuario' });
     } finally {
@@ -189,88 +222,132 @@ const AdminUsers = () => {
         )}
 
         <Card>
+          {/* Toolbar: búsqueda, filas por página y actualizar */}
+          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nombre de usuario…"
+                aria-label="Buscar usuario"
+                className="pl-9 py-2 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2 md:ml-auto">
+              <Select
+                value={limit}
+                onChange={(e) => handleLimitChange(parseInt(e.target.value))}
+                options={LIMIT_OPTIONS}
+                aria-label="Filas por página"
+                className="py-2 text-sm"
+              />
+              <Button variant="secondary" onClick={() => loadUsers(pagination.page)} disabled={loading} className="px-3 py-2 text-sm">
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+                Actualizar
+              </Button>
+            </div>
+          </div>
+
           {loading ? (
             <Spinner size="lg" className="py-12" />
           ) : users.length === 0 ? (
-            <EmptyState
-              title="No hay usuarios"
-              description="Crea el primer usuario para comenzar"
-              action={<Button onClick={openCreate}>+ Crear Usuario</Button>}
-            />
+            search.trim() ? (
+              <EmptyState
+                title="Sin resultados"
+                description={`No se encontraron usuarios para "${search}"`}
+              />
+            ) : (
+              <EmptyState
+                title="No hay usuarios"
+                description="Crea el primer usuario para comenzar"
+                action={<Button onClick={openCreate}>+ Crear Usuario</Button>}
+              />
+            )
           ) : (
-            <div className="overflow-x-auto">
-              <table className="tbl-min table-fixed">
-                <colgroup>
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '25%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '31%' }} />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-opticolor-gray-200">
-                    <th>Usuario</th>
-                    <th>Rol</th>
-                    <th>Asociado a</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td className="text-sm font-medium text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{user.username}</td>
-                      <td>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${ROLE_COLORS[user.role] || 'bg-gray-100 text-gray-700'}`}>
-                          {ROLE_LABELS[user.role] || user.role}
-                        </span>
-                      </td>
-                      <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : ''}>
-                        {user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : '-'}
-                      </td>
-                      <td>
-                        <span className={`badge-pill ${user.active ? 'badge-pill-active' : 'badge-pill-inactive'}`}>
-                          {user.active ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex items-center justify-center gap-2">
-                          {/* Botón Editar */}
-                          <button
-                            onClick={() => openEdit(user)}
-                            className="btn-ghost btn-ghost-neutral"
-                            title="Editar usuario"
-                          >
-                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                            <span>Editar</span>
-                          </button>
-                          {/* Botón Reset */}
-                          <button
-                            onClick={() => openResetPassword(user)}
-                            className="btn-ghost btn-ghost-neutral"
-                            title="Resetear contraseña"
-                          >
-                            <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-                            <span>Reset</span>
-                          </button>
-                          {/* Botón Eliminar (abre modal de confirmación) */}
-                          {user.role !== 'ADMIN' && (
-                            <button
-                              onClick={() => openDeleteModal(user)}
-                              className="btn-ghost btn-ghost-danger"
-                              title="Eliminar usuario"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                              <span>Eliminar</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="tbl-min table-fixed">
+                  <colgroup>
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '25%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '31%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-opticolor-gray-200">
+                      <th>Usuario</th>
+                      <th>Rol</th>
+                      <th>Asociado a</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.id}>
+                        <td className="text-sm font-medium text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{user.username}</td>
+                        <td>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${ROLE_COLORS[user.role] || 'bg-gray-100 text-gray-700'}`}>
+                            {ROLE_LABELS[user.role] || user.role}
+                          </span>
+                        </td>
+                        <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : ''}>
+                          {user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : '-'}
+                        </td>
+                        <td>
+                          <span className={`badge-pill ${user.active ? 'badge-pill-active' : 'badge-pill-inactive'}`}>
+                            {user.active ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openEdit(user)}
+                              className="btn-ghost btn-ghost-neutral"
+                              title="Editar usuario"
+                            >
+                              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                              <span>Editar</span>
+                            </button>
+                            <button
+                              onClick={() => openResetPassword(user)}
+                              className="btn-ghost btn-ghost-neutral"
+                              title="Resetear contraseña"
+                            >
+                              <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+                              <span>Reset</span>
+                            </button>
+                            {user.role !== 'ADMIN' && (
+                              <button
+                                onClick={() => openDeleteModal(user)}
+                                className="btn-ghost btn-ghost-danger"
+                                title="Eliminar usuario"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                <span>Eliminar</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Paginación */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5">
+                <p className="text-sm text-opticolor-gray-600">
+                  Mostrando <span className="font-semibold">{((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)}</span> de <span className="font-semibold">{pagination.total}</span> usuarios
+                </p>
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  onChange={(p) => loadUsers(p)}
+                />
+              </div>
+            </>
           )}
         </Card>
 
@@ -327,7 +404,7 @@ const AdminUsers = () => {
           </div>
         </Modal>
 
-        {/* ✅ NUEVO: Modal de Confirmación de Eliminación */}
+        {/* Modal de Confirmación de Eliminación */}
         <Modal isOpen={deleteModalOpen} onClose={closeDeleteModal} title="Eliminar Usuario" size="sm">
           <div className="space-y-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
