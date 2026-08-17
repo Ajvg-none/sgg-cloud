@@ -365,7 +365,7 @@ const LabDashboard = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
+                <table className="tbl-min table-fixed">
                   <colgroup>
                     <col style={{ width: '15%' }} />
                     <col style={{ width: '12%' }} />
@@ -376,38 +376,38 @@ const LabDashboard = () => {
                     <col style={{ width: '21%' }} />
                   </colgroup>
                   <thead>
-                    <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600"># OTG</th>
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tienda</th>
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Cliente</th>
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Tipo</th>
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Fecha</th>
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
-                      <th className="text-center py-3 px-3 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                    <tr className="border-b border-opticolor-gray-200">
+                      <th># OTG</th>
+                      <th>Tienda</th>
+                      <th>Cliente</th>
+                      <th>Tipo</th>
+                      <th>Fecha</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                  <tbody>
                     {warranties.map((w) => (
-                      <tr key={w.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                        <td className="py-3.5 px-3 align-middle text-center overflow-hidden whitespace-nowrap text-ellipsis">
+                      <tr key={w.id}>
+                        <td className="overflow-hidden whitespace-nowrap text-ellipsis">
                           <OrderNumber code={w.orderNumber} />
                         </td>
-                        <td className="py-3.5 px-3 align-middle text-center text-sm font-medium text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
+                        <td className="text-sm font-medium text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
                           {w.store?.name || '-'}
                         </td>
-                        <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.orderData?.cliente_nombre || ''}>
+                        <td className="text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.orderData?.cliente_nombre || ''}>
                           {w.orderData?.cliente_nombre || '-'}
                         </td>
-                        <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.warrantyType || ''}>
+                        <td className="text-sm text-opticolor-gray-600 overflow-hidden whitespace-nowrap text-ellipsis" title={w.warrantyType || ''}>
                           {w.warrantyType || '-'}
                         </td>
-                        <td className="py-3.5 px-3 align-middle text-center text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
+                        <td className="text-sm text-opticolor-gray-500 whitespace-nowrap tabular-nums">
                           {formatDate(w.createdAt)}
                         </td>
-                        <td className="py-3.5 px-3 align-middle text-center">
+                        <td>
                           <StatusBadge status={w.status} />
                         </td>
-                        <td className="py-3.5 px-3 align-middle text-center">
+                        <td>
                           <div className="flex flex-wrap items-center justify-center gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}>
                               <Eye className="h-4 w-4" aria-hidden="true" />

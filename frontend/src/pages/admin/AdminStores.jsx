@@ -189,54 +189,49 @@ const AdminStores = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed">
+              <table className="tbl-min table-fixed">
                 <colgroup>
                   <col style={{ width: '22%' }} />
                   <col style={{ width: '10%' }} />
                   <col style={{ width: '18%' }} />
+                  <col style={{ width: '9%' }} />
+                  <col style={{ width: '9%' }} />
                   <col style={{ width: '10%' }} />
-                  <col style={{ width: '10%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '22%' }} />
                 </colgroup>
                 <thead>
-                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Nombre</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">ACCN</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Laboratorio</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Garantías</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Usuarios</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                  <tr className="border-b border-opticolor-gray-200">
+                    <th>Nombre</th>
+                    <th>ACCN</th>
+                    <th>Laboratorio</th>
+                    <th>Garantías</th>
+                    <th>Usuarios</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                <tbody>
                   {pagedStores.map((store) => (
-                    <tr key={store.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{store.name}</td>
-                      <td className="py-3.5 px-4 align-middle text-center">
+                    <tr key={store.id}>
+                      <td className="text-sm font-semibold text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{store.name}</td>
+                      <td>
                         <span className="inline-flex rounded-md border border-opticolor-gray-200 bg-opticolor-gray-100 px-2 py-0.5 text-[11px] font-bold text-opticolor-gray-600 tabular-nums">
                           {store.accn}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">{store.lab?.name || '-'}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{store._count?.warranties || 0}</td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-semibold text-opticolor-gray-700 tabular-nums">{store._count?.users || 0}</td>
-                      <td className="py-3.5 px-4 align-middle text-center">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                          store.active
-                            ? 'bg-green-100 text-green-800 border-green-300'
-                            : 'bg-gray-100 text-gray-600 border-gray-300'
-                        }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${store.active ? 'bg-green-500' : 'bg-gray-400'}`} aria-hidden="true" />
+                      <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">{store.lab?.name || '-'}</td>
+                      <td className="text-sm font-semibold text-opticolor-gray-700 tabular-nums">{store._count?.warranties || 0}</td>
+                      <td className="text-sm font-semibold text-opticolor-gray-700 tabular-nums">{store._count?.users || 0}</td>
+                      <td>
+                        <span className={`badge-pill ${store.active ? 'badge-pill-active' : 'badge-pill-inactive'}`}>
                           {store.active ? 'Activa' : 'Inactiva'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-2 align-middle text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td>
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openEdit(store)}
-                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            className="btn-ghost btn-ghost-neutral"
                             title="Editar tienda"
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -244,11 +239,7 @@ const AdminStores = () => {
                           </button>
                           <button
                             onClick={() => handleToggleActive(store)}
-                            className={`inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium rounded-md transition-colors border border-transparent ${
-                              store.active
-                                ? 'text-orange-600 hover:text-orange-700 hover:bg-orange-50 hover:border-orange-200'
-                                : 'text-green-600 hover:text-green-700 hover:bg-green-50 hover:border-green-200'
-                            }`}
+                            className={`btn-ghost ${store.active ? 'btn-ghost-danger' : 'btn-ghost-neutral'}`}
                             title={store.active ? 'Desactivar tienda' : 'Activar tienda'}
                           >
                             {store.active ? (

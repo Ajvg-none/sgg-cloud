@@ -199,46 +199,46 @@ const AdminUsers = () => {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed">
+              <table className="tbl-min table-fixed">
                 <colgroup>
-                  <col style={{ width: '20%' }} />
-                  <col style={{ width: '15%' }} />
-                  <col style={{ width: '28%' }} />
+                  <col style={{ width: '16%' }} />
                   <col style={{ width: '14%' }} />
-                  <col style={{ width: '23%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '31%' }} />
                 </colgroup>
                 <thead>
-                  <tr className="bg-opticolor-gray-100 border-b-2 border-opticolor-red">
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Usuario</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Rol</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Asociado a</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Estado</th>
-                    <th className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider text-opticolor-gray-600">Acciones</th>
+                  <tr className="border-b border-opticolor-gray-200">
+                    <th>Usuario</th>
+                    <th>Rol</th>
+                    <th>Asociado a</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-opticolor-gray-100 bg-white">
+                <tbody>
                   {users.map((user) => (
-                    <tr key={user.id} className="transition-colors even:bg-opticolor-gray-50/60 hover:bg-red-50/70">
-                      <td className="py-3.5 px-4 align-middle text-center text-sm font-medium text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{user.username}</td>
-                      <td className="py-3.5 px-4 align-middle text-center">
+                    <tr key={user.id}>
+                      <td className="text-sm font-medium text-opticolor-gray-800 overflow-hidden whitespace-nowrap text-ellipsis">{user.username}</td>
+                      <td>
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${ROLE_COLORS[user.role] || 'bg-gray-100 text-gray-700'}`}>
                           {ROLE_LABELS[user.role] || user.role}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 align-middle text-center text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : ''}>
+                      <td className="text-sm text-opticolor-gray-700 overflow-hidden whitespace-nowrap text-ellipsis" title={user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : ''}>
                         {user.store ? `${user.store.name} (${user.store.accn})` : user.lab ? user.lab.name : '-'}
                       </td>
-                      <td className="py-3.5 px-4 align-middle text-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${user.active ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-600 border-gray-300'}`}>
+                      <td>
+                        <span className={`badge-pill ${user.active ? 'badge-pill-active' : 'badge-pill-inactive'}`}>
                           {user.active ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-2 align-middle text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td>
+                        <div className="flex items-center justify-center gap-2">
                           {/* Botón Editar */}
                           <button
                             onClick={() => openEdit(user)}
-                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                            className="btn-ghost btn-ghost-neutral"
                             title="Editar usuario"
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -247,7 +247,7 @@ const AdminUsers = () => {
                           {/* Botón Reset */}
                           <button
                             onClick={() => openResetPassword(user)}
-                            className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-opticolor-gray-600 hover:text-opticolor-gray-900 hover:bg-opticolor-gray-100 rounded-md transition-colors border border-transparent hover:border-opticolor-gray-200"
+                            className="btn-ghost btn-ghost-neutral"
                             title="Resetear contraseña"
                           >
                             <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
@@ -257,7 +257,7 @@ const AdminUsers = () => {
                           {user.role !== 'ADMIN' && (
                             <button
                               onClick={() => openDeleteModal(user)}
-                              className="inline-flex items-center gap-1 whitespace-nowrap px-2 py-1.5 text-[11px] font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors border border-transparent hover:border-red-200"
+                              className="btn-ghost btn-ghost-danger"
                               title="Eliminar usuario"
                             >
                               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
