@@ -19,9 +19,9 @@ const useWarrantyFormStore = create((set, get) => ({
   orderData: null,
   warrantyType: '',
   storeObservations: '',
-  // ✅ NUEVO: Ojos afectados para Error de RX / Transcripción.
-  // Array con 'OD' y/o 'OI'. Ambos marcados = ambos ojos.
-  affectedEyes: ['OD', 'OI'],
+  // ✅ Ojos afectados para Error de RX / Transcripción.
+  // Array con 'OD' y/o 'OI'. Vacío = sin selección (afectedEyes null).
+  affectedEyes: [],
   errors: {},
   loading: false,
   saving: false,
@@ -34,19 +34,18 @@ const useWarrantyFormStore = create((set, get) => ({
   setWarrantyType: (value) =>
     set((state) => ({
       warrantyType: value,
-      // ✅ NUEVO: al cambiar el tipo de garantía, los ojos vuelven a "ambos"
-      affectedEyes: ['OD', 'OI'],
+      // ✅ Al cambiar el tipo de garantía, la selección de ojos vuelve a vacía
+      affectedEyes: [],
       errors: { ...state.errors, warrantyType: null, affectedEyes: null },
     })),
-  // ✅ NUEVO: marca / desmarca un ojo afectado (OD u OI)
-  toggleAffectedEye: (eye) =>
+  // ✅ Selección ÚNICA de ojo afectado (OD | OI | BOTH) o ninguno
+  setAffectedEyes: (option) =>
     set((state) => {
-      const isSelected = state.affectedEyes.includes(eye);
-      const toggled = isSelected
-        ? state.affectedEyes.filter((e) => e !== eye)
-        : [...state.affectedEyes, eye];
-      // Normaliza el orden: OD siempre primero
-      const next = ['OD', 'OI'].filter((e) => toggled.includes(e));
+      const next =
+        option === 'BOTH' ? ['OD', 'OI']
+        : option === 'OD' ? ['OD']
+        : option === 'OI' ? ['OI']
+        : [];
       return {
         affectedEyes: next,
         errors: { ...state.errors, affectedEyes: null },
@@ -104,7 +103,7 @@ const useWarrantyFormStore = create((set, get) => ({
       orderData: null,
       warrantyType: '',
       storeObservations: '',
-      affectedEyes: ['OD', 'OI'],
+      affectedEyes: [],
       errors: {},
       alert: null,
       saving: false,
