@@ -225,7 +225,7 @@ const AdminUsers = () => {
           {/* Toolbar: búsqueda, filas por página y actualizar */}
           <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+              <Search className="absolute left-3 inset-y-0 my-auto h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -308,7 +308,7 @@ const AdminUsers = () => {
                               className="btn-ghost btn-ghost-neutral"
                               title="Editar usuario"
                             >
-                              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                              <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                               <span>Editar</span>
                             </button>
                             <button
@@ -316,7 +316,7 @@ const AdminUsers = () => {
                               className="btn-ghost btn-ghost-neutral"
                               title="Resetear contraseña"
                             >
-                              <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+                              <KeyRound className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                               <span>Reset</span>
                             </button>
                             {user.role !== 'ADMIN' && (
@@ -325,7 +325,7 @@ const AdminUsers = () => {
                                 className="btn-ghost btn-ghost-danger"
                                 title="Eliminar usuario"
                               >
-                                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                                <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                                 <span>Eliminar</span>
                               </button>
                             )}

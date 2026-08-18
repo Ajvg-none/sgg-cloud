@@ -140,7 +140,7 @@ const StoreHistory = () => {
           {/* Toolbar: búsqueda, filas por página y actualizar */}
           <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+              <Search className="absolute left-3 inset-y-0 my-auto h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
               <Input
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -218,7 +218,7 @@ const StoreHistory = () => {
                               className="btn-ghost btn-ghost-neutral"
                               title="Ver detalle"
                             >
-                              <Eye className="h-4 w-4" aria-hidden="true" />
+                              <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
                               Detalle
                             </button>
                           </div>
