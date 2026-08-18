@@ -87,7 +87,7 @@ const Login = () => {
             {/* Campo Usuario con ícono */}
             <div className="relative">
               <div className="absolute left-3 top-9 text-opticolor-gray-400">
-                <User className="h-5 w-5" aria-hidden="true" />
+                <User className="h-5 w-5 shrink-0" aria-hidden="true" />
               </div>
               <Input
                 label="Usuario"
@@ -104,7 +104,7 @@ const Login = () => {
             <div className="relative">
               {/* Ícono de Candado (izquierda) */}
               <div className="absolute left-3 top-9 text-opticolor-gray-400">
-                <Lock className="h-5 w-5" aria-hidden="true" />
+                <Lock className="h-5 w-5 shrink-0" aria-hidden="true" />
               </div>
 
               <Input

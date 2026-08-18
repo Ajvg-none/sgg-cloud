@@ -285,12 +285,12 @@ const LabDashboard = () => {
               <Button variant="secondary" onClick={handleTestPrint} className="px-3 py-1 text-xs">Probar Impresión</Button>
               {testPrintResult === 'success' && (
                 <span className="inline-flex items-center gap-1 text-green-600 text-sm">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Ok
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" /> Ok
                 </span>
               )}
               {testPrintResult === 'error' && (
                 <span className="inline-flex items-center gap-1 text-red-600 text-sm">
-                  <XCircle className="h-4 w-4" aria-hidden="true" /> Falló
+                  <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" /> Falló
                 </span>
               )}
             </div>
@@ -315,7 +315,7 @@ const LabDashboard = () => {
           {/* Toolbar: búsqueda, filtros, filas por página y actualizar */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-5">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
+              <Search className="absolute left-3 inset-y-0 my-auto h-4 w-4 text-opticolor-gray-400" aria-hidden="true" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -410,12 +410,12 @@ const LabDashboard = () => {
                         <td>
                           <div className="flex flex-wrap items-center justify-center gap-1">
                             <Button variant="ghost" size="sm" onClick={() => { setSelectedWarranty(w); setDetailModalOpen(true); }}>
-                              <Eye className="h-4 w-4" aria-hidden="true" />
+                              <Eye className="h-4 w-4 shrink-0" aria-hidden="true" />
                               Detalle
                             </Button>
                             {w.status === 'COMPLETED' && (
                               <Button variant="secondary" size="sm" onClick={() => handleReprintClick(w)}>
-                                <Printer className="h-4 w-4" aria-hidden="true" />
+                                <Printer className="h-4 w-4 shrink-0" aria-hidden="true" />
                                 Ticket
                               </Button>
                             )}
@@ -493,7 +493,7 @@ const LabDashboard = () => {
                 variant="primary"
                 onClick={handleReprintConfirm}
               >
-                <Printer className="h-4 w-4" aria-hidden="true" />
+                <Printer className="h-4 w-4 shrink-0" aria-hidden="true" />
                 Reimprimir Ticket
               </Button>
             </div>
@@ -537,7 +537,7 @@ const LabDashboard = () => {
                 variant="primary"
                 onClick={handleProcessConfirm}
               >
-                <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                 Procesar Orden
               </Button>
             </div>

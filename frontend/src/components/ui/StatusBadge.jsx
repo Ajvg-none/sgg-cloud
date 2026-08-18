@@ -11,8 +11,7 @@ const STATUS_DOTS = {
   PROCESSING: 'bg-blue-500 animate-pulse',
   COMPLETED: 'bg-green-500',
   ERROR: 'bg-red-500',
-};
-const STATUS_LABELS = {
+};const STATUS_LABELS = {
   PENDING: 'Pendiente',
   PROCESSING: 'Procesando',
   COMPLETED: 'Completado',
@@ -25,7 +24,7 @@ const StatusBadge = ({ status, className = '' }) => {
   const label = STATUS_LABELS[status] || status;
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${style} ${className}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
+      <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden="true" />
       {label}
     </span>
   );
