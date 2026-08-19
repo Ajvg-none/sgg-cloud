@@ -234,7 +234,7 @@ const AdminStores = () => {
                             className="btn-ghost btn-ghost-neutral"
                             title="Editar tienda"
                           >
-                            <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <Pencil className="h-4 w-4 shrink-0" aria-hidden="true" />
                             <span>Editar</span>
                           </button>
                           <button
@@ -243,9 +243,9 @@ const AdminStores = () => {
                             title={store.active ? 'Desactivar tienda' : 'Activar tienda'}
                           >
                             {store.active ? (
-                              <Pause className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              <Pause className="h-4 w-4 shrink-0" aria-hidden="true" />
                             ) : (
-                              <Play className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              <Play className="h-4 w-4 shrink-0" aria-hidden="true" />
                             )}
                             <span>{store.active ? 'Desactivar' : 'Activar'}</span>
                           </button>

@@ -8,6 +8,14 @@
     scrollbar-gutter: stable;
   }
 
+  /* Iconos SVG: nunca se encojen a 0, no se recortan ni se desvanecen por subpixel en zoom-out */
+  svg {
+    flex-shrink: 0;
+    overflow: visible;
+    min-width: 1px;
+    min-height: 1px;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
