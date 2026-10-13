@@ -4,6 +4,7 @@ import Modal from './Modal';
 import Button from './Button';
 import StatusBadge from './StatusBadge';
 import { Info, ShieldAlert, Eye, Ruler, Package, MessageSquare } from 'lucide-react';
+import { formatDate } from '../../utils/format';
 
 const OrderNumber = ({ code }) => {
   if (!code) return <span className="text-sm text-opticolor-gray-400">-</span>;
@@ -22,14 +23,6 @@ const OrderNumber = ({ code }) => {
       )}
     </span>
   );
-};
-
-const formatDate = (d) => {
-  if (!d) return '-';
-  return new Date(d).toLocaleString('es-ES', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
 };
 
 // ✅ NUEVO: etiquetas legibles para los ojos afectados

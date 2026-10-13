@@ -10,8 +10,6 @@ import Alert from '../components/ui/Alert';
 import Select from '../components/ui/Select';
 import StoreHeader from '../components/layout/StoreHeader';
 import { Search, Save } from 'lucide-react';
-// 🖨️ NUEVO: servicio QZ Tray para la auto-impresión del ticket desde tienda
-import { connectQZ, printRawData, writeVCAFile } from '../services/qzprintService';
 
 const WARRANTY_TYPES = [
   'Error de Medida',
@@ -307,39 +305,6 @@ const StoreWarranty = () => {
   };
 
   // ============================================================
-  // 🖨️ NUEVO: AUTO-IMPRESIÓN DEL TICKET AL GUARDAR
-  // ============================================================
-  const tryAutoPrintTicket = async (warrantyId) => {
-    // 1. Conectar con QZ Tray en ESTE equipo
-    try {
-      await connectQZ();
-    } catch {
-      return { ok: false, reason: 'QZ Tray no está activo en este equipo' };
-    }
-    try {
-      // 2. Pedir al backend el ticket + VCA
-      const res = await storeAPI.getTicketBuffer(warrantyId);
-      const { ticketBase64, vcaContent, vcaPath, printerName } = res.data;
-      // 3. Imprimir físicamente en la tickera
-      await printRawData(printerName, ticketBase64);
-      // 4. Escribir el archivo VCA (best-effort, no bloquea el flujo)
-      if (vcaContent && vcaPath) {
-        try {
-          await writeVCAFile(vcaPath, vcaContent);
-        } catch (vcaErr) {
-          console.warn('No se pudo escribir el VCA:', vcaErr);
-        }
-      }
-      // 5. Marcar COMPLETED para que el lab no tenga que procesarla
-      await storeAPI.completeWarranty(warrantyId);
-      return { ok: true };
-    } catch (e) {
-      console.error('[tryAutoPrintTicket]', e);
-      return { ok: false, reason: e.response?.data?.error || e.message || 'error de impresión' };
-    }
-  };
-
-  // ============================================================
   // CONTROL DE CAMPOS BLOQUEADOS SEGÚN TIPO DE GARANTÍA
   // ✅ NUEVO: en RX/Transcripción respeta los ojos seleccionados
   // ============================================================
@@ -368,7 +333,7 @@ const StoreWarranty = () => {
   };
 
   // ============================================================
-  // GUARDAR GARANTÍA + PDF A4 + 🖨️ AUTO-IMPRESIÓN DEL TICKET
+  // GUARDAR GARANTÍA + FORMATO A4 (el ticket tickera lo imprime el lab)
   // ============================================================
   const handleSave = async () => {
     const validationErrors = {
@@ -415,21 +380,10 @@ const StoreWarranty = () => {
         isRXType ? affectedEyes : null
       );
 
-      // 2) 🖨️ NUEVO: intentar imprimir el ticket y auto-procesar
-      const auto = await tryAutoPrintTicket(created.id);
-      if (auto.ok) {
-        setAlert({
-          type: 'success',
-          message: `Garantía guardada (Rev. ${created.revision}). Ticket impreso y procesada correctamente.`,
-        });
-      } else {
-        setAlert({
-          type: 'warning',
-          message:
-            `Garantía guardada (Rev. ${created.revision}), pero no se pudo imprimir el ticket ` +
-            `(${auto.reason}). El laboratorio la procesará manualmente.`,
-        });
-      }
+      setAlert({
+        type: 'success',
+        message: `Garantía guardada (Rev. ${created.revision}). El laboratorio imprimirá el ticket y la procesará.`,
+      });
       setTimeout(() => {
         resetForm();
       }, 4000);

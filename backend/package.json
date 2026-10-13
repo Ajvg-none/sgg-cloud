@@ -4,12 +4,15 @@
   "description": "Backend SGG Cloud",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test \"scripts/v2-tests/*.test.js\"",
+    "test:v2": "node --test \"scripts/v2-tests/*.test.js\"",
+    "test:v2:live": "node scripts/test-v2-order.js",
     "start": "node src/server.js",
     "postinstall": "prisma generate",
     "dev": "nodemon src/server.js",
     "prisma:generate": "npx prisma generate",
-    "prisma:migrate": "npx prisma migrate dev"
+    "prisma:migrate": "npx prisma migrate dev",
+    "qz:genkeys": "node scripts/generate-qz-certs.cjs"
   },
   "keywords": [],
   "author": "",
@@ -39,7 +42,8 @@
   "devDependencies": {
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "selfsigned": "^5.5.0"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

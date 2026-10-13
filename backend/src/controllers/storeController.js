@@ -5,7 +5,6 @@ const { Pool } = require('pg');
 const syncService = require('../services/syncService');
 const logger = require('../config/logger');
 const { generateEscPosBuffer } = require('../legacy/printer');
-const { generateVCAContent } = require('../legacy/lensware');
 
 // Configurar Prisma con driver adapter (Prisma v7)
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -29,6 +28,28 @@ const getOrder = async (req, res) => {
     });
   } catch (error) {
     logger.error(`❌ Error en getOrder: ${error.message}`);
+
+    // Orden inexistente → 404 (el frontend puede distinguirlo de un fallo real).
+    // Cubre ambos mensajes: "No se encontró..." y "No se pudo encontrar la orden...".
+    const notFound = /no se encontró|no se pudo encontrar|no encontrada/i.test(error.message);
+    if (notFound) {
+      return res.status(404).json({
+        error: error.message,
+        details: error.message
+      });
+    }
+
+    // Fallo de red / respuesta de GesVision → 502 (servicio externo)
+    const NETWORK_CODES = ['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED', 'EHOSTUNREACH',
+      'ENETUNREACH', 'EAI_AGAIN', 'EPIPE', 'ECONNREFUSED', 'ERR_NETWORK', 'ERR_BAD_RESPONSE'];
+    const isNetworkError = (error.code && NETWORK_CODES.includes(error.code)) || !!error.response;
+    if (isNetworkError) {
+      return res.status(502).json({
+        error: 'No se pudo consultar GesVision en este momento. Intenta de nuevo.',
+        details: error.message
+      });
+    }
+
     return res.status(500).json({
       error: 'Error al sincronizar la orden.',
       details: error.message
@@ -256,7 +277,8 @@ const getWarrantyDetail = async (req, res) => {
 
 /**
  * GET /api/store/ticket-buffer/:warrantyId
- * Genera el ticket ESC/POS (base64) + VCA para que la tienda imprima con QZ Tray.
+ * Genera el ticket ESC/POS (base64) para que la tienda imprima con QZ Tray.
+ * El archivo VCA no se genera aquí: lo entrega el agente local vía /api/agent/vca/*.
  */
 const getTicketBuffer = async (req, res) => {
   try {
@@ -267,7 +289,7 @@ const getTicketBuffer = async (req, res) => {
     const warranty = await prisma.warranty.findUnique({
       where: { id: warrantyId },
       include: {
-        lab: { select: { id: true, name: true, printerName: true, vcaNetworkPath: true, vcaEnabled: true } },
+        lab: { select: { id: true, name: true, printerName: true } },
         store: { select: { name: true, accn: true } },
       },
     });
@@ -290,23 +312,9 @@ const getTicketBuffer = async (req, res) => {
 
     const ticketBuffer = await generateEscPosBuffer(orderForPrint, items);
 
-    let vcaContent = null;
-    let vcaPath = null;
-    if (warranty.lab.vcaEnabled && warranty.lab.vcaNetworkPath) {
-      try {
-        vcaContent = await generateVCAContent(orderForPrint, items);
-        const filename = `Pedido_${warranty.orderNumber}_${warranty.storeId}.vca`;
-        vcaPath = `${warranty.lab.vcaNetworkPath}\\${filename}`;
-      } catch (vcaErr) {
-        logger.warn(`[store.getTicketBuffer] Error generando VCA: ${vcaErr.message}`);
-      }
-    }
-
     return res.json({
       success: true,
       ticketBase64: ticketBuffer.toString('base64'),
-      vcaContent,
-      vcaPath,
       printerName: warranty.lab.printerName || 'Bixolon',
       warrantyId: warranty.id,
     });

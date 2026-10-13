@@ -23,6 +23,8 @@ if (missingRecommended.length > 0) {
 // ============================================================
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const { rateLimit } = require('express-rate-limit');
 const path = require('path');
 const logger = require('./config/logger');
 
@@ -35,6 +37,9 @@ const adminRoutes = require('./routes/adminRoutes');
 // ✅ NUEVO (PASO 6): Rutas del agente local de VCA
 const agentRoutes = require('./routes/agentRoutes');
 
+// Rutas de firma digital QZ Tray
+const qzRoutes = require('./routes/qzRoutes');
+
 // Cron Jobs
 const { startOrphanCleanupCron } = require('./cron/orphanCleanup');
 
@@ -45,10 +50,47 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 
 app.set('trust proxy', 1);
 
-// ✅ MIDDLEWARES GLOBALES (esto es lo que faltaba)
+// ✅ MIDDLEWARES GLOBALES
+// Helmet con CSP desactivada: la SPA se sirve desde el mismo backend y QZ Tray
+// se comunica por WebSocket local; una CSP estricta rompería ambos flujos.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+
+// CORS restringido por lista blanca en FRONTEND_URL (admite varios orígenes separados por coma).
+// Sin FRONTEND_URL configurado se mantiene el comportamiento permisivo previo.
+// Las llamadas server-to-server (agente local de VCA) no envían Origin y no se ven afectadas.
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      logger.warn(`[CORS] Origen bloqueado: ${origin}`);
+      return callback(new Error('Origen no permitido por CORS'));
+    },
+  })
+);
+
+// Rate limit solo para el login (fuerza bruta de credenciales)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos de inicio de sesión. Intenta de nuevo en 15 minutos.' },
+});
+app.use('/api/auth/login', loginLimiter);
 
 // 5. REGISTRAR RUTAS DE API
 app.use('/api/auth', authRoutes);
@@ -59,6 +101,9 @@ app.use('/api/admin', adminRoutes);
 // ✅ NUEVO (PASO 6): Rutas del agente local de VCA
 // (Se autentican con la API key del laboratorio, no con JWT)
 app.use('/api/agent', agentRoutes);
+
+// Firma digital QZ Tray: el frontend pide certificado y firmas para imprimir sin diálogos
+app.use('/api/qz', qzRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -80,9 +125,10 @@ app.use((req, res, next) => {
 });
 
 // ✅ MIDDLEWARE DE ERRORES (debe ir al final, después de todas las rutas)
+// No se filtra err.message al cliente: el detalle queda solo en el log.
 app.use((err, req, res, next) => {
   logger.error(`[Route Error] ${err.message}`, { stack: err.stack, path: req.path });
-  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // ======================================================

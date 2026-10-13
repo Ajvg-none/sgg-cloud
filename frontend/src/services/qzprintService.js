@@ -1,8 +1,39 @@
 import qz from 'qz-tray';
+import api from './api';
 
 /**
  * Servicio para manejar la comunicación con QZ Tray
  */
+
+// ============================================================
+// FIRMA DIGITAL (impresión silenciosa)
+// El backend firma cada petición con su clave privada
+// (backend/keys/qz-private-key.pem). El certificado público
+// debe estar confiado en QZ Tray de cada PC (Site Manager u
+// override.crt). Sin credenciales configuradas, QZ Tray vuelve
+// a mostrar sus diálogos de confirmación.
+// ============================================================
+qz.security.setCertificatePromise((resolve, reject) => {
+  api
+    .get('/qz/certificate')
+    .then((res) => resolve(res.data.certificate))
+    .catch((err) => {
+      console.error('❌ No se pudo obtener el certificado QZ del servidor:', err);
+      reject(err);
+    });
+});
+
+qz.security.setSignatureAlgorithm('SHA512'); // QZ Tray >= 2.1
+
+qz.security.setSignaturePromise((toSign) => (resolve, reject) => {
+  api
+    .get('/qz/sign', { params: { request: toSign } })
+    .then((res) => resolve(res.data.signature))
+    .catch((err) => {
+      console.error('❌ El servidor no pudo firmar la petición QZ:', err);
+      reject(err);
+    });
+});
 
 // Verifica si QZ Tray está activo
 export const isQZActive = () => {
@@ -49,23 +80,6 @@ export const printRawData = async (printerName, base64Data) => {
     return true;
   } catch (err) {
     console.error('❌ Error al imprimir:', err);
-    throw err;
-  }
-};
-
-// Escribe archivo VCA (opcional, si quieres hacerlo desde el navegador)
-export const writeVCAFile = async (filePath, content) => {
-  if (!isQZActive()) {
-    await connectQZ();
-  }
-  
-  try {
-    // sandbox: false permite escribir fuera de la carpeta de QZ Tray (requiere permisos)
-    await qz.file.write(filePath, content, { sandbox: false });
-    console.log(`📄 Archivo VCA escrito en ${filePath}`);
-    return true;
-  } catch (err) {
-    console.error('❌ Error escribiendo VCA:', err);
     throw err;
   }
 };

@@ -11,13 +11,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
 import { Pencil, KeyRound, Trash2, Search, RefreshCw } from 'lucide-react';
-
-const LIMIT_OPTIONS = [
-  { value: 5, label: '5 filas' },
-  { value: 10, label: '10 filas' },
-  { value: 20, label: '20 filas' },
-  { value: 50, label: '50 filas' },
-];
+import { LIMIT_OPTIONS } from '../../utils/format';
 
 const ROLE_LABELS = { ADMIN: 'Administrador', TIENDA: 'Tienda', LABORATORIO: 'Laboratorio' };
 const ROLE_COLORS = {
