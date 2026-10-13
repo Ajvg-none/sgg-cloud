@@ -13,13 +13,7 @@ import Select from '../components/ui/Select';
 import Pagination from '../components/ui/Pagination';
 import StoreHeader from '../components/layout/StoreHeader';
 import { Eye, Search, RefreshCw } from 'lucide-react';
-
-const LIMIT_OPTIONS = [
-  { value: 5, label: '5 filas' },
-  { value: 10, label: '10 filas' },
-  { value: 20, label: '20 filas' },
-  { value: 50, label: '50 filas' },
-];
+import { LIMIT_OPTIONS, formatDate } from '../utils/format';
 
 const OrderNumber = ({ code }) => {
   if (!code) return <span className="text-sm text-opticolor-gray-400">-</span>;
@@ -103,14 +97,6 @@ const StoreHistory = () => {
   const totalPages = Math.max(1, Math.ceil(filteredWarranties.length / limit));
   const safePage = Math.min(page, totalPages);
   const pagedWarranties = filteredWarranties.slice((safePage - 1) * limit, safePage * limit);
-
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleString('es-ES', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
 
   return (
     <div className="min-h-screen bg-opticolor-gray-50 p-4 sm:p-6">

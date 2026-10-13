@@ -1,15 +1,16 @@
 // backend/src/legacy/fetchAndMapOrder.js
 const gesvisionApi = require('./gesvisionApi');
+const { mapOpticalOrderV2ToV1 } = require('./opticalOrderV2Mapper');
 const logger = require('../config/logger');
 
-// ✅ CAMBIO 1: Alineado con el sistema en producción.
-// Antes: 'L': 'MONOFOCAL LEJOS', 'C': 'MONOFOCAL CERCA' → ahora "DE LEJOS" / "DE CERCA"
+// ✅ Alineado con el sistema en producción.
+// 'L': 'DE LEJOS', 'C': 'DE CERCA' (nunca "MONOFOCAL")
 const LENS_TYPE_MAP = { 'L': 'DE LEJOS', 'C': 'DE CERCA', 'B': 'BIFOCAL', 'P': 'PROGRESIVO' };
 
 const productCache = new Map();
 
 /**
- * ✅ CAMBIO 2: Intenta inferir el tipo de lente desde la descripción de los ítems.
+ * Intenta inferir el tipo de lente desde la descripción de los ítems.
  * NUNCA devuelve "MONOFOCAL": lo convierte a DE LEJOS / DE CERCA.
  * @param {Array<Object>} items - Ítems normalizados.
  * @returns {string|null}
@@ -19,11 +20,10 @@ function inferTipoLenteFromItems(items) {
   const texto = items.map(i => (i.descripcion || '').toLowerCase()).join(' ');
   if (texto.includes('progresivo') || texto.includes('pro ') || texto.includes('balance')) return 'PROGRESIVO';
   if (texto.includes('bifocal')) return 'BIFOCAL';
-  // ✅ Monofocal → solo "DE LEJOS" / "DE CERCA", nunca "MONOFOCAL"
   if (texto.includes('monofocal') || texto.includes('single vision') ||
       texto.includes('de lejos') || texto.includes('de cerca')) {
     if (texto.includes('cerca')) return 'DE CERCA';
-    return 'DE LEJOS'; // monofocal sin especificar → DE LEJOS (si prefieres otro valor, cámbialo aquí)
+    return 'DE LEJOS';
   }
   return null;
 }
@@ -44,27 +44,37 @@ function getPupilHeight(order, eye) {
   return null;
 }
 
-async function mapLineItems(lineItems) {
+/**
+ * Normaliza las líneas de una factura/pedido v2 (`InvoiceLineDocument` /
+ * `OrderLineDocument`) al contrato interno de ítems.
+ * @param {Array<Object>} lines - Arreglo `lines` del documento de venta v2.
+ * @returns {Promise<Array<Object>>}
+ */
+async function mapLineItems(lines) {
   const mappedItems = [];
-  for (const item of lineItems) {
-    let descripcion = item.extendedDescription?.trim();
+  for (const line of lines) {
+    let descripcion = line.extendedDescription?.trim()
+      || line.productDescription?.trim()
+      || line.productName?.trim()
+      || null;
     let codigoArticulo = null;
     let esMontura = false;
     let esCristal = false;
     let prefijoCodigo = '';
-    if (item.product) {
-      let productData = productCache.get(item.product);
+    const productId = line.productId ?? line.product;
+    if (productId) {
+      let productData = productCache.get(productId);
       if (!productData) {
         try {
-          const product = await gesvisionApi.getProduct(item.product);
+          const product = await gesvisionApi.getProduct(productId);
           productData = {
-            description: product.description || product.extendedDescription || null,
+            description: product.description || product.name || product.extendedDescription || null,
             reference: product.reference || null,
             barCode: product.barCode || null
           };
-          productCache.set(item.product, productData);
+          productCache.set(productId, productData);
         } catch (err) {
-          logger.error(`Error al obtener producto ${item.product}: ${err.message}`);
+          logger.error(`Error al obtener producto ${productId}: ${err.message}`);
           productData = null;
         }
       }
@@ -87,7 +97,7 @@ async function mapLineItems(lineItems) {
     }
     if (!descripcion || descripcion.trim() === '') descripcion = 'Descripción no disponible';
     mappedItems.push({
-      descripcion, cantidad: parseFloat(item.quantity) || 1,
+      descripcion, cantidad: parseFloat(line.quantity) || 1,
       codigo_articulo: codigoArticulo,
       codigo_completo: prefijoCodigo ? `${prefijoCodigo}${codigoArticulo}` : codigoArticulo,
       es_montura: esMontura, es_cristal: esCristal, prefijo: prefijoCodigo
@@ -96,145 +106,69 @@ async function mapLineItems(lineItems) {
   return mappedItems;
 }
 
+/**
+ * Obtiene los items de una orden v2: primero desde la factura de venta
+ * (`sales-invoices/{id}.lines`), luego desde el pedido de venta
+ * (`sales-orders/{id}.lines`).
+ * @param {Object} order - Orden mapeada a forma v1.
+ * @returns {Promise<Object>} { items }
+ */
 async function fetchOrderItems(order) {
-  let invoice = null;
-  let issuedOrder = null;
   let items = [];
   if (order.issuedInvoiceId) {
     try {
-      invoice = await gesvisionApi.getIssuedInvoice(order.issuedInvoiceId);
-      if (invoice?.lineItems?.length) items = await mapLineItems(invoice.lineItems);
+      const invoice = await gesvisionApi.getSalesInvoice(order.issuedInvoiceId);
+      if (invoice?.lines?.length) items = await mapLineItems(invoice.lines);
     } catch (err) {
       logger.error(`Error al obtener factura ${order.issuedInvoiceId}: ${err.message}`);
     }
   }
   if (items.length === 0 && order.issuedOrderId) {
     try {
-      issuedOrder = await gesvisionApi.getIssuedOrder(order.issuedOrderId);
-      if (issuedOrder?.lineItems?.length) items = await mapLineItems(issuedOrder.lineItems);
+      const salesOrder = await gesvisionApi.getSalesOrder(order.issuedOrderId);
+      if (salesOrder?.lines?.length) items = await mapLineItems(salesOrder.lines);
     } catch (err) {
       logger.error(`Error al obtener pedido ${order.issuedOrderId}: ${err.message}`);
     }
   }
-  return { items, invoice, issuedOrder };
-}
-
-// ============================================================
-// ✅ RESOLUCIÓN DEL ASESOR / RESPONSABLE DE LA VENTA (CORREGIDO)
-// ============================================================
-// ❌ Campos que NUNCA son asesores (aunque la regex los detecte)
-const EXCLUDED_KEYS = new Set([
-  'optometryExamId', 'customerId', 'warehouseId', 'issuedInvoiceId',
-  'issuedOrderId', 'receivedOrderId', 'frameId', 'companyId',
-  'id', 'productId', 'lineItems'
-]);
-// Regex estricta (sin 'user' ni 'optic/optom' para evitar falsos positivos)
-const ASESOR_REGEX = /sell|sales|vended|asesor|advisor|employ|agent|attend|sold|vendor|worker|staff|created_?by|updated_?by/i;
-// Campos prioritarios en orden de preferencia
-const PRIORITY_KEYS = ['employee', 'seller', 'salesperson', 'createdBy'];
-
-function extractPersonName(obj) {
-  if (!obj || typeof obj !== 'object') return null;
-  return (
-    [obj.name, obj.lastName].filter(Boolean).join(' ').trim() ||
-    [obj.firstName, obj.lastName].filter(Boolean).join(' ').trim() ||
-    obj.fullName || obj.username || obj.nombre || obj.nombreCompleto || null
-  );
-}
-
-async function fetchAsesorNameById(id) {
-  // ✅ Solo /employees funciona en tu GesVision
-  // Mantengo /sellers y /users como fallback por si otras versiones lo usan
-  const endpoints = [`/employees/${id}`, `/sellers/${id}`, `/users/${id}`];
-  for (const endpoint of endpoints) {
-    try {
-      const data = await gesvisionApi.request('GET', endpoint);
-      const name = extractPersonName(data);
-      if (name) {
-        logger.info(`👔 Asesor resuelto vía ${endpoint}: ${name}`);
-        return name;
-      }
-    } catch (err) {
-      // Endpoint no existe: probar el siguiente silenciosamente
-    }
-  }
-  logger.warn(`⚠️ No se pudo resolver el nombre del asesor con ID ${id}`);
-  return null;
+  return { items };
 }
 
 /**
- * Intenta resolver un valor crudo a nombre de asesor.
- * Retorna el nombre si tiene éxito, o null si falla.
+ * Resuelve el identificador de búsqueda a un objeto de orden en forma v1.
+ * Busca por número/código (lista v2) y luego trae el detalle (con graduación).
+ * @param {string|number} searchIdentifier
+ * @returns {Promise<Object>}
  */
-async function tryResolveAsesor(raw) {
-  if (!raw) return null;
-  // 1) Objeto embebido
-  if (typeof raw === 'object') {
-    return extractPersonName(raw);
-  }
-  // 2) String no numérico → es el nombre directamente
-  if (typeof raw === 'string' && raw.trim() && isNaN(Number(raw))) {
-    return raw.trim();
-  }
-  // 3) ID numérico → consultar GesVision
-  return await fetchAsesorNameById(raw);
-}
-
-/**
- * ✅ CORREGIDO: Busca el asesor en ORDEN → FACTURA → PEDIDO.
- * Si un candidato falla, CONTINÚA con la siguiente fuente.
- * Prioriza 'employee' que es el campo confirmado en tu GesVision.
- */
-async function resolveAsesorNombre(order, invoice, issuedOrder) {
-  const sources = [
-    { label: 'ORDEN', doc: order },
-    { label: 'FACTURA', doc: invoice },
-    { label: 'PEDIDO', doc: issuedOrder },
-  ];
-  for (const { label, doc } of sources) {
-    if (!doc || typeof doc !== 'object') continue;
-    const keys = Object.keys(doc);
-    // ✅ PASO 1: Buscar primero en campos prioritarios
-    for (const priorityKey of PRIORITY_KEYS) {
-      if (!keys.includes(priorityKey) || EXCLUDED_KEYS.has(priorityKey)) continue;
-      const raw = doc[priorityKey];
-      logger.info(`🔍 Campo prioritario en ${label}: ${priorityKey} = ${JSON.stringify(raw)}`);
-      const name = await tryResolveAsesor(raw);
-      if (name) return name;
-    }
-    // ✅ PASO 2: Buscar otros candidatos por regex
-    const candidateKey = keys.find(
-      (k) => !EXCLUDED_KEYS.has(k) && !PRIORITY_KEYS.includes(k) && ASESOR_REGEX.test(k)
-    );
-    if (!candidateKey) continue;
-    const raw = doc[candidateKey];
-    logger.info(`🔍 Campo candidato en ${label}: ${candidateKey} = ${JSON.stringify(raw)}`);
-    const name = await tryResolveAsesor(raw);
-    if (name) return name;
-    // ✅ Si llegamos aquí, el candidato falló → CONTINUAR con la siguiente fuente
-  }
-  return null;
-}
-
-async function fetchAndMapOrder(searchIdentifier) {
-  logger.info(`🔄 Iniciando mapeo de orden con identificador: ${searchIdentifier}`);
-  let order = null;
+async function resolveOrder(searchIdentifier) {
+  let listItem = null;
   try {
     logger.info(`Intentando buscar por Número de Orden: ${searchIdentifier}`);
-    order = await gesvisionApi.getGlassesOrderByNumber(searchIdentifier);
+    listItem = await gesvisionApi.getOpticalOrderByNumber(searchIdentifier);
   } catch (searchErr) {
     logger.warn(`⚠️ No encontrada por Número de Orden: ${searchIdentifier}. Intentando por ID interno...`);
   }
-  if (!order) {
+
+  let detail = null;
+  if (listItem && listItem.id !== undefined && listItem.id !== null) {
+    detail = await gesvisionApi.getOpticalOrder(listItem.id);
+  } else {
     try {
-      order = await gesvisionApi.getGlassesOrder(searchIdentifier);
+      detail = await gesvisionApi.getOpticalOrder(searchIdentifier);
     } catch (err) {
       throw new Error(`No se pudo encontrar la orden con ID o Número: ${searchIdentifier}. Verifica que exista en GesVision.`);
     }
   }
-  if (!order) throw new Error(`Orden ${searchIdentifier} no encontrada`);
+  if (!detail) throw new Error(`Orden ${searchIdentifier} no encontrada`);
 
-  const { items, invoice, issuedOrder } = await fetchOrderItems(order);
+  return mapOpticalOrderV2ToV1(detail, listItem);
+}
+
+async function fetchAndMapOrder(searchIdentifier) {
+  logger.info(`🔄 Iniciando mapeo de orden con identificador: ${searchIdentifier}`);
+  const order = await resolveOrder(searchIdentifier);
+
+  const { items } = await fetchOrderItems(order);
 
   let tipoLente = null;
   const rawLensType = order.opticalDataOD?.lensType || order.opticalDataOI?.lensType;
@@ -261,8 +195,8 @@ async function fetchAndMapOrder(searchIdentifier) {
   const dpOD = mapDP(order.opticalDataOD, order.pupillaryDistance);
   const dpOI = mapDP(order.opticalDataOI, order.pupillaryDistance);
 
-  let clienteNombre = null;
-  if (order.customerId) {
+  let clienteNombre = order.customerName || null;
+  if (!clienteNombre && order.customerId) {
     try {
       const customer = await gesvisionApi.getCustomer(order.customerId);
       if (customer) clienteNombre = [customer.name, customer.lastName].filter(Boolean).join(' ').trim() || null;
@@ -271,31 +205,15 @@ async function fetchAndMapOrder(searchIdentifier) {
     }
   }
 
-  let tiendaNombre = null;
-  if (order.warehouseId) {
-    try {
-      logger.info(`📦 Obteniendo datos de la tienda/warehouse ID ${order.warehouseId}`);
-      const warehouse = await gesvisionApi.getWarehouse(order.warehouseId);
-      if (warehouse) {
-        tiendaNombre = warehouse.name || null;
-        logger.info(`✅ Tienda encontrada: ${tiendaNombre}`);
-      }
-    } catch (whErr) {
-      logger.error(`Error al obtener warehouse ${order.warehouseId}: ${whErr.message}`);
-    }
-  }
+  // v2 entrega el nombre de la tienda en la propia orden (no existe /warehouses en v2).
+  const tiendaNombre = order.warehouseName || null;
 
-  // ✅ NUEVO: Obtener el asesor/responsable (ORDEN → FACTURA → PEDIDO)
-  let asesorNombre = null;
-  try {
-    asesorNombre = await resolveAsesorNombre(order, invoice, issuedOrder);
-    if (asesorNombre) {
-      logger.info(`👔 Asesor/responsable de la venta: ${asesorNombre}`);
-    } else {
-      logger.warn(`⚠️ No se pudo determinar el asesor de la orden ${searchIdentifier}`);
-    }
-  } catch (asesorErr) {
-    logger.error(`Error al resolver asesor de la orden: ${asesorErr.message}`);
+  // v2 no expone /employees ni un ID de asesor: el usuario creador es la única fuente.
+  const asesorNombre = order.createdBy || null;
+  if (asesorNombre) {
+    logger.info(`👔 Asesor/responsable de la venta: ${asesorNombre}`);
+  } else {
+    logger.warn(`⚠️ No se pudo determinar el asesor de la orden ${searchIdentifier}`);
   }
 
   return {

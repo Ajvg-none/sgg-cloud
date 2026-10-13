@@ -18,13 +18,3 @@ export const LogoutIcon = (props) => (
     />
   </svg>
 );
-
-export const StoreIcon = (props) => (
-  <svg {...iconBase} className="h-5 w-5" {...props}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M3 21h18M4 21V8m16 13V8M2 8h20l-1.5-5h-17L2 8zm3 4h3m-3 4h3m8-4h3m-3 4h3"
-    />
-  </svg>
-);

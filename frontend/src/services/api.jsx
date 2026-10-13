@@ -5,6 +5,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  // Red de seguridad: sin esto, una petición colgada deja el spinner de la UI
+  // girando indefinidamente (la búsqueda de una OTG en GesVision puede tardar).
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },

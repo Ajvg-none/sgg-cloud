@@ -11,6 +11,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
 import WarrantyDetailModal from '../../components/ui/WarrantyDetailModal';
+import { formatDate } from '../../utils/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -115,11 +116,6 @@ const AdminDashboard = () => {
 
   const handleSearch = () => {
     loadWarranties(1);
-  };
-
-  const formatDate = (d) => {
-    if (!d) return '-';
-    return new Date(d).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (

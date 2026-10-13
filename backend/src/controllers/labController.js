@@ -11,7 +11,8 @@ const prisma = new PrismaClient({ adapter });
 
 /**
  * GET /api/lab/ticket-buffer/:warrantyId
- * Genera el ticket ESC/POS y devuelve el base64 + datos VCA para que el frontend imprima con QZ Tray.
+ * Genera el ticket ESC/POS y devuelve el base64 para que el frontend lo imprima con QZ Tray.
+ * El archivo VCA no se genera aquí: lo entrega el agente local vía /api/agent/vca/*.
  */
 const getTicketBuffer = async (req, res) => {
   try {
@@ -27,7 +28,7 @@ const getTicketBuffer = async (req, res) => {
     const warranty = await prisma.warranty.findUnique({
       where: { id: warrantyId },
       include: {
-        lab: { select: { id: true, name: true, printerName: true, vcaNetworkPath: true, vcaEnabled: true } },
+        lab: { select: { id: true, name: true, printerName: true } },
         store: { select: { name: true, accn: true } },
       },
     });
@@ -60,29 +61,12 @@ const getTicketBuffer = async (req, res) => {
       return res.status(500).json({ error: 'Error al generar el ticket.' });
     }
 
-    // 2. Generar contenido VCA (si aplica)
-    let vcaContent = null;
-    let vcaPath = null;
-
-    if (warranty.lab.vcaEnabled && warranty.lab.vcaNetworkPath) {
-      try {
-        const { generateVCAContent } = require('../legacy/lensware');
-        vcaContent = await generateVCAContent(orderForPrint, items);
-        const filename = `Pedido_${warranty.orderNumber}_${warranty.storeId}.vca`;
-        vcaPath = `${warranty.lab.vcaNetworkPath}\\${filename}`;
-      } catch (vcaErr) {
-        logger.warn(`Error generando VCA preview: ${vcaErr.message}`);
-      }
-    }
-
     logger.info(`[getTicketBuffer] Ticket generado para garantía ${warrantyId}`, { orderNumber: warranty.orderNumber });
 
-    // 3. Devolver todo al frontend
+    // 2. Devolver al frontend
     return res.json({
       success: true,
       ticketBase64: ticketBuffer.toString('base64'),
-      vcaContent: vcaContent,
-      vcaPath: vcaPath,
       printerName: warranty.lab.printerName || 'Bixolon', // Nombre exacto para QZ Tray
       warrantyId: warranty.id
     });

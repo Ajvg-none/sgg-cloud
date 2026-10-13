@@ -173,36 +173,6 @@ const updateUser = async (req, res) => {
 };
 
 /**
-* Resetea la contraseña de un usuario.
-*/
-const resetPassword = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 6) {
-      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
-    }
-    const existingUser = await prisma.user.findUnique({ where: { id } });
-    if (!existingUser) {
-      return res.status(404).json({ error: 'Usuario no encontrado.' });
-    }
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { id },
-      data: { password: hashedPassword }
-    });
-    logger.info(`✅ Contraseña reseteada por Admin para usuario: ${existingUser.username}`);
-    return res.status(200).json({
-      message: 'Contraseña actualizada exitosamente.',
-      user: { id: existingUser.id, username: existingUser.username, role: existingUser.role }
-    });
-  } catch (error) {
-    logger.error(`❌ Error en resetPassword: ${error.message}`);
-    return res.status(500).json({ error: 'Error interno del servidor.' });
-  }
-};
-
-/**
 * ✅ NUEVO: Elimina un usuario PERMANENTEMENTE de la base de datos.
 * Sin conflictos: ninguna tabla referencia a users (las garantías están
 * ligadas a tiendas/laboratorios, no a usuarios).
@@ -244,6 +214,5 @@ module.exports = {
   getUsers,
   createUser,
   updateUser,
-  resetPassword,
   deleteUser
 };

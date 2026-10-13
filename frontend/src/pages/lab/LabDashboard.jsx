@@ -13,7 +13,8 @@ import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
 import WarrantyDetailModal from '../../components/ui/WarrantyDetailModal';
 import { Printer, CheckCircle2, XCircle, Search, RefreshCw, Eye } from 'lucide-react';
-import { connectQZ, printRawData, writeVCAFile, isQZActive } from '../../services/qzprintService';
+import { connectQZ, printRawData, isQZActive } from '../../services/qzprintService';
+import { LIMIT_OPTIONS, formatDate } from '../../utils/format';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -28,13 +29,6 @@ const REFRESH_OPTIONS = [
   { value: 5, label: '5 seg' },
   { value: 10, label: '10 seg' },
   { value: 30, label: '30 seg' },
-];
-
-const LIMIT_OPTIONS = [
-  { value: 5, label: '5 filas' },
-  { value: 10, label: '10 filas' },
-  { value: 20, label: '20 filas' },
-  { value: 50, label: '50 filas' },
 ];
 
 const OrderNumber = ({ code }) => {
@@ -198,23 +192,14 @@ const LabDashboard = () => {
 
       // 2. Pedir al backend que genere el ticket (NO imprime todavía)
       const response = await labAPI.getTicketBuffer(warrantyToProcess.id);
-      const { ticketBase64, vcaContent, vcaPath, printerName } = response.data;
+      const { ticketBase64, printerName } = response.data;
 
       // 3. IMPRIMIR FÍSICAMENTE con QZ Tray
       // Esto envía los bytes directamente a la impresora Bixolon
       await printRawData(printerName, ticketBase64);
 
-      // 4. Generar archivo VCA (Opcional, si falla no detenemos todo)
-      if (vcaContent && vcaPath) {
-        try {
-          await writeVCAFile(vcaPath, vcaContent);
-        } catch (vcaErr) {
-          console.warn("Error escribiendo VCA:", vcaErr);
-          setAlert({ type: 'warning', message: 'Ticket impreso, pero falló la generación del archivo VCA en red.' });
-        }
-      }
-
-      // 5. Avisar al backend que ya terminamos (Marcar como COMPLETED)
+      // 4. Avisar al backend que ya terminamos (Marcar como COMPLETED)
+      // Nota: el archivo VCA lo entrega el agente local por separado (/api/agent/vca/*)
       await labAPI.completeWarranty(warrantyToProcess.id);
       setAlert({ type: 'success', message: `Orden ${warrantyToProcess.orderNumber} impresa y procesada correctamente.` });
 
@@ -246,11 +231,6 @@ const LabDashboard = () => {
       console.error(e);
       setTestPrintResult('error');
     }
-  };
-
-  const formatDate = (d) => {
-    if (!d) return '-';
-    return new Date(d).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -520,7 +500,7 @@ const LabDashboard = () => {
                 ?
               </p>
               <p className="text-xs text-blue-700 mt-2">
-                Se imprimirá el ticket y se generará el archivo VCA automáticamente.
+                Se imprimirá el ticket. El archivo VCA lo entregará el agente local automáticamente.
               </p>
             </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-opticolor-gray-200">

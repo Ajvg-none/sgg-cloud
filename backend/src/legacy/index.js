@@ -9,19 +9,16 @@
  */
 
 // ============================================================
-// 1. API de GesVision (autenticación, reintentos, endpoints)
+// 1. API de GesVision v2 (autenticación v1, reintentos, endpoints v2)
 // ============================================================
 const gesvisionApi = require('./gesvisionApi');
+const { mapOpticalOrderV2ToV1 } = require('./opticalOrderV2Mapper');
 
 // ============================================================
 // 2. Sincronización de órdenes (mapeo de datos crudos a objeto plano)
-//    Extraemos la función fetchAndMapOrder de orderSync.js
-//    (más adelante la aislaremos completamente para que sea pura)
+//    La función pura vive en fetchAndMapOrder.js; el servicio que la
+//    consume y persiste en OrderCache es services/syncService.js.
 // ============================================================
-// Por ahora, exportamos todo el módulo orderSync para tener acceso
-// a la función syncOrder (que incluye la lógica de mapeo).
-// En fases posteriores, extraeremos la función fetchAndMapOrder pura.
-const orderSync = require('./orderSync');
 
 // ============================================================
 // 3. Generación de contenido VCA (formato Lensware)
@@ -38,12 +35,13 @@ const printer = require('./printer');
 // ============================================================
 
 module.exports = {
-  // --- GesVision API ---
+  // --- GesVision API v2 ---
   gesvisionApi,
+  // Adaptador OpticalOrderDocument (v2) → forma interna v1
+  mapOpticalOrderV2ToV1,
 
   // --- Sincronización de órdenes ---
-  fetchAndMapOrder: require('./fetchAndMapOrder').fetchAndMapOrder, // <-- AGREGAR ESTA LÍNEA
-  syncOrder: orderSync.syncOrder,
+  fetchAndMapOrder: require('./fetchAndMapOrder').fetchAndMapOrder,
 
   // --- Lensware (VCA) ---
   // Función pura para generar contenido VCA (sin escribir en disco)

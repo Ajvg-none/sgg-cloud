@@ -76,7 +76,6 @@ const useWarrantyFormStore = create((set, get) => ({
       const response = await storeAPI.getOrder(orderNumber);
       if (get()._searchToken !== token) return; // el usuario lanzó otra búsqueda
       set({
-        loading: false,
         orderData: response.data.order,
         alert: {
           type: 'success',
@@ -85,14 +84,15 @@ const useWarrantyFormStore = create((set, get) => ({
       });
     } catch (error) {
       if (get()._searchToken !== token) return;
-      set({
-        loading: false,
-        orderData: null,
-        alert: {
-          type: 'error',
-          message: error.response?.data?.details || 'Error al buscar la OTG',
-        },
-      });
+      const message =
+        error.code === 'ECONNABORTED'
+          ? 'La búsqueda tardó demasiado. Verifica el número de OTG e intenta de nuevo.'
+          : error.response?.data?.error || error.response?.data?.details || 'Error al buscar la OTG';
+      set({ orderData: null, alert: { type: 'error', message } });
+    } finally {
+      // Garantiza que el spinner se apague SIEMPRE (aunque la promesa falle),
+      // salvo que una búsqueda más nueva ya sea la dueña del estado.
+      if (get()._searchToken === token) set({ loading: false });
     }
   },
 
